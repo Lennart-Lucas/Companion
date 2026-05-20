@@ -191,3 +191,25 @@ scripts/       PowerShell helpers (Windows)
 ```
 
 See [docs/architecture.md](docs/architecture.md) for design details.
+
+## Security & API testing
+
+Auth and E2E endpoints are under `/api/v1`. Configure `JWT_SECRET` and related variables in `.env.dev` (see `.env.dev.example`).
+
+| Area | Endpoints |
+|------|-----------|
+| Auth | `POST /api/v1/auth/register`, `login`, `refresh`, `logout`; `GET /api/v1/auth/me` |
+| E2E keys | `POST /api/v1/devices`, `GET /api/v1/users/{id}/keys`, `POST /api/v1/keys/prekeys` |
+| E2E messages | `POST /api/v1/messages`, `GET /api/v1/messages` |
+
+### Postman
+
+1. Start the dev stack (`make dev-up` or `.\scripts\dev.ps1 up`).
+2. In Postman: **Import** → select:
+   - [docs/companion-api.postman_collection.json](docs/companion-api.postman_collection.json)
+   - [docs/companion-api.postman_environment.json](docs/companion-api.postman_environment.json) (optional)
+3. Select the **Companion API (dev)** environment.
+4. Run **Auth → Register** or **Login** — tokens are saved automatically to collection variables.
+5. Use **E2E Keys** and **E2E Messages** folders (require a second registered user for cross-user key/message tests; set `recipientUserId` accordingly).
+
+See [docs/architecture.md](docs/architecture.md#security) for auth flow and E2E client responsibilities.
