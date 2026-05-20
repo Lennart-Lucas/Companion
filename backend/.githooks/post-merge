@@ -1,0 +1,32 @@
+#!/bin/sh
+# Squash local temp Alembic migrations after merging into main/develop.
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+case "$BRANCH" in
+  main|develop)
+    ;;
+  *)
+    exit 0
+    ;;
+esac
+
+BACKEND_DIR="$(git rev-parse --show-toplevel)/backend"
+if [ ! -d "$BACKEND_DIR" ]; then
+  echo "post-merge: backend directory not found, skipping migration squash."
+  exit 0
+fi
+
+cd "$BACKEND_DIR" || exit 1
+
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON=python3
+elif command -v python >/dev/null 2>&1; then
+  PYTHON=python
+else
+  echo "post-merge: python not found, skipping migration squash."
+  exit 0
+fi
+
+echo "post-merge: squashing temporary migrations on branch $BRANCH..."
+$PYTHON scripts/squash_migrations.py
+exit $?
