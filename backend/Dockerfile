@@ -16,8 +16,8 @@ COPY alembic.ini .
 COPY alembic ./alembic
 COPY app ./app
 COPY scripts ./scripts
-RUN sed -i 's/\r$//' scripts/docker-entrypoint-dev.sh scripts/install-git-hooks.sh \
-    && chmod +x scripts/docker-entrypoint-dev.sh
+RUN sed -i 's/\r$//' scripts/docker-entrypoint-dev.sh scripts/docker-entrypoint-worker.sh scripts/install-git-hooks.sh \
+    && chmod +x scripts/docker-entrypoint-dev.sh scripts/docker-entrypoint-worker.sh
 
 EXPOSE 8000
 

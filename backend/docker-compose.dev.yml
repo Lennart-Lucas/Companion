@@ -30,5 +30,18 @@ services:
       - ./app:/app/app
       - ./alembic:/app/alembic
 
+  worker:
+    build: .
+    env_file:
+      - .env.dev
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/app/scripts/docker-entrypoint-worker.sh"]
+    command: ["python", "scripts/run_worker.py"]
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+
 volumes:
   postgres_data_dev:

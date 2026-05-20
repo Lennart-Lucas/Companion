@@ -72,6 +72,12 @@ Settings live in `app/config.py` and load from environment variables (and option
 | `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token lifetime (default 30) |
 | `PASSWORD_MIN_LENGTH` | Minimum password length (default 8) |
 | `CORS_ORIGINS` | Comma-separated allowed origins for CORS |
+| `JOB_POLL_INTERVAL_SECONDS` | Worker sleep between poll iterations (default 5) |
+| `JOB_BATCH_SIZE` | Max jobs claimed per iteration (default 10) |
+| `JOB_MAX_RETRIES` | Default max retries per job (default 3) |
+| `JOB_RETRY_BASE_SECONDS` | Linear backoff multiplier after failure (default 60) |
+| `JOB_SUCCESS_RETENTION_SECONDS` | Delete completed jobs after this TTL (default 3600) |
+| `JOB_LOCK_TIMEOUT_SECONDS` | Reclaim stale `running` jobs after this age (default 300) |
 
 ### Docker networking
 
@@ -90,13 +96,17 @@ Two Docker Compose stacks support parallel local development and production-like
 flowchart TB
   subgraph devStack [companion-dev]
     devApi[api :8000]
+    devWorker[worker]
     devDb[(db :5432)]
     devApi --> devDb
+    devWorker --> devDb
   end
   subgraph prodStack [companion-prod]
     prodApi[api :8001]
+    prodWorker[worker]
     prodDb[(db :5433)]
     prodApi --> prodDb
+    prodWorker --> prodDb
   end
 ```
 
@@ -183,27 +193,85 @@ The initial revision (`001_initial`) is an empty baseline so `alembic_version` i
 | Tables / relationships | `app/models/`, then autogenerate migration |
 | Shared DB access in routes | `Depends(get_db)` from `app/dependencies.py` |
 | Cross-route business logic | `app/services/` (recommended as the app grows) |
+| Background work | `job_service.enqueue()` + task in `app/jobs/tasks/` |
 | Auth / middleware | FastAPI middleware or dependencies in `app/dependencies.py` |
+
+## Async jobs
+
+Background work uses a **PostgreSQL-backed job queue** and a dedicated **worker** process (not in-process FastAPI background tasks). This avoids duplicate polling when the API runs multiple Uvicorn workers.
+
+```mermaid
+flowchart TB
+  subgraph api [api]
+    Svc[services]
+    Enq[job_service.enqueue]
+    Svc --> Enq
+  end
+  subgraph db [PostgreSQL]
+    Jobs[(async_jobs)]
+    Errors[(async_job_errors)]
+  end
+  subgraph worker [worker]
+    Poll[claim batch SKIP LOCKED]
+    Reg[task registry]
+    Exec[execute handler]
+    Clean[delete completed past retention]
+    Poll --> Reg --> Exec
+    Poll --> Clean
+  end
+  Enq --> Jobs
+  Poll --> Jobs
+  Exec -->|failure| Errors
+  Clean --> Jobs
+```
+
+### Tables
+
+- **`async_jobs`** — `task_name`, JSON `parameters`, `status` (`pending` / `running` / `completed` / `failed`), retry counters, scheduling and lock metadata.
+- **`async_job_errors`** — one row per failed attempt (`message`, optional `detail` traceback).
+
+### Lifecycle
+
+1. **Enqueue** — `job_service.enqueue(session, task_name, parameters)` inserts a `pending` row with `scheduled_at = now()`.
+2. **Claim** — worker selects eligible `pending` rows (`scheduled_at <= now`, `retry_count < max_retries`) with `FOR UPDATE SKIP LOCKED`, marks them `running`.
+3. **Execute** — handler from `@register_task("name")` in `app/jobs/tasks/` runs with the job parameters and a DB session.
+4. **Success** — status `completed`; row deleted after `JOB_SUCCESS_RETENTION_SECONDS`.
+5. **Failure** — append `async_job_errors`, increment `retry_count`, reschedule with linear backoff (`retry_count * JOB_RETRY_BASE_SECONDS`) or mark `failed` when max retries exceeded.
+6. **Stale locks** — `running` jobs older than `JOB_LOCK_TIMEOUT_SECONDS` are reset to `pending` (crashed worker recovery).
+7. **Unknown task** — permanent `failed` (no retry loop).
+
+There is no public REST API for jobs in v1; enqueue from services only.
+
+### Adding a task
+
+1. Create `app/jobs/tasks/my_task.py` with `@register_task("my_task")`.
+2. Import the module in `app/jobs/tasks/__init__.py`.
+3. Call `await job_service.enqueue(session, "my_task", {...})` from a service or route.
+
+The bundled **`example`** task is a no-op for wiring checks.
 
 ## Infrastructure (local)
 
-Each environment runs an independent pair of containers:
+Each environment runs API, worker, and database containers:
 
 ```mermaid
 flowchart LR
   subgraph devEnv [companion-dev]
     devClient[Client] --> devApi[api :8000]
     devApi --> devDb[(postgres :5432)]
+    devWorker[worker] --> devDb
   end
   subgraph prodEnv [companion-prod]
     prodClient[Client] --> prodApi[api :8001]
     prodApi --> prodDb[(postgres :5433)]
+    prodWorker[worker] --> prodDb
   end
 ```
 
 - **`api`** — builds from `Dockerfile`, runs Uvicorn (reload in dev, workers in prod).
+- **`worker`** — same image; entrypoint runs `alembic upgrade head`, then `python scripts/run_worker.py`. Polls `async_jobs` after schema is ready.
 - **`db`** — `postgres:16-alpine` with a per-environment named volume.
-- **`api`** waits for **`db`** healthcheck before starting.
+- **`api`** and **`worker`** both wait for **`db`** healthcheck; each applies migrations on startup (dev API also autogenerates temp revisions when models drift).
 
 Production deployments will likely mirror this split (stateless API service + managed PostgreSQL) with environment-specific secrets and networking.
 

@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     max_public_key_bytes: int = 1024
     max_ciphertext_bytes: int = 65536
 
+    job_poll_interval_seconds: int = 5
+    job_batch_size: int = 10
+    job_max_retries: int = 3
+    job_retry_base_seconds: int = 60
+    job_success_retention_seconds: int = 3600
+    job_lock_timeout_seconds: int = 300
+    job_schema_wait_timeout_seconds: int = 120
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: str | list[str]) -> list[str]:
