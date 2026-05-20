@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
 import re
+import subprocess
 from pathlib import Path
 
 from alembic.config import Config
@@ -89,3 +89,111 @@ def delete_temp_migration_files() -> int:
 def slugify_message(text: str, max_length: int = 60) -> str:
     slug = re.sub(r"[^a-zA-Z0-9]+", "_", text.strip().lower()).strip("_")
     return slug[:max_length] or "schema_update"
+
+
+NUMERIC_REVISION_PATTERN = re.compile(r"^\d{3}$")
+SKIP_BRANCH_NAMES = frozenset({"main", "develop", "master", "head"})
+
+
+def _run_git(args: list[str], repo_root: Path) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=repo_root,
+        )
+        return result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+
+def parse_branch_from_merge_subject(subject: str) -> str | None:
+    subject = subject.strip()
+    if not subject:
+        return None
+
+    patterns = [
+        re.compile(r"^merge pull request #\d+ from [^/]+/(.+)$", re.IGNORECASE),
+        re.compile(r"^merge branch '([^']+)'", re.IGNORECASE),
+        re.compile(r"^merge remote-tracking branch '[^/]+/([^']+)'", re.IGNORECASE),
+    ]
+    for pattern in patterns:
+        match = pattern.match(subject)
+        if match:
+            branch_part = match.group(1).split("/")[-1]
+            slug = slugify_message(branch_part)
+            if slug and slug != "schema_update":
+                return slug
+    return None
+
+
+def get_merged_branch_slug(repo_root: Path) -> str | None:
+    merged_sha = _run_git(["rev-parse", "HEAD^2"], repo_root)
+    if not merged_sha:
+        return None
+
+    branches_output = _run_git(
+        [
+            "branch",
+            "-a",
+            "--contains",
+            merged_sha,
+            "--format=%(refname:short)",
+        ],
+        repo_root,
+    )
+    if not branches_output:
+        return None
+
+    candidates: list[str] = []
+    for line in branches_output.splitlines():
+        name = line.strip()
+        if not name:
+            continue
+        if name.startswith("origin/"):
+            name = name.removeprefix("origin/")
+        base_name = name.split("/")[-1]
+        if base_name.lower() in SKIP_BRANCH_NAMES:
+            continue
+        if name not in candidates:
+            candidates.append(name)
+
+    if not candidates:
+        return None
+
+    # Prefer local-style branch names (no slash) over remote feature paths.
+    candidates.sort(key=lambda n: ("/" in n, len(n)))
+    return slugify_message(candidates[0].split("/")[-1])
+
+
+def resolve_revision_slug(
+    repo_root: Path, cli_message: str | None = None
+) -> str:
+    if cli_message:
+        return slugify_message(cli_message)
+
+    branch_slug = get_merged_branch_slug(repo_root)
+    if branch_slug:
+        return branch_slug
+
+    subject = _run_git(["log", "-1", "--pretty=%s"], repo_root)
+    if subject:
+        parsed = parse_branch_from_merge_subject(subject)
+        if parsed:
+            return parsed
+
+    return "schema_update"
+
+
+def get_next_permanent_revision_id(script: ScriptDirectory) -> str:
+    numeric_ids: list[int] = []
+    for rev in get_permanent_revisions(script):
+        if NUMERIC_REVISION_PATTERN.match(rev.revision):
+            numeric_ids.append(int(rev.revision))
+
+    if not numeric_ids:
+        return "001"
+
+    return f"{max(numeric_ids) + 1:03d}"

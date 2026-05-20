@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import subprocess
+import argparse
 import sys
 from pathlib import Path
 
@@ -19,11 +19,12 @@ from migration_utils import (
     ROOT,
     delete_temp_migration_files,
     get_alembic_config,
+    get_next_permanent_revision_id,
     get_permanent_head,
     get_permanent_versions_dir,
     get_script_directory,
     get_sync_database_url,
-    slugify_message,
+    resolve_revision_slug,
 )
 
 sys.path.insert(0, str(ROOT))
@@ -31,21 +32,20 @@ sys.path.insert(0, str(ROOT))
 from app.models.base import Base  # noqa: E402
 
 
-def get_merge_message_slug() -> str:
-    try:
-        result = subprocess.run(
-            ["git", "log", "-1", "--pretty=%s"],
-            capture_output=True,
-            text=True,
-            check=True,
-            cwd=ROOT.parent,
-        )
-        return slugify_message(result.stdout)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return "schema_update"
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Squash temp Alembic migrations into one permanent revision.",
+    )
+    parser.add_argument(
+        "-m",
+        "--message",
+        help="Migration slug (e.g. branch name: security → 003_security.py)",
+    )
+    return parser.parse_args()
 
 
 def main() -> int:
+    args = parse_args()
     cfg = get_alembic_config()
     script = get_script_directory(cfg)
     permanent_head = get_permanent_head(script)
@@ -81,13 +81,15 @@ def main() -> int:
         command.upgrade(cfg, "head")
         return 0
 
-    message = get_merge_message_slug()
+    slug = resolve_revision_slug(ROOT.parent, args.message)
+    rev_id = get_next_permanent_revision_id(script)
     permanent_dir = get_permanent_versions_dir()
-    print(f"Creating permanent migration: {message}...")
+    print(f"Creating permanent migration: {rev_id}_{slug}.py (rev_id={rev_id}, slug={slug})...")
 
     command.revision(
         cfg,
-        message=message,
+        message=slug,
+        rev_id=rev_id,
         autogenerate=True,
         version_path=str(permanent_dir),
     )

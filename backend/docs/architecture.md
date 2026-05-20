@@ -149,15 +149,20 @@ flowchart LR
 
 ### Merge (main / develop)
 
-1. **Install hooks** — `make install-hooks` (one-time).
+1. **Install hooks** — `make install-hooks` or `.\backend\scripts\install-git-hooks.ps1` from repo root (one-time).
 2. **Merge branch** — post-merge hook runs `scripts/squash_migrations.py`:
    - Downgrades dev DB to the last permanent head
    - Deletes `alembic/versions/temp/*`
    - Autogenerates one permanent revision from model diff
+   - Names it `NNN_<branchSlug>.py` (next 3-digit id + slug from merged branch, e.g. `003_security.py`)
    - Upgrades to head
 3. **Review and commit** the new file in `alembic/versions/`.
 
-Manual squash: `make squash-migrations` (dev DB must be reachable on `localhost:5432`).
+Slug resolution order: CLI `-m` flag → merged branch name (`HEAD^2`) → parsed merge commit subject → `schema_update`.
+
+Manual squash: `make squash-migrations` or `python scripts/squash_migrations.py -m feature_name` (dev DB must be reachable on `localhost:5432`).
+
+Squash only replaces **`temp_*`** revisions. Multiple committed permanent files on a branch must be consolidated manually (delete old files, downgrade DB, run squash).
 
 ### Production
 

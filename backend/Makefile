@@ -26,7 +26,7 @@ squash-migrations:
 	python scripts/squash_migrations.py
 
 install-hooks:
-	sh scripts/install-git-hooks.sh
+	powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-git-hooks.ps1
 
 prod-up:
 	$(PROD_COMPOSE) up --build -d

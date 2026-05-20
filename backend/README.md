@@ -116,6 +116,16 @@ After merging into `main` or `develop`, the **post-merge** hook:
 3. Autogenerates **one permanent** revision in `alembic/versions/`
 4. Applies it
 
+**Permanent migration naming:** `NNN_<featureSlug>.py` (e.g. `002_security.py`). The numeric id increments from existing `001`, `002`, … revisions. The slug comes from the **merged branch name** (not the GitHub merge commit title). Override manually with `-m`:
+
+```bash
+python scripts/squash_migrations.py -m my_feature
+```
+
+```powershell
+.\scripts\squash-migrations.ps1 -m my_feature
+```
+
 Review and commit the new permanent migration file.
 
 Manual squash (requires dev Postgres on `localhost:5432`):
@@ -127,6 +137,8 @@ make squash-migrations
 ```powershell
 .\scripts\squash-migrations.ps1
 ```
+
+**Note:** Squash collapses **`temp_*`** migrations only. Combining multiple already-committed permanent files (e.g. after a feature branch) is still a manual delete + squash flow.
 
 If squash fails because temp migrations are irreversible, reset the dev database:
 
