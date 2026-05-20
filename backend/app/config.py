@@ -1,5 +1,7 @@
 import os
+from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,6 +23,28 @@ class Settings(BaseSettings):
         "postgresql+psycopg2://companion:companion@localhost:5432/companion"
     )
 
+    jwt_secret: str = "dev-only-change-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 30
+    password_min_length: int = 8
+
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+
+    max_public_key_bytes: int = 1024
+    max_ciphertext_bytes: int = 65536
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: str | list[str]) -> list[str]:
+        if isinstance(value, str):
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env == "production"
+
 
 def get_database_url_sync() -> str:
     url = settings.database_url_sync
@@ -29,4 +53,9 @@ def get_database_url_sync() -> str:
     return url
 
 
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()

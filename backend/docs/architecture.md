@@ -66,6 +66,12 @@ Settings live in `app/config.py` and load from environment variables (and option
 | `DEBUG` | Enables SQL echo and verbose behavior when true |
 | `DATABASE_URL` | Async connection string (`postgresql+asyncpg://…`) |
 | `DATABASE_URL_SYNC` | Sync connection string for Alembic (`postgresql+psycopg2://…`) |
+| `JWT_SECRET` | Secret for signing access tokens (required in production) |
+| `JWT_ALGORITHM` | JWT algorithm (default `HS256`) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime (default 15) |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token lifetime (default 30) |
+| `PASSWORD_MIN_LENGTH` | Minimum password length (default 8) |
+| `CORS_ORIGINS` | Comma-separated allowed origins for CORS |
 
 ### Docker networking
 
@@ -195,3 +201,65 @@ flowchart LR
 - **`api`** waits for **`db`** healthcheck before starting.
 
 Production deployments will likely mirror this split (stateless API service + managed PostgreSQL) with environment-specific secrets and networking.
+
+## Security
+
+### Authentication
+
+Auth endpoints live under `/api/v1/auth`. The API uses **JWT access tokens** (short-lived) and **opaque refresh tokens** (stored hashed in PostgreSQL, revocable on logout).
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant DB
+    Client->>API: POST /auth/register or /login
+    API->>DB: Create user / verify password
+    API->>DB: Store refresh token hash
+    API-->>Client: access_token + refresh_token
+    Client->>API: GET /auth/me (Authorization Bearer)
+    API-->>Client: User profile
+    Client->>API: POST /auth/refresh
+    API->>DB: Revoke old refresh, issue new pair
+    Client->>API: POST /auth/logout
+    API->>DB: Set revoked_at on refresh token
+```
+
+| Endpoint | Auth | Purpose |
+|----------|------|---------|
+| `POST /api/v1/auth/register` | Public | Create account |
+| `POST /api/v1/auth/login` | Public | Obtain tokens |
+| `POST /api/v1/auth/refresh` | Public | Rotate refresh token |
+| `POST /api/v1/auth/logout` | Bearer | Revoke refresh token(s) |
+| `GET /api/v1/auth/me` | Bearer | Auth check + profile |
+
+Passwords are hashed with **Argon2id** (argon2-cffi). Login errors are generic (`Invalid email or password`) to avoid account enumeration.
+
+`get_current_user` and `get_current_active_user` in `app/dependencies.py` protect E2E and other private routes.
+
+### End-to-end encryption (server role)
+
+The server **never stores plaintext message content or private keys**. Clients encrypt locally; the API relays **public key bundles** and **ciphertext blobs**.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/v1/devices` | Register device + upload identity/signed/one-time prekeys |
+| `GET /api/v1/users/{user_id}/keys` | Fetch recipient public key bundle (consumes one one-time prekey) |
+| `POST /api/v1/keys/prekeys` | Upload additional one-time prekeys |
+| `POST /api/v1/messages` | Store encrypted payload for a recipient |
+| `GET /api/v1/messages` | Fetch undelivered inbox (marks delivered on read) |
+
+Public keys and ciphertext must be **base64** with size limits (`MAX_PUBLIC_KEY_BYTES`, `MAX_CIPHERTEXT_BYTES` in config). Future clients should implement the cryptographic protocol (e.g. Double Ratchet); the backend only provides storage and discovery.
+
+### Hardening
+
+- **CORS** — configurable via `CORS_ORIGINS`
+- **Rate limiting** — auth register/login limited (slowapi)
+- **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`
+- **OpenAPI docs** — disabled when `APP_ENV=production`
+
+Health checks remain at `/health` (no auth) for load balancers.
+
+### API testing
+
+Import [`companion-api.postman_collection.json`](companion-api.postman_collection.json) and optionally [`companion-api.postman_environment.json`](companion-api.postman_environment.json) into Postman. Register/Login requests auto-save `accessToken` and `refreshToken` to collection variables.

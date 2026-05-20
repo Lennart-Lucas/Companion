@@ -1,0 +1,16 @@
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerifyMismatchError
+
+_hasher = PasswordHasher()
+
+
+def hash_password(password: str) -> str:
+    return _hasher.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        _hasher.verify(hashed_password, plain_password)
+        return True
+    except (VerifyMismatchError, InvalidHashError):
+        return False
