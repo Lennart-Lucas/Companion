@@ -1,0 +1,54 @@
+import 'package:anvil_foundry/anvil_foundry.dart';
+import 'package:flutter/material.dart';
+
+import 'companion_themes.dart';
+
+/// Available app themes.
+abstract final class AppThemeId {
+  static const hub = 'the_hub';
+  static const abyss = 'abyss';
+  static const canopy = 'canopy';
+  static const nebula = 'nebula';
+
+  static const String hubLabel = 'The Hub';
+  static const String abyssLabel = 'Abyss';
+  static const String canopyLabel = 'Canopy';
+  static const String nebulaLabel = 'Nebula';
+
+  static ThemeData get hubTheme => theHubTheme;
+
+  static const options = <(String id, String label)>[
+    (hub, hubLabel),
+    (abyss, abyssLabel),
+    (canopy, canopyLabel),
+    (nebula, nebulaLabel),
+  ];
+
+  static ThemeData themeFor(String id) => switch (id) {
+        hub => theHubTheme,
+        abyss => companionAbyssTheme,
+        canopy => companionCanopyTheme,
+        nebula => companionNebulaTheme,
+        _ => theHubTheme,
+      };
+
+  /// Preview swatch colors (background, surface, primary) for the settings UI.
+  static ({Color background, Color surface, Color primary}) previewColorsFor(
+    String id,
+  ) =>
+      switch (id) {
+        hub => (
+            background: const Color(0xFF000000),
+            surface: const Color(0xFF121212),
+            primary: const Color(0xFFFF9000),
+          ),
+        abyss => companionAbyssPreviewColors,
+        canopy => companionCanopyPreviewColors,
+        nebula => companionNebulaPreviewColors,
+        _ => (
+            background: const Color(0xFF000000),
+            surface: const Color(0xFF121212),
+            primary: const Color(0xFFFF9000),
+          ),
+      };
+}

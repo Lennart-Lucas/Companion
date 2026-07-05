@@ -1,0 +1,34 @@
+name: frontend
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^9.1.1
+  font_awesome_flutter: ^10.12.0
+  http: ^1.2.2
+  shared_preferences: ^2.5.3
+  flutter_timezone: ^4.1.0
+  connectivity_plus: ^6.1.4
+  timezone: ^0.10.1
+  anvil_foundry:
+    path: ../../anvil_foundry/Anvil-Foundry
+  rrule: ^0.2.18
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+# Pin sqlite3 2.x: 3.x native hooks fail when the project path contains spaces (Windows).
+dependency_overrides:
+  sqflite_common_ffi: 2.3.5
+  sqlite3: 2.4.5
+
+flutter:
+  uses-material-design: true

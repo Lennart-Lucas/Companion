@@ -2,7 +2,7 @@ import os
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.config import settings
+from app.config import get_database_url_async, settings
 
 
 def _sqlalchemy_echo() -> bool:
@@ -13,7 +13,7 @@ def _sqlalchemy_echo() -> bool:
 
 
 engine = create_async_engine(
-    settings.database_url,
+    get_database_url_async(),
     echo=_sqlalchemy_echo(),
 )
 

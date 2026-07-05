@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     password_min_length: int = 8
 
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    # In development, allow any localhost port (Flutter web uses random ports).
+    cors_allow_origin_regex: str | None = None
 
     max_public_key_bytes: int = 1024
     max_ciphertext_bytes: int = 65536
@@ -53,12 +55,27 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.app_env == "production"
 
+    @property
+    def effective_cors_origin_regex(self) -> str | None:
+        if self.cors_allow_origin_regex:
+            return self.cors_allow_origin_regex
+        if not self.is_production:
+            return r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+        return None
 
-def get_database_url_sync() -> str:
-    url = settings.database_url_sync
+
+def _database_url_for_host(url: str) -> str:
     if os.environ.get("IN_DOCKER") != "1" and "@db:" in url:
         return url.replace("@db:", "@localhost:")
     return url
+
+
+def get_database_url_sync() -> str:
+    return _database_url_for_host(settings.database_url_sync)
+
+
+def get_database_url_async() -> str:
+    return _database_url_for_host(settings.database_url)
 
 
 @lru_cache

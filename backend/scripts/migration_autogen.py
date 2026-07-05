@@ -20,6 +20,7 @@ from migration_utils import (
     get_alembic_config,
     get_sync_database_url,
     get_temp_versions_dir,
+    upgrade_head_locked,
 )
 
 sys.path.insert(0, str(ROOT))
@@ -35,7 +36,7 @@ def main() -> int:
     sync_url = get_sync_database_url()
 
     print("Running migrations to head...")
-    command.upgrade(cfg, "head")
+    upgrade_head_locked(cfg)
 
     engine = create_engine(sync_url)
     with engine.connect() as connection:
@@ -58,7 +59,7 @@ def main() -> int:
     )
 
     print("Applying temporary migration...")
-    command.upgrade(cfg, "head")
+    upgrade_head_locked(cfg)
     print(f"Temporary migration {rev_id} created and applied.")
     return 0
 
