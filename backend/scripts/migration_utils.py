@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 from alembic import command
@@ -15,6 +16,8 @@ from sqlalchemy import create_engine, text
 MIGRATION_ADVISORY_LOCK_KEY = 2847593021
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 TEMP_PREFIX = "temp_"
 
 from dotenv import load_dotenv
