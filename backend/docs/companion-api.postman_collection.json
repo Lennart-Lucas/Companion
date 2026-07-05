@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "companion-api-collection",
     "name": "Companion API",
-    "description": "Companion backend API — health, auth, and E2E key/message endpoints.",
+    "description": "Companion backend API — health, auth, E2E key/message, and scheduling endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -10,7 +10,17 @@
     { "key": "accessToken", "value": "" },
     { "key": "refreshToken", "value": "" },
     { "key": "userId", "value": "1" },
-    { "key": "recipientUserId", "value": "2" }
+    { "key": "recipientUserId", "value": "2" },
+    { "key": "scheduleId", "value": "1" },
+    { "key": "goalId", "value": "1" },
+    { "key": "goalCheckInId", "value": "1" },
+    { "key": "goalMilestoneId", "value": "1" },
+    { "key": "projectId", "value": "1" },
+    { "key": "taskId", "value": "1" },
+    { "key": "taskOccurrenceId", "value": "1" },
+    { "key": "taskSubtaskId", "value": "1" },
+    { "key": "trackerId", "value": "1" },
+    { "key": "trackerCheckInId", "value": "1" }
   ],
   "auth": {
     "type": "bearer",
@@ -200,6 +210,439 @@
               "raw": "{\n  \"device_id\": 1,\n  \"one_time_prekeys\": [\n    { \"key_id\": 10, \"public_key\": \"b3Rway0xMC0xMjM=\" },\n    { \"key_id\": 11, \"public_key\": \"b3Rway0xMS0xMjM=\" }\n  ]\n}"
             },
             "url": "{{baseUrl}}/api/v1/keys/prekeys"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schedules",
+      "item": [
+        {
+          "name": "Create Schedule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('scheduleId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repeat_type\": \"every_n_days\",\n  \"interval\": 1,\n  \"anchor_at\": \"2026-05-21T09:00:00+02:00\",\n  \"start_date\": \"2026-06-01T00:00:00Z\",\n  \"end_date\": \"2026-12-31T23:59:59Z\",\n  \"timezone\": \"Europe/Amsterdam\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/schedules"
+          }
+        },
+        {
+          "name": "List Schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/schedules"
+          }
+        },
+        {
+          "name": "Get Schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/schedules/{{scheduleId}}"
+          }
+        },
+        {
+          "name": "Preview Occurrences",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"2026-05-21T00:00:00Z\",\n  \"to\": \"2026-06-21T00:00:00Z\",\n  \"max_count\": 10\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/schedules/{{scheduleId}}/preview"
+          }
+        },
+        {
+          "name": "Replace Exclusions",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dates\": [\"2026-05-22\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/schedules/{{scheduleId}}/exclusions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Goals",
+      "item": [
+        {
+          "name": "Create Goal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('goalId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Read 12 books\",\n  \"description\": \"Annual reading goal\",\n  \"icon\": \"book\",\n  \"color\": \"#3366FF\",\n  \"schedule\": {\n    \"repeat_type\": \"every_n_weeks\",\n    \"interval\": 1,\n    \"anchor_at\": \"2026-05-21T09:00:00Z\",\n    \"timezone\": \"UTC\"\n  },\n  \"start_date\": \"2026-01-01T00:00:00Z\",\n  \"goal_type\": \"count\",\n  \"target\": 12,\n  \"unit\": \"books\",\n  \"direction\": \"increasing\",\n  \"milestones\": [\n    { \"value\": 3, \"name\": \"Quarter\", \"sort_order\": 0 },\n    { \"value\": 6, \"name\": \"Half\", \"sort_order\": 1 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/goals"
+          }
+        },
+        {
+          "name": "List Goals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/goals"
+          }
+        },
+        {
+          "name": "Get Goal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/goals/{{goalId}}"
+          }
+        },
+        {
+          "name": "List Check-ins",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const items = pm.response.json().items;",
+                  "  if (items.length) {",
+                  "    pm.collectionVariables.set('goalCheckInId', items[0].id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/goals/{{goalId}}/check-ins?from=2026-05-01T00:00:00Z&to=2026-05-28T00:00:00Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "goals", "{{goalId}}", "check-ins"],
+              "query": [
+                { "key": "from", "value": "2026-05-01T00:00:00Z" },
+                { "key": "to", "value": "2026-05-28T00:00:00Z" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Log Check-in",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"count_value\": 4\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/goals/{{goalId}}/check-ins/{{goalCheckInId}}"
+          }
+        },
+        {
+          "name": "List Milestones",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const items = pm.response.json();",
+                  "  if (items.length) {",
+                  "    pm.collectionVariables.set('goalMilestoneId', items[0].id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/goals/{{goalId}}/milestones"
+          }
+        },
+        {
+          "name": "Replace Milestones",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"milestones\": [\n    { \"value\": 3, \"name\": \"Quarter\", \"sort_order\": 0 },\n    { \"value\": 9, \"name\": \"Three quarters\", \"sort_order\": 1 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/goals/{{goalId}}/milestones"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Create Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('projectId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Backend API\",\n  \"goal_id\": {{goalId}},\n  \"start_date\": \"2026-06-01T09:00:00Z\",\n  \"deadline\": \"2026-08-01T17:00:00Z\",\n  \"status\": \"active\",\n  \"icon\": \"folder\",\n  \"color\": \"#22AA88\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/projects"
+          }
+        },
+        {
+          "name": "List Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects"
+          }
+        },
+        {
+          "name": "Get Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/projects/{{projectId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('taskId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Daily standup\",\n  \"planned_at\": \"2026-05-21T09:00:00Z\",\n  \"deadline\": \"2026-05-21T17:00:00Z\",\n  \"status\": \"pending\",\n  \"priority\": \"high\",\n  \"schedule\": {\n    \"repeat_type\": \"every_n_days\",\n    \"interval\": 1,\n    \"anchor_at\": \"2026-05-21T09:00:00Z\",\n    \"start_date\": \"2026-06-01T00:00:00Z\",\n    \"end_date\": \"2026-12-31T23:59:59Z\",\n    \"timezone\": \"UTC\"\n  },\n  \"subtasks\": [{ \"title\": \"Prep agenda\", \"sort_order\": 0 }]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/tasks"
+          }
+        },
+        {
+          "name": "List Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/tasks"
+          }
+        },
+        {
+          "name": "Get Task",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/tasks/{{taskId}}"
+          }
+        },
+        {
+          "name": "List Occurrences",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 && pm.response.json().items.length) {",
+                  "  const first = pm.response.json().items[0];",
+                  "  pm.collectionVariables.set('taskOccurrenceId', first.id);",
+                  "  if (first.subtasks.length) pm.collectionVariables.set('taskSubtaskId', first.subtasks[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}/occurrences?from=2026-05-21T00:00:00Z&to=2026-05-28T00:00:00Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tasks", "{{taskId}}", "occurrences"],
+              "query": [
+                { "key": "from", "value": "2026-05-21T00:00:00Z" },
+                { "key": "to", "value": "2026-05-28T00:00:00Z" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toggle Subtask",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completed\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/tasks/{{taskId}}/occurrences/{{taskOccurrenceId}}/subtasks/{{taskSubtaskId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trackers",
+      "item": [
+        {
+          "name": "Create Tracker",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('trackerId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Water intake\",\n  \"description\": \"Daily hydration\",\n  \"icon\": \"droplet\",\n  \"color\": \"#3366FF\",\n  \"schedule\": {\n    \"repeat_type\": \"every_n_days\",\n    \"interval\": 1,\n    \"anchor_at\": \"2026-05-21T09:00:00Z\",\n    \"timezone\": \"UTC\"\n  },\n  \"start_date\": \"2026-05-21T00:00:00Z\",\n  \"check_in_type\": \"count\",\n  \"target\": 8,\n  \"unit\": \"glasses\",\n  \"habit_direction\": \"build\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/trackers"
+          }
+        },
+        {
+          "name": "List Trackers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/trackers"
+          }
+        },
+        {
+          "name": "Get Tracker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/trackers/{{trackerId}}"
+          }
+        },
+        {
+          "name": "List Check-ins",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const items = pm.response.json().items;",
+                  "  if (items.length) {",
+                  "    pm.collectionVariables.set('trackerCheckInId', items[0].id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trackers/{{trackerId}}/check-ins?from=2026-05-21T00:00:00Z&to=2026-05-28T00:00:00Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trackers", "{{trackerId}}", "check-ins"],
+              "query": [
+                { "key": "from", "value": "2026-05-21T00:00:00Z" },
+                { "key": "to", "value": "2026-05-28T00:00:00Z" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Check-in",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"check_in_at\": \"2026-05-22T12:00:00Z\",\n  \"count_value\": 6\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/trackers/{{trackerId}}/check-ins"
+          }
+        },
+        {
+          "name": "Log Check-in",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"count_value\": 6\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/trackers/{{trackerId}}/check-ins/{{trackerCheckInId}}"
           }
         }
       ]

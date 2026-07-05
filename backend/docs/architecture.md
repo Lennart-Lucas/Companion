@@ -250,6 +250,182 @@ There is no public REST API for jobs in v1; enqueue from services only.
 
 The bundled **`example`** task is a no-op for wiring checks.
 
+## Scheduling
+
+Reusable recurrence rules for productivity features (tasks, reminders, alarms). Schedules are **user-owned** standalone entities; future domain models will reference them via `schedule_id`.
+
+```mermaid
+erDiagram
+    users ||--o{ schedules : owns
+    schedules ||--o{ schedule_specific_dates : has
+    schedules ||--o{ schedule_exclusions : has
+    schedules ||--o{ schedule_overrides : base
+    schedules ||--o{ schedule_overrides : replacement
+```
+
+### Repeat types
+
+| Type | Meaning |
+|------|---------|
+| `none` | Single occurrence at `anchor_at` |
+| `weekdays` | Selected ISO weekdays (1=Mon…7=Sun), every `interval` weeks |
+| `every_n_days` | Every `interval` days from anchor |
+| `every_n_weeks` | Every `interval` weeks from anchor |
+| `every_n_months` | Same day-of-month as anchor, every `interval` months |
+| `every_n_years` | Same month/day as anchor, every `interval` years |
+| `specific_dates` | Explicit calendar dates (time from anchor’s local time-of-day) |
+| `month_days` | Selected days of month (1–31), every `interval` months |
+
+Each schedule stores `anchor_at` (timestamptz), optional `start_date` / `end_date` (timestamptz window), and `timezone` (IANA). On task forms, **start date** drives `anchor_at` (fallback: task deadline, then planned date). Goals/trackers still set `anchor_at` via their schedule start field. **Overrides** swap in another schedule: `from_date` (all occurrences from `effective_at` onward) or `single_occurrence` (one instant).
+
+### Expansion pipeline
+
+1. Load schedule bundle (rules, exclusions, overrides with replacement schedules).
+2. Split timeline at `from_date` override boundaries; expand each segment with the active rule set.
+3. Apply `single_occurrence` overrides (replacement `none` uses replacement `anchor_at`).
+4. Filter exclusion dates in schedule timezone.
+5. Return sorted UTC datetimes (preview API and future consumers).
+
+Pure logic lives in `app/scheduling/` (`expander.py`, `validators.py`) — no database dependency, covered by unit tests.
+
+### API
+
+All routes require authentication (`get_current_active_user`).
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/v1/schedules` | Create schedule |
+| `GET` | `/api/v1/schedules` | List (paginated) |
+| `GET` | `/api/v1/schedules/{id}` | Get with dates, exclusions, overrides |
+| `PATCH` | `/api/v1/schedules/{id}` | Update rule fields |
+| `DELETE` | `/api/v1/schedules/{id}` | Delete (cascades children) |
+| `POST` | `/api/v1/schedules/{id}/preview` | Expand occurrences in window |
+| `PUT` | `/api/v1/schedules/{id}/specific-dates` | Replace date list |
+| `PUT` | `/api/v1/schedules/{id}/exclusions` | Replace exclusion list |
+| `POST` | `/api/v1/schedules/{id}/overrides` | Add override |
+| `DELETE` | `/api/v1/schedules/{id}/overrides/{override_id}` | Remove override |
+
+Replacement schedules must belong to the same user and cannot define their own overrides (v1).
+
+## Productivity entities
+
+User-owned **goals**, **projects**, **tasks**, and **trackers** for the productivity module.
+
+```mermaid
+erDiagram
+    users ||--o{ goals : owns
+    users ||--o{ projects : owns
+    users ||--o{ tasks : owns
+    users ||--o{ trackers : owns
+    goals ||--|| schedules : repeats_via
+    goals ||--o{ goal_milestones : milestones
+    goals ||--o{ goal_check_ins : moments
+    trackers ||--|| schedules : repeats_via
+    trackers ||--o{ tracker_check_ins : moments
+    tasks ||--o| schedules : repeats_via
+    tasks ||--o{ task_subtasks : templates
+    tasks ||--o{ task_occurrences : instances
+    task_occurrences ||--o{ task_occurrence_subtasks : checklist_state
+    goals ||--o{ projects : parent
+    goals ||--o{ tasks : parent
+    goals ||--o{ trackers : parent
+    projects ||--o{ tasks : parent
+```
+
+### Fields
+
+| Entity | Required | Optional |
+|--------|----------|----------|
+| Goal | `name`, `schedule_id` or inline `schedule`, `start_date`, `goal_type`, `target`, `unit`, `direction` | `description`, `icon`, `color`, `end_date`, `milestones` (inline create) |
+| Tracker | `name`, `schedule_id` or inline `schedule`, `start_date`, `check_in_type`, `habit_direction` | `description`, `icon`, `color`, `end_date`, `target`, `unit`, `goal_id` |
+| Project | `name` | `start_date`, `deadline`, `description`, `icon`, `color`, `goal_id`, `status` |
+
+**Project `status`:** `planning`, `active`, `on_hold`, `completed`, `cancelled` (default `planning`).
+| Task | `name` | `planned_at`, `deadline`, `description`, `project_id`, `goal_id`, `schedule_id`, `schedule` (inline create), `status`, `priority`, `subtasks` |
+
+**Task `status`:** `pending`, `in_progress`, `completed`, `cancelled` (default `pending`).
+
+**Task `priority`:** `low`, `medium`, `high`, `urgent` (default `medium`).
+
+**Tracker `check_in_type`:** `task`, `count`, `duration`.
+
+- **task:** no `target` or `unit`; check-ins log `completed` (boolean).
+- **count:** requires `target` and `unit`; check-ins log `count_value`.
+- **duration:** requires `target` (seconds); check-ins log `value_seconds`.
+
+**Tracker `habit_direction`:** `build`, `quit` (forming vs breaking the habit).
+
+**Goal `goal_type`:** `count`, `task`, `pulse`.
+
+- **count:** check-ins log cumulative `count_value` toward the goal `target`.
+- **task:** check-ins log `completed` (progress this period).
+- **pulse:** `pulse_score` (1–10) is system-generated later; user PATCH not supported in v1.
+
+**Goal `direction`:** `increasing`, `decreasing`.
+
+**Goal milestones** (`goal_milestones`): `value` (numeric threshold) and optional `name`; managed via nested milestone endpoints or inline on create.
+
+### Repeating goals and check-ins
+
+- **Schedule:** required `schedule_id` or inline `schedule` (mutually exclusive); must be recurring.
+- **Window:** `start_date` required; optional `end_date`. Check-in expansion clipped to this window.
+- **Check-ins** (`goal_check_ins`): materialized lazily via `GET /goals/{id}/check-ins?from=&to=`; log task/count progress with `PATCH`.
+
+### Repeating trackers and check-ins
+
+- **Schedule:** required `schedule_id` or inline `schedule` (mutually exclusive); must be recurring (`repeat_type` ≠ `none`).
+- **Window:** `start_date` required; optional `end_date` (null = open-ended). Occurrence expansion is clipped to this window.
+- **Check-ins** (`tracker_check_ins`): materialized lazily via `GET /trackers/{id}/check-ins?from=&to=` using the scheduling expander; log progress with `PATCH`.
+
+### Repeating tasks and subtasks
+
+- **Schedule:** optional `schedule_id` or inline `schedule` payload (mutually exclusive) on create/update. Inline/existing schedules may include optional `start_date` / `end_date` to clip occurrence expansion.
+- **Non-repeating** (`schedule_id` null or schedule `none`): one `task_occurrence` at create; task-level `status`/`priority` sync to that row.
+- **Repeating:** occurrences materialized lazily via `GET /tasks/{id}/occurrences?from=&to=` using the scheduling expander, clipped to the schedule's optional `start_date` / `end_date` window when set. Pass `existing_only=true` to read persisted rows only (no materialization) — used by the task list UI for virtual rows until first edit. `POST /tasks/{id}/occurrences` with `{ occurrence_at }` get-or-creates one instance on first interaction.
+- **Subtask templates** (`task_subtasks`): checklist titles on the task; **completion** is stored per occurrence in `task_occurrence_subtasks` so checking off on one date does not affect other instances.
+
+### Parent rules
+
+- **Task**: at most one parent — optional `project_id` **or** optional `goal_id` (never both; enforced in DB and Pydantic).
+- **Project**: optional `goal_id` parent.
+- **Tracker**: optional `goal_id` parent.
+- **Goal**: no parent.
+
+Parent FKs must belong to the same user. Deleting a goal or project **sets null** on child FKs (`ON DELETE SET NULL`), not cascade-delete children.
+
+### API
+
+Authenticated CRUD under `/api/v1/goals`, `/projects`, `/tasks`, `/trackers` (list responses: `{ items, total, limit, offset }`).
+
+**Task extensions:**
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/tasks/{id}/occurrences` | Materialize and list occurrences with subtask states (`existing_only=true` skips materialization) |
+| `POST` | `/tasks/{id}/occurrences` | Get-or-create one occurrence at `occurrence_at` |
+| `PATCH` | `/tasks/{id}/occurrences/{occurrence_id}` | Update status/priority for one instance |
+| `PUT` | `/tasks/{id}/subtasks` | Replace subtask templates |
+| `PATCH` | `/tasks/{id}/occurrences/{occurrence_id}/subtasks/{subtask_id}` | Toggle `completed` for one instance |
+
+**Goal extensions:**
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/goals/{id}/check-ins` | Materialize and list check-in moments |
+| `PATCH` | `/goals/{id}/check-ins/{check_in_id}` | Log task/count progress |
+| `GET` | `/goals/{id}/milestones` | List milestones |
+| `PUT` | `/goals/{id}/milestones` | Replace all milestones |
+| `POST` | `/goals/{id}/milestones` | Add one milestone |
+| `PATCH` | `/goals/{id}/milestones/{milestone_id}` | Update milestone |
+| `DELETE` | `/goals/{id}/milestones/{milestone_id}` | Remove milestone |
+
+**Tracker extensions:**
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/trackers/{id}/check-ins` | Materialize and list check-in moments |
+| `PATCH` | `/trackers/{id}/check-ins/{check_in_id}` | Log progress for one moment |
+
 ## Infrastructure (local)
 
 Each environment runs API, worker, and database containers:

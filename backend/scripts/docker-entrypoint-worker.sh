@@ -9,7 +9,7 @@ echo "Applying database migrations..."
 if [ "${APP_ENV:-development}" = "development" ]; then
   python scripts/migration_autogen.py
 else
-  alembic upgrade head
+  python scripts/migration_upgrade.py
 fi
 
 exec "$@"

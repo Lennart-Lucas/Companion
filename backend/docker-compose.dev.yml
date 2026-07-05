@@ -37,6 +37,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      api:
+        condition: service_started
     entrypoint: ["/bin/sh", "/app/scripts/docker-entrypoint-worker.sh"]
     command: ["python", "scripts/run_worker.py"]
     volumes:

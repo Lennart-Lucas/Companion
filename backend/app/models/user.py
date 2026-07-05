@@ -29,3 +29,21 @@ class User(Base):
     devices: Mapped[list["Device"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    schedules: Mapped[list["Schedule"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    goals: Mapped[list["Goal"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    projects: Mapped[list["Project"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    tasks: Mapped[list["Task"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    trackers: Mapped[list["Tracker"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    events: Mapped[list["Event"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

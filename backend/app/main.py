@@ -6,7 +6,20 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.api.routes import auth, devices, health, keys, messages
+from app.api.routes import (
+    auth,
+    devices,
+    events,
+    goals,
+    health,
+    keys,
+    messages,
+    projects,
+    schedules,
+    sync,
+    tasks,
+    trackers,
+)
 from app.config import settings
 from app.database import dispose_engine
 from app.middleware.security_headers import SecurityHeadersMiddleware
@@ -40,6 +53,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
+        allow_origin_regex=settings.effective_cors_origin_regex,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -50,6 +64,13 @@ def create_app() -> FastAPI:
     app.include_router(devices.router, prefix=settings.api_prefix)
     app.include_router(keys.router, prefix=settings.api_prefix)
     app.include_router(messages.router, prefix=settings.api_prefix)
+    app.include_router(schedules.router, prefix=settings.api_prefix)
+    app.include_router(events.router, prefix=settings.api_prefix)
+    app.include_router(goals.router, prefix=settings.api_prefix)
+    app.include_router(projects.router, prefix=settings.api_prefix)
+    app.include_router(tasks.router, prefix=settings.api_prefix)
+    app.include_router(trackers.router, prefix=settings.api_prefix)
+    app.include_router(sync.router, prefix=settings.api_prefix)
 
     return app
 

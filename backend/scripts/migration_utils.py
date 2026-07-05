@@ -6,8 +6,13 @@ import re
 import subprocess
 from pathlib import Path
 
+from alembic import command
 from alembic.config import Config
 from alembic.script import Script, ScriptDirectory
+from sqlalchemy import create_engine, text
+
+# Single global lock so API and worker cannot run Alembic upgrade concurrently.
+MIGRATION_ADVISORY_LOCK_KEY = 2847593021
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMP_PREFIX = "temp_"
@@ -35,6 +40,24 @@ def get_sync_database_url() -> str:
     from app.config import get_database_url_sync
 
     return get_database_url_sync()
+
+
+def upgrade_head_locked(cfg: Config | None = None) -> None:
+    """Run `alembic upgrade head` under a Postgres advisory lock."""
+    config = cfg or get_alembic_config()
+    engine = create_engine(get_sync_database_url())
+    with engine.connect() as conn:
+        conn.execute(
+            text("SELECT pg_advisory_lock(:key)"),
+            {"key": MIGRATION_ADVISORY_LOCK_KEY},
+        )
+        try:
+            command.upgrade(config, "head")
+        finally:
+            conn.execute(
+                text("SELECT pg_advisory_unlock(:key)"),
+                {"key": MIGRATION_ADVISORY_LOCK_KEY},
+            )
 
 
 def get_script_directory(config: Config | None = None) -> ScriptDirectory:
