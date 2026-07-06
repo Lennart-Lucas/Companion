@@ -17,7 +17,7 @@ void main() {
 
       expect(json['icon'], 'Person Digging');
       expect(json['color'], '#22AA88');
-      expect(json['id'], '42');
+      expect(json.containsKey('id'), isFalse);
     });
 
     test('toFormValues round-trips color as ARGB int', () {

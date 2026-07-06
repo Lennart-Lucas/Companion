@@ -35,7 +35,8 @@ class _RegisterPageState extends State<RegisterPage> {
     return AuthFormScope(
       child: Scaffold(
       appBar: AppBar(title: const Text('Create account')),
-      body: Center(
+      body: SafeArea(
+        child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
@@ -106,6 +107,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           ),
         ),
+      ),
       ),
       ),
     );

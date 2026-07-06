@@ -52,6 +52,12 @@ class ProjectEditPage extends StatelessWidget {
           onCancel: () => Navigator.of(context).pop(),
           onSubmitSuccess: (_) {
             _refreshProjects(context);
+            context.read<RecordBloc>().add(
+                  GetRecordRequested(
+                    recordType: 'projects',
+                    recordId: projectId,
+                  ),
+                );
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Project saved')),
             );

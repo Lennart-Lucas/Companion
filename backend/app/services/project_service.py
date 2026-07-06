@@ -87,6 +87,9 @@ async def update_project(
         else:
             setattr(project, key, value)
     await session.flush()
+    # Server-side onupdate=now() expires updated_at; refresh before response
+    # serialization to avoid async lazy-load (MissingGreenlet) errors.
+    await session.refresh(project)
     return project
 
 

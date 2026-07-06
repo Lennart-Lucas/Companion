@@ -75,9 +75,12 @@ class TaskEditPage extends StatelessWidget {
               selector: _isRecurring,
               builder: (context, isRecurring) {
                 if (!isRecurring) return const SizedBox.shrink();
-                return TaskOccurrencesSection(
-                  taskId: taskId,
-                  apiClient: _resolveApiClient(),
+                return SafeArea(
+                  top: false,
+                  child: TaskOccurrencesSection(
+                    taskId: taskId,
+                    apiClient: _resolveApiClient(),
+                  ),
                 );
               },
             ),

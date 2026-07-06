@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
 import 'package:frontend/features/productivity/forms/project_form_fields.dart';
 import 'package:frontend/features/productivity/forms/project_record_submit_handler.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
@@ -17,7 +18,7 @@ AnvilFormConfig buildProjectFormConfig(
     pages: {
       'main': AnvilFormPage(
         builder: (context, state) => SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: CompanionFormStyles.formScrollPadding,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),

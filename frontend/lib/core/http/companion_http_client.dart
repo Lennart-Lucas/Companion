@@ -58,7 +58,11 @@ class CompanionHttpClientService extends HttpClientServiceBase {
 
     dynamic decodedBody;
     if (response.body.isNotEmpty) {
-      decodedBody = jsonDecode(response.body);
+      try {
+        decodedBody = jsonDecode(response.body);
+      } on FormatException {
+        decodedBody = <String, dynamic>{'_rawBody': response.body};
+      }
     }
 
     return HttpResponse(

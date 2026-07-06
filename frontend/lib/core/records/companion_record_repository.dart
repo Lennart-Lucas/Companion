@@ -16,8 +16,37 @@ class CompanionRecordRepository implements RecordRepositoryService {
 
   void _ensureSuccess(ApiResponse response, String action) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('$action failed: HTTP ${response.statusCode}');
+      throw Exception(
+        '$action failed (${response.statusCode}): ${_errorMessage(response)}',
+      );
     }
+  }
+
+  String _errorMessage(ApiResponse response) {
+    final body = response.bodyAsMap;
+    final detail = body['detail'];
+    if (detail is String && detail.isNotEmpty) {
+      return detail;
+    }
+    if (detail is List) {
+      final parts = detail
+          .whereType<Map>()
+          .map((entry) => entry['msg']?.toString())
+          .whereType<String>()
+          .where((msg) => msg.isNotEmpty)
+          .toList();
+      if (parts.isNotEmpty) {
+        return parts.join('; ');
+      }
+    }
+    final raw = body['_rawBody'];
+    if (raw is String && raw.isNotEmpty) {
+      return raw;
+    }
+    if (response.body is String && (response.body as String).isNotEmpty) {
+      return response.body as String;
+    }
+    return 'Request failed';
   }
 
   @override

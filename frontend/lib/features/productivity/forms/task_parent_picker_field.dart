@@ -291,10 +291,55 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
 
   void _toggleDropdown() {
     if (!widget.enabled) return;
+    if (useCompactPickerPresentation(context)) {
+      _showBottomSheetPicker();
+      return;
+    }
     if (_showOverlay) {
       _hideDropdown();
     } else {
       _showDropdown();
+    }
+  }
+
+  Future<void> _showBottomSheetPicker() async {
+    _searchQuery = '';
+    _searchController.clear();
+    _fireQueries();
+    setState(() => _showOverlay = true);
+
+    await AnvilBottomSheet.show<void>(
+      context: context,
+      title: 'Select parent',
+      maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            void refreshSheet() => setSheetState(() {});
+
+            return SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.55,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildSearchBar(
+                    context,
+                    onChanged: (text) {
+                      _onSearchChanged(text);
+                      refreshSheet();
+                    },
+                  ),
+                  Expanded(child: _buildPickerList(context)),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (mounted) {
+      setState(() => _showOverlay = false);
     }
   }
 
@@ -329,9 +374,12 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
     final theme = Theme.of(context);
 
     return OverlayEntry(
-      builder: (_) {
-        final options = _sortedParentOptions;
-        final hasResults = options.isNotEmpty;
+      builder: (overlayContext) {
+        final layout = computeOverlayDropdownLayout(
+          context: overlayContext,
+          anchor: renderBox,
+          preferredMaxHeight: 320,
+        );
 
         return Stack(
           children: [
@@ -347,7 +395,7 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
               child: CompositedTransformFollower(
                 link: _layerLink,
                 showWhenUnlinked: false,
-                offset: Offset(0, size.height + 4),
+                offset: layout.offset,
                 child: Material(
                   elevation: 0,
                   color: theme.colorScheme.surfaceContainerHigh,
@@ -358,51 +406,12 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
                     ),
                   ),
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 320),
+                    constraints: BoxConstraints(maxHeight: layout.maxHeight),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildSearchBar(context),
-                        Flexible(
-                          child: _isLoading && !hasResults
-                              ? const Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: Center(
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : !hasResults
-                                  ? Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Text(
-                                        'No records found',
-                                        style:
-                                            theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.onSurface
-                                              .withValues(alpha: 0.6),
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    )
-                                  : ListView(
-                                      padding: EdgeInsets.zero,
-                                      shrinkWrap: true,
-                                      children: [
-                                        for (final option in options)
-                                          _optionTile(
-                                            theme,
-                                            option.record,
-                                            option.kind,
-                                          ),
-                                      ],
-                                    ),
-                        ),
+                        Flexible(child: _buildPickerList(context)),
                       ],
                     ),
                   ),
@@ -412,6 +421,47 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildPickerList(BuildContext context) {
+    final theme = Theme.of(context);
+    final options = _sortedParentOptions;
+    final hasResults = options.isNotEmpty;
+
+    if (_isLoading && !hasResults) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    if (!hasResults) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'No records found',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      children: [
+        for (final option in options)
+          _optionTile(theme, option.record, option.kind),
+      ],
     );
   }
 
@@ -452,7 +502,10 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
+  Widget _buildSearchBar(
+    BuildContext context, {
+    ValueChanged<String>? onChanged,
+  }) {
     final theme = Theme.of(context);
     final fieldDecoration = CompanionFormStyles.denseFieldDecoration(context);
 
@@ -469,12 +522,16 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
                   icon: const Icon(Icons.close, size: 18),
                   onPressed: () {
                     _searchController.clear();
-                    _onSearchChanged('');
+                    if (onChanged != null) {
+                      onChanged('');
+                    } else {
+                      _onSearchChanged('');
+                    }
                   },
                 )
               : null,
         ),
-        onChanged: _onSearchChanged,
+        onChanged: onChanged ?? _onSearchChanged,
       ),
     );
   }

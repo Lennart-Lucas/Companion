@@ -770,8 +770,8 @@ class Project extends ProductivityRecord {
       name: name,
       description: (values['description'] as String?)?.trim(),
       status: values['status'] as String? ?? 'planning',
-      startDate: values['start_date'] as DateTime?,
-      deadline: values['deadline'] as DateTime?,
+      startDate: _dateTimeFromJson(values['start_date']),
+      deadline: _dateTimeFromJson(values['deadline']),
       goalId: goalId,
       icon: _iconFromFormValue(values['icon']),
       color: _colorHexFromFormValue(values['color']),
@@ -797,9 +797,6 @@ class Project extends ProductivityRecord {
       'name': name,
       'status': status,
     };
-    if (!_isTempId) {
-      map['id'] = id;
-    }
     final desc = description?.trim();
     if (desc != null && desc.isNotEmpty) {
       map['description'] = desc;

@@ -52,7 +52,7 @@ String? _validateEventSchedule(Map<String, dynamic> values) {
 
 Widget _wizardPage(Widget child) {
   return SingleChildScrollView(
-    padding: const EdgeInsets.all(16),
+    padding: CompanionFormStyles.formScrollPadding,
     child: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),

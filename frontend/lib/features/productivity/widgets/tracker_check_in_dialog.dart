@@ -1,3 +1,4 @@
+import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/forms/duration_hms_input_field.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
@@ -237,27 +238,19 @@ Future<TrackerCheckIn?> showTrackerCheckInMomentPicker({
   required BuildContext context,
   required List<TrackerCheckIn> checkIns,
 }) {
-  return showModalBottomSheet<TrackerCheckIn>(
+  return AnvilBottomSheet.show<TrackerCheckIn>(
     context: context,
-    builder: (context) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Choose check-in',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+    title: 'Choose check-in',
+    builder: (context) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final checkIn in checkIns)
+          ListTile(
+            title: Text(_formatMoment(checkIn.checkInAt)),
+            subtitle: Text(checkIn.logged ? 'Logged' : 'Not logged'),
+            onTap: () => Navigator.of(context).pop(checkIn),
           ),
-          for (final checkIn in checkIns)
-            ListTile(
-              title: Text(_formatMoment(checkIn.checkInAt)),
-              subtitle: Text(checkIn.logged ? 'Logged' : 'Not logged'),
-              onTap: () => Navigator.of(context).pop(checkIn),
-            ),
-        ],
-      ),
+      ],
     ),
   );
 }

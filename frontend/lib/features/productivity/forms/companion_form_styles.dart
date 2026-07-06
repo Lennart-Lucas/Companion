@@ -19,6 +19,10 @@ class CompanionFormStyles {
   /// Below this width, paired form fields in a row stack vertically.
   static const double formFieldRowNarrowBreakpoint = 300;
 
+  /// Scroll padding for full-screen form pages (extra bottom space above action bar).
+  static const EdgeInsets formScrollPadding =
+      EdgeInsets.fromLTRB(16, 16, 16, 24);
+
   /// Task list timeline layout tokens.
   static const double taskTimelineWidth = 44;
   static const double taskTimelineLineWidth = 3;
