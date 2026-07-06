@@ -90,6 +90,9 @@ TaskListRow _fromTimelineRow(TimelineRow row) {
         hasTasksAbove: hasTasksAbove,
         day: day,
       ),
+    TimelineTaskBucketRow() => throw StateError(
+        'Task list rows cannot include bucket rows',
+      ),
     TimelineEventEntryRow() => throw StateError(
         'Task list rows cannot include event entries',
       ),

@@ -1,5 +1,6 @@
 import 'package:frontend/features/productivity/models/timeline_item.dart';
 import 'package:frontend/features/productivity/models/timeline_row.dart';
+import 'package:frontend/features/productivity/services/task_bucket_summary.dart';
 import 'package:frontend/features/productivity/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 
@@ -119,8 +120,11 @@ List<TimelineRow> flattenTimelineRows(
   bool showPastLoader = false,
   bool showFutureLoader = false,
   bool showAddTaskRows = true,
+  TaskBucketSummary? taskBucketSummary,
+  DateTime? today,
 }) {
   final rows = <TimelineRow>[];
+  final todayDay = today != null ? normalizeTaskListCalendarDay(today) : null;
 
   if (showPastLoader) {
     rows.add(TimelineLoadingRow(isPast: true));
@@ -128,6 +132,12 @@ List<TimelineRow> flattenTimelineRows(
 
   for (final section in sections) {
     rows.add(TimelineDateHeaderRow(day: section.day));
+    if (taskBucketSummary != null &&
+        todayDay != null &&
+        section.day != null &&
+        normalizeTaskListCalendarDay(section.day!) == todayDay) {
+      rows.add(TimelineTaskBucketRow(summary: taskBucketSummary));
+    }
     for (var i = 0; i < section.items.length; i++) {
       rows.add(
         _itemToRow(

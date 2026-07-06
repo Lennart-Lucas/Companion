@@ -558,14 +558,11 @@ class _TrackerCheckInTimelineTileState extends State<TrackerCheckInTimelineTile>
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            TaskTimelineIconBadge(
+                            TaskListRowLeadingIcon(
                               color: trackerColor,
                               iconName: tracker.icon,
                               defaultIconName: 'Chart Line',
                               materialFallback: Icons.show_chart,
-                            ),
-                            const SizedBox(
-                              width: CompanionFormStyles.taskPanelIconBadgeGap,
                             ),
                             Expanded(
                               child: Column(
@@ -605,10 +602,13 @@ class _TrackerCheckInTimelineTileState extends State<TrackerCheckInTimelineTile>
                                           outcome,
                                         ),
                                         tintColor: outcomeColor,
-                                        leading: Icon(
-                                          trackerCheckInOutcomeIcon(outcome),
-                                          size: 14,
-                                          color: outcomeColor,
+                                        leading: productivityListChipLeading(
+                                          context,
+                                          Icon(
+                                            trackerCheckInOutcomeIcon(outcome),
+                                            size: 14,
+                                            color: outcomeColor,
+                                          ),
                                         ),
                                       ),
                                       if (tracker.checkInType ==
@@ -619,13 +619,16 @@ class _TrackerCheckInTimelineTileState extends State<TrackerCheckInTimelineTile>
                                                 tracker,
                                               ),
                                           neutral: true,
-                                          leading: Icon(
-                                            trackerCheckInTypeIcon(
-                                              tracker.checkInType,
-                                            ),
-                                            size: 14,
-                                            color: scheme.onSurface.withValues(
-                                              alpha: 0.85,
+                                          leading: productivityListChipLeading(
+                                            context,
+                                            Icon(
+                                              trackerCheckInTypeIcon(
+                                                tracker.checkInType,
+                                              ),
+                                              size: 14,
+                                              color: scheme.onSurface.withValues(
+                                                alpha: 0.85,
+                                              ),
                                             ),
                                           ),
                                         )
@@ -635,13 +638,16 @@ class _TrackerCheckInTimelineTileState extends State<TrackerCheckInTimelineTile>
                                             tracker,
                                           ),
                                           neutral: true,
-                                          leading: Icon(
-                                            trackerCheckInTypeIcon(
-                                              tracker.checkInType,
-                                            ),
-                                            size: 14,
-                                            color: scheme.onSurface.withValues(
-                                              alpha: 0.85,
+                                          leading: productivityListChipLeading(
+                                            context,
+                                            Icon(
+                                              trackerCheckInTypeIcon(
+                                                tracker.checkInType,
+                                              ),
+                                              size: 14,
+                                              color: scheme.onSurface.withValues(
+                                                alpha: 0.85,
+                                              ),
                                             ),
                                           ),
                                         ),

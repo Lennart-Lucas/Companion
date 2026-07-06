@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/theme/app_theme.dart';
+import 'package:frontend/features/productivity/widgets/task_display.dart';
 import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 
 void main() {
-  testWidgets('TaskListDateHeader shows Today for today', (tester) async {
+  testWidgets('TaskListDateHeader shows formatted date for today', (tester) async {
     final today = DateTime.now();
     final localToday = DateTime(today.year, today.month, today.day);
 
@@ -17,7 +18,10 @@ void main() {
       ),
     );
 
-    expect(find.text('Today'), findsOneWidget);
+    expect(
+      find.text(formatTaskListDateHeader(localToday, now: localToday)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('TaskListDateHeader shows Unscheduled when day is null', (

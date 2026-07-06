@@ -3,11 +3,11 @@ import 'package:frontend/features/productivity/widgets/task_display.dart';
 
 void main() {
   group('formatTaskListDateHeader', () {
-    test('returns Today for the current local day', () {
+    test('returns weekday and short month for the current local day', () {
       final now = DateTime(2026, 6, 7, 15, 30);
       final today = DateTime(2026, 6, 7);
 
-      expect(formatTaskListDateHeader(today, now: now), 'Today');
+      expect(formatTaskListDateHeader(today, now: now), 'Sunday, Jun 7');
     });
 
     test('formats other days with weekday, day, month, and year', () {

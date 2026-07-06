@@ -9,6 +9,20 @@ import 'package:frontend/features/productivity/widgets/task_display.dart';
 /// Timeline accent for non-status metadata (e.g. time label).
 const Color taskTimelineAccentColor = Color(0xFF42A5F5);
 
+/// Layouts below this [MediaQuery] shortest side hide row icon badges on mobile.
+const productivityMobileLayoutBreakpoint = 600.0;
+
+/// Whether task / tracker timeline rows show the leading icon badge.
+bool productivityListShowsItemIcons(BuildContext context) {
+  return MediaQuery.sizeOf(context).shortestSide >=
+      productivityMobileLayoutBreakpoint;
+}
+
+/// Optional leading icon for metadata chips on timeline rows.
+Widget? productivityListChipLeading(BuildContext context, Widget leading) {
+  return productivityListShowsItemIcons(context) ? leading : null;
+}
+
 /// Default registry icon names for parent chips (matches list tiles).
 abstract final class TaskCategoryChipDefaults {
   static const projectIcon = 'Person Digging';
@@ -104,6 +118,42 @@ class TaskTimelineIconBadge extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Leading icon badge + gap for task/tracker timeline rows; hidden on mobile.
+class TaskListRowLeadingIcon extends StatelessWidget {
+  const TaskListRowLeadingIcon({
+    super.key,
+    required this.color,
+    required this.defaultIconName,
+    required this.materialFallback,
+    this.iconName,
+  });
+
+  final Color color;
+  final String defaultIconName;
+  final IconData materialFallback;
+  final String? iconName;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!productivityListShowsItemIcons(context)) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TaskTimelineIconBadge(
+          color: color,
+          iconName: iconName,
+          defaultIconName: defaultIconName,
+          materialFallback: materialFallback,
+        ),
+        const SizedBox(width: CompanionFormStyles.taskPanelIconBadgeGap),
+      ],
     );
   }
 }
@@ -358,6 +408,8 @@ class TaskListDateHeader extends StatelessWidget {
     final label = day == null
         ? 'Unscheduled'
         : formatTaskListDateHeader(day!, now: listToday);
+    final isToday =
+        day != null && taskListDayIsToday(day!, now: listToday);
 
     return Padding(
       key: headerKey,
@@ -370,7 +422,7 @@ class TaskListDateHeader extends StatelessWidget {
         label,
         style: theme.textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.w600,
-          color: scheme.onSurfaceVariant,
+          color: isToday ? scheme.primary : scheme.onSurfaceVariant,
         ),
       ),
     );

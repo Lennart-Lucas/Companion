@@ -7,6 +7,7 @@ import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/task_subtask.dart';
 import 'package:frontend/features/productivity/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/services/task_list_display.dart';
+import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 import 'package:frontend/features/productivity/widgets/task_list_tile.dart';
 
 class _FakeTaskListActions implements TaskListTileActions {
@@ -54,6 +55,16 @@ Widget _wrap(Widget child) {
   return MaterialApp(
     theme: AppThemeId.hubTheme,
     home: Scaffold(body: child),
+  );
+}
+
+Widget _wrapSized(Widget child, Size size) {
+  return MaterialApp(
+    theme: AppThemeId.hubTheme,
+    home: MediaQuery(
+      data: MediaQueryData(size: size),
+      child: Scaffold(body: child),
+    ),
   );
 }
 
@@ -257,5 +268,37 @@ void main() {
     expect(find.text('Edit'), findsOneWidget);
     expect(find.text('Copy'), findsOneWidget);
     expect(find.text('Delete task'), findsOneWidget);
+  });
+
+  testWidgets('TaskListTile hides leading icon badge on mobile layout', (
+    WidgetTester tester,
+  ) async {
+    final actions = _FakeTaskListActions();
+    final entry = buildEntry(plannedAt: DateTime(2026, 6, 7, 9));
+
+    await tester.pumpWidget(
+      _wrapSized(
+        TaskListTile(entry: entry, actions: actions),
+        const Size(400, 800),
+      ),
+    );
+
+    expect(find.byType(TaskTimelineIconBadge), findsNothing);
+  });
+
+  testWidgets('TaskListTile shows leading icon badge on wide layout', (
+    WidgetTester tester,
+  ) async {
+    final actions = _FakeTaskListActions();
+    final entry = buildEntry(plannedAt: DateTime(2026, 6, 7, 9));
+
+    await tester.pumpWidget(
+      _wrapSized(
+        TaskListTile(entry: entry, actions: actions),
+        const Size(900, 800),
+      ),
+    );
+
+    expect(find.byType(TaskTimelineIconBadge), findsOneWidget);
   });
 }

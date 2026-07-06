@@ -93,6 +93,21 @@ const _monthNames = [
   'December',
 ];
 
+const _monthAbbrevs = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
 /// Normalizes [date] to a local calendar day for comparisons.
 DateTime normalizeTaskListCalendarDay(DateTime date) {
   final local = date.toLocal();
@@ -103,11 +118,12 @@ DateTime normalizeTaskListCalendarDay(DateTime date) {
 String formatTaskListDateHeader(DateTime localDay, {DateTime? now}) {
   final day = normalizeTaskListCalendarDay(localDay);
   final today = normalizeTaskListCalendarDay(now ?? DateTime.now());
-  if (day == today) return 'Today';
-
   final weekday = _weekdayNames[day.weekday - 1];
-  final month = _monthNames[day.month - 1];
-  return '$weekday, ${day.day} $month ${day.year}';
+  final month = _monthAbbrevs[day.month - 1];
+  if (day == today) return '$weekday, $month ${day.day}';
+
+  final fullMonth = _monthNames[day.month - 1];
+  return '$weekday, ${day.day} $fullMonth ${day.year}';
 }
 
 /// Whether [localDay] is the current local calendar day.

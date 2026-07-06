@@ -1,7 +1,7 @@
 DEV_COMPOSE = docker compose -p companion-dev -f docker-compose.dev.yml
 PROD_COMPOSE = docker compose -p companion-prod -f docker-compose.prod.yml
 
-.PHONY: setup install-hooks dev-up dev-down dev-logs dev-migrate migration-autogen squash-migrations prod-up prod-down prod-logs prod-migrate
+.PHONY: setup install-hooks dev-up dev-down dev-logs dev-migrate migration-autogen squash-migrations prod-up prod-down prod-logs prod-migrate deploy
 
 setup:
 	@test -f .env.dev || cp .env.dev.example .env.dev
@@ -39,3 +39,6 @@ prod-logs:
 
 prod-migrate:
 	$(PROD_COMPOSE) exec api alembic upgrade head
+
+deploy:
+	powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy.ps1

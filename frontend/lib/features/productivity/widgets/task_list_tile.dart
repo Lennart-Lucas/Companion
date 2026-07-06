@@ -144,7 +144,7 @@ class _TaskListTileState extends State<TaskListTile> {
     }
   }
 
-  Widget? _linkedProjectChip(ColorScheme scheme) {
+  Widget? _linkedProjectChip(BuildContext context, ColorScheme scheme) {
     final project = widget.linkedProject;
     if (project == null) return null;
     final color =
@@ -152,16 +152,19 @@ class _TaskListTileState extends State<TaskListTile> {
     return TaskCategoryChip(
       label: project.name,
       tintColor: color,
-      leading: taskCategoryChipIcon(
-        iconName: project.icon,
-        defaultIconName: TaskCategoryChipDefaults.projectIcon,
-        materialFallback: Icons.construction_outlined,
-        color: color,
+      leading: productivityListChipLeading(
+        context,
+        taskCategoryChipIcon(
+          iconName: project.icon,
+          defaultIconName: TaskCategoryChipDefaults.projectIcon,
+          materialFallback: Icons.construction_outlined,
+          color: color,
+        ),
       ),
     );
   }
 
-  Widget? _linkedGoalChip(ColorScheme scheme) {
+  Widget? _linkedGoalChip(BuildContext context, ColorScheme scheme) {
     final goal = widget.linkedGoal;
     if (goal == null) return null;
     final color =
@@ -170,11 +173,14 @@ class _TaskListTileState extends State<TaskListTile> {
     return TaskCategoryChip(
       label: goal.name,
       tintColor: color,
-      leading: taskCategoryChipIcon(
-        iconName: goal.icon,
-        defaultIconName: TaskCategoryChipDefaults.goalIcon,
-        materialFallback: Icons.flag_outlined,
-        color: color,
+      leading: productivityListChipLeading(
+        context,
+        taskCategoryChipIcon(
+          iconName: goal.icon,
+          defaultIconName: TaskCategoryChipDefaults.goalIcon,
+          materialFallback: Icons.flag_outlined,
+          color: color,
+        ),
       ),
     );
   }
@@ -272,13 +278,10 @@ class _TaskListTileState extends State<TaskListTile> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          TaskTimelineIconBadge(
+                          TaskListRowLeadingIcon(
                             color: scheme.primary,
                             defaultIconName: TaskCategoryChipDefaults.taskIcon,
                             materialFallback: Icons.done_all,
-                          ),
-                          const SizedBox(
-                            width: CompanionFormStyles.taskPanelIconBadgeGap,
                           ),
                           Expanded(
                             child: Column(
@@ -320,51 +323,66 @@ class _TaskListTileState extends State<TaskListTile> {
                                     TaskMetaChip(
                                       label: taskStatusLabel(_entry.status),
                                       tintColor: statusColor,
-                                      leading: taskStatusIcon(
-                                        status: _entry.status,
-                                        scheme: scheme,
-                                        size: 14,
+                                      leading: productivityListChipLeading(
+                                        context,
+                                        taskStatusIcon(
+                                          status: _entry.status,
+                                          scheme: scheme,
+                                          size: 14,
+                                        ),
                                       ),
                                     ),
                                     TaskMetaChip(
                                       label: taskPriorityLabel(_entry.priority),
                                       tintColor: priorityColor,
-                                      leading: taskPriorityIcon(
-                                        priority: _entry.priority,
-                                        scheme: scheme,
-                                        size: 14,
+                                      leading: productivityListChipLeading(
+                                        context,
+                                        taskPriorityIcon(
+                                          priority: _entry.priority,
+                                          scheme: scheme,
+                                          size: 14,
+                                        ),
                                       ),
                                     ),
                                     if (_entry.task.isRecurring)
                                       TaskMetaChip(
                                         label: 'Repeating',
                                         tintColor: scheme.secondary,
-                                        leading: Icon(
-                                          Icons.repeat,
-                                          size: 14,
-                                          color: scheme.secondary,
+                                        leading: productivityListChipLeading(
+                                          context,
+                                          Icon(
+                                            Icons.repeat,
+                                            size: 14,
+                                            color: scheme.secondary,
+                                          ),
                                         ),
                                       ),
                                     if (timeLabel != null)
                                       TaskMetaChip(
                                         label: timeLabel,
                                         tintColor: taskTimelineAccentColor,
-                                        leading: Icon(
-                                          taskListTimeShowsClock(_entry)
-                                              ? Icons.schedule
-                                              : Icons.calendar_today_outlined,
-                                          size: 14,
-                                          color: taskTimelineAccentColor,
+                                        leading: productivityListChipLeading(
+                                          context,
+                                          Icon(
+                                            taskListTimeShowsClock(_entry)
+                                                ? Icons.schedule
+                                                : Icons.calendar_today_outlined,
+                                            size: 14,
+                                            color: taskTimelineAccentColor,
+                                          ),
                                         ),
                                       ),
                                     if (_entry.isPastDue)
                                       TaskMetaChip(
                                         label: 'Past due',
                                         tintColor: scheme.error,
-                                        leading: Icon(
-                                          Icons.warning_amber_rounded,
-                                          size: 14,
-                                          color: scheme.error,
+                                        leading: productivityListChipLeading(
+                                          context,
+                                          Icon(
+                                            Icons.warning_amber_rounded,
+                                            size: 14,
+                                            color: scheme.error,
+                                          ),
                                         ),
                                       ),
                                     if (_entry.subtasks.isNotEmpty)
@@ -377,23 +395,28 @@ class _TaskListTileState extends State<TaskListTile> {
                                           'completed',
                                           scheme,
                                         ),
-                                        leading: Icon(
-                                          Icons.checklist,
-                                          size: 14,
-                                          color: completedSubtasks ==
-                                                  _entry.subtasks.length
-                                              ? taskStatusColor(
-                                                  'completed',
-                                                  scheme,
-                                                )
-                                              : scheme.onSurface.withValues(
-                                                  alpha: 0.7,
-                                                ),
+                                        leading: productivityListChipLeading(
+                                          context,
+                                          Icon(
+                                            Icons.checklist,
+                                            size: 14,
+                                            color: completedSubtasks ==
+                                                    _entry.subtasks.length
+                                                ? taskStatusColor(
+                                                    'completed',
+                                                    scheme,
+                                                  )
+                                                : scheme.onSurface.withValues(
+                                                    alpha: 0.7,
+                                                  ),
+                                          ),
                                         ),
                                       ),
-                                    if (_linkedProjectChip(scheme) case final chip?)
+                                    if (_linkedProjectChip(context, scheme)
+                                        case final chip?)
                                       chip,
-                                    if (_linkedGoalChip(scheme) case final chip?)
+                                    if (_linkedGoalChip(context, scheme)
+                                        case final chip?)
                                       chip,
                                   ],
                                 ),

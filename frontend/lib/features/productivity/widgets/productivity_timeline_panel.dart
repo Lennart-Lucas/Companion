@@ -9,15 +9,18 @@ import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/models/timeline_item.dart';
 import 'package:frontend/features/productivity/models/timeline_row.dart';
+import 'package:frontend/features/productivity/pages/task_bucket_list_page.dart';
 import 'package:frontend/features/productivity/pages/task_create_page.dart';
 import 'package:frontend/features/productivity/pages/task_edit_page.dart';
 import 'package:frontend/features/productivity/pages/tracker_detail_page.dart';
 import 'package:frontend/features/productivity/pages/tracker_edit_page.dart';
+import 'package:frontend/features/productivity/services/task_bucket_summary.dart';
 import 'package:frontend/features/productivity/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/services/task_list_display.dart';
 import 'package:frontend/features/productivity/services/timeline_feed.dart';
 import 'package:frontend/features/productivity/services/timeline_grouper.dart';
+import 'package:frontend/features/productivity/widgets/task_bucket_row.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 import 'package:frontend/features/productivity/services/tracker_check_in_repository.dart';
@@ -34,6 +37,7 @@ class ProductivityTimelinePanel extends StatefulWidget {
     required this.feed,
     required this.backgroundIconName,
     this.showAddTaskRows = true,
+    this.showTaskBuckets,
     this.taskActions,
     this.taskTimelineProvider,
     this.checkInRepository,
@@ -42,6 +46,7 @@ class ProductivityTimelinePanel extends StatefulWidget {
   final ProductivityTimelineFeed feed;
   final String backgroundIconName;
   final bool showAddTaskRows;
+  final bool? showTaskBuckets;
   final TaskListTileActions? taskActions;
   final TaskTimelineProvider? taskTimelineProvider;
   final TrackerCheckInRepository? checkInRepository;
@@ -78,6 +83,7 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
   DateTime? _selectedDay;
   int _scrollToDayOpId = 0;
   final Set<String> _togglingTrackerCheckIns = {};
+  TaskBucketSummary? _taskBucketSummary;
 
   final ScrollController _scrollController = ScrollController();
   final PageController _weekPageController = PageController(
@@ -108,6 +114,10 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
 
   RecordQuery get _primaryWatchQuery =>
       widget.feed.watchQueries.firstOrNull ?? TaskTimelineProvider.tasksQuery;
+
+  bool get _showTaskBuckets =>
+      widget.showTaskBuckets ??
+      widget.feed.providers.any((provider) => provider is TaskTimelineProvider);
 
   int _nextExpandOpId() => ++_expandOpGeneration;
 
@@ -189,6 +199,8 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
         CompanionFormStyles.sectionHeaderMarginTop +
             CompanionFormStyles.sectionHeaderMarginBottom +
             24,
+      TimelineTaskBucketRow() =>
+        24 + 12 + 72 + CompanionFormStyles.taskRowVerticalGap,
       TimelineAddTaskRow() =>
         CompanionFormStyles.taskTimelineNodeOuterSize +
             CompanionFormStyles.taskRowVerticalGap,
@@ -315,6 +327,9 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
       showPastLoader: _loadingPast,
       showFutureLoader: _loadingFuture,
       showAddTaskRows: widget.showAddTaskRows,
+      taskBucketSummary:
+          _showTaskBuckets ? (_taskBucketSummary ?? TaskBucketSummary.empty) : null,
+      today: _listToday,
     );
   }
 
@@ -470,12 +485,17 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
 
     try {
       final items = await widget.feed.load(state, _horizon);
+      TaskBucketSummary? bucketSummary;
+      if (_showTaskBuckets) {
+        bucketSummary = await _taskProvider.computeBucketSummary(tasks);
+      }
       if (!mounted) return;
       _applyExpandResult(
         opId: opId,
         apply: () {
           setState(() {
             _items = items;
+            _taskBucketSummary = bucketSummary;
             _loadedQueryVersion = cached.version;
             _expanding = false;
           });
@@ -652,6 +672,23 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
         .then((_) => refreshList());
   }
 
+  void _openTaskBucket(TaskBucket bucket) {
+    final summary = _taskBucketSummary ?? TaskBucketSummary.empty;
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => TaskBucketListPage(
+              bucket: bucket,
+              entries: summary.entriesForBucket(bucket),
+              actions: _actions,
+              onEntryChanged: _updateEntry,
+              onDeleted: refreshList,
+            ),
+          ),
+        )
+        .then((_) => refreshList());
+  }
+
   void _openTrackerEdit(Tracker tracker) {
     Navigator.of(context)
         .push(
@@ -818,6 +855,10 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
           day: day,
           listToday: _listToday,
           headerKey: day != null ? _keyForDay(day) : null,
+        ),
+      TimelineTaskBucketRow(:final summary) => TaskBucketRow(
+          summary: summary,
+          onBucketTap: _openTaskBucket,
         ),
       TimelineTaskEntryRow(
         :final entry,

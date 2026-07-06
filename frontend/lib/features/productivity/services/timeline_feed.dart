@@ -5,6 +5,7 @@ import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/core/records/typed_record_resolver.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/timeline_item.dart';
+import 'package:frontend/features/productivity/services/task_bucket_summary.dart';
 import 'package:frontend/features/productivity/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/services/tracker_check_in_repository.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
@@ -148,6 +149,16 @@ class TaskTimelineProvider extends TimelineContentProvider {
     );
     return tasks;
   }
+
+  Future<TaskBucketSummary> computeBucketSummary(
+    List<Task> tasks, {
+    DateTime? now,
+  }) =>
+      computeTaskBucketSummary(
+        tasks: tasks,
+        builder: _builder,
+        now: now,
+      );
 }
 
 /// Stub provider for future event rows in the overview timeline.

@@ -1,6 +1,7 @@
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/tracker_check_in.dart';
+import 'package:frontend/features/productivity/services/task_bucket_summary.dart';
 
 /// One row in the flattened productivity timeline list.
 sealed class TimelineRow {}
@@ -9,6 +10,12 @@ class TimelineDateHeaderRow extends TimelineRow {
   TimelineDateHeaderRow({required this.day});
 
   final DateTime? day;
+}
+
+class TimelineTaskBucketRow extends TimelineRow {
+  TimelineTaskBucketRow({required this.summary});
+
+  final TaskBucketSummary summary;
 }
 
 class TimelineTaskEntryRow extends TimelineRow {

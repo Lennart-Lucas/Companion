@@ -4,6 +4,7 @@ import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/services/tracker_list_actions.dart';
+import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 import 'package:frontend/features/productivity/widgets/tracker_check_in_timeline_tile.dart';
 
 class _FakeTrackerListActions implements TrackerListTileActions {
@@ -410,5 +411,44 @@ void main() {
     await tester.longPress(find.byTooltip('Edit check-in'));
     await tester.pump();
     expect(longPressed, isTrue);
+  });
+
+  testWidgets('TrackerCheckInTimelineTile hides leading icon badge on mobile', (
+    WidgetTester tester,
+  ) async {
+    setupCompanionIcons();
+    final tracker = Tracker(
+      id: 't1',
+      name: 'Meditation',
+      startDate: DateTime(2026, 6, 1),
+      checkInType: TrackerCheckInType.task,
+    );
+    final checkIn = TrackerCheckIn(
+      id: 1,
+      checkInAt: DateTime(2026, 6, 7),
+      checkInType: TrackerCheckInType.task,
+      logged: false,
+      skipped: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(400, 800)),
+          child: Scaffold(
+            body: TrackerCheckInTimelineTile(
+              tracker: tracker,
+              checkIn: checkIn,
+              actions: actions,
+              isFirst: true,
+              isLast: true,
+              onTap: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(TaskTimelineIconBadge), findsNothing);
   });
 }
