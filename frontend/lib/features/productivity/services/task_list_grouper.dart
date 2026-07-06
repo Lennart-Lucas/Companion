@@ -2,6 +2,7 @@ import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/timeline_item.dart';
 import 'package:frontend/features/productivity/models/timeline_row.dart';
 import 'package:frontend/features/productivity/services/task_list_builder.dart';
+import 'package:frontend/features/productivity/services/task_today_buckets.dart';
 import 'package:frontend/features/productivity/services/timeline_grouper.dart';
 
 /// Tasks sharing one calendar day (null day = unscheduled).
@@ -22,6 +23,12 @@ class TaskListDateHeaderRow extends TaskListRow {
   TaskListDateHeaderRow({required this.day});
 
   final DateTime? day;
+}
+
+class TaskListTodayBucketsRow extends TaskListRow {
+  TaskListTodayBucketsRow({required this.counts});
+
+  final TaskTodayBucketCounts counts;
 }
 
 class TaskListEntryRow extends TaskListRow {
@@ -75,6 +82,8 @@ List<TaskListDaySection> _fromTimelineSections(List<TimelineDaySection> sections
 TaskListRow _fromTimelineRow(TimelineRow row) {
   return switch (row) {
     TimelineDateHeaderRow(:final day) => TaskListDateHeaderRow(day: day),
+    TimelineTodayBucketsRow(:final counts) =>
+      TaskListTodayBucketsRow(counts: counts),
     TimelineTaskEntryRow(
       :final entry,
       :final isFirstInDay,
@@ -126,4 +135,25 @@ List<TaskListRow> flattenTaskListRows(
     showFutureLoader: showFutureLoader,
   );
   return rows.map(_fromTimelineRow).toList();
+}
+
+/// Flattens [sections] and inserts Today bucket cards.
+List<TaskListRow> flattenTaskListRowsWithTodayBuckets({
+  required List<TaskListDaySection> sections,
+  required DateTime listToday,
+  required TaskTodayBucketCounts bucketCounts,
+  bool showPastLoader = false,
+  bool showFutureLoader = false,
+}) {
+  var timelineRows = flattenTimelineRows(
+    _toTimelineSections(sections),
+    showPastLoader: showPastLoader,
+    showFutureLoader: showFutureLoader,
+  );
+  timelineRows = applyTodayBucketsToTimelineRows(
+    rows: timelineRows,
+    today: listToday,
+    counts: bucketCounts,
+  );
+  return timelineRows.map(_fromTimelineRow).toList();
 }

@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
 import 'package:frontend/features/productivity/forms/task_field_option_tile.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
+import 'package:frontend/features/productivity/widgets/tracker_display.dart';
 
 /// Timeline accent for non-status metadata (e.g. time label).
 const Color taskTimelineAccentColor = Color(0xFF42A5F5);
@@ -279,7 +280,9 @@ class TaskTimelineStatusButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final statusColor = taskStatusColor(status, scheme);
+    final statusColor = status == 'completed'
+        ? taskCompletedStatusColor()
+        : taskStatusColor(status, scheme);
     final size = CompanionFormStyles.taskTimelineNodeSize;
 
     return IconButton(
@@ -441,9 +444,7 @@ class TaskRowPanel extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: scheme.onSurface.withValues(
-          alpha: CompanionFormStyles.taskRowBackgroundAlpha,
-        ),
+        color: CompanionFormStyles.taskListPanelBackground(scheme),
         borderRadius: BorderRadius.circular(
           CompanionFormStyles.taskRowPanelRadius,
         ),

@@ -170,6 +170,21 @@ void main() {
     expect(title.style?.decoration, TextDecoration.lineThrough);
   });
 
+  testWidgets('completed task uses tracker-style Done chip', (
+    WidgetTester tester,
+  ) async {
+    final actions = _FakeTaskListActions();
+    final entry = buildEntry(status: 'completed');
+
+    await tester.pumpWidget(
+      _wrap(TaskListTile(entry: entry, actions: actions)),
+    );
+
+    expect(find.text('Done'), findsOneWidget);
+    expect(find.text('Completed'), findsNothing);
+    expect(find.byIcon(Icons.check_circle_outline), findsWidgets);
+  });
+
   testWidgets('checklist row toggles on tap', (WidgetTester tester) async {
     final actions = _FakeTaskListActions();
     final entry = buildEntry(

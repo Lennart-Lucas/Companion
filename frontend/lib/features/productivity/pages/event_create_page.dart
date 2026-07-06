@@ -2,6 +2,7 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
+import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/forms/event_form_config.dart';
 
 /// Full-screen wizard to create an event.
@@ -10,8 +11,8 @@ class EventCreatePage extends StatelessWidget {
 
   static const _eventsQuery = RecordQuery(recordType: 'events', limit: 50);
 
-  void _refreshEvents(BuildContext context) {
-    context.read<RecordBloc>().add(const QueryRecordsRequested(_eventsQuery));
+  Future<void> _refreshEvents(BuildContext context) {
+    return refreshRecordQuery(context.read<RecordBloc>(), _eventsQuery);
   }
 
   @override
@@ -38,8 +39,9 @@ class EventCreatePage extends StatelessWidget {
             apiClient: CompanionAnvilApp.instance.apiClient,
           ),
           onCancel: () => Navigator.of(context).pop(),
-          onSubmitSuccess: (_) {
-            _refreshEvents(context);
+          onSubmitSuccess: (_) async {
+            await _refreshEvents(context);
+            if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Event created')),
             );

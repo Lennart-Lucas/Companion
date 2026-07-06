@@ -12,10 +12,14 @@ class ProductivityOverviewPage extends StatelessWidget {
     super.key,
     this.feed,
     this.taskActions,
+    this.hideCompletedItems = true,
   });
 
   final ProductivityTimelineFeed? feed;
   final TaskListTileActions? taskActions;
+
+  /// When true, completed tasks and succeeded tracker check-ins are hidden.
+  final bool hideCompletedItems;
 
   Future<void> _openCreate(BuildContext context) async {
     await Navigator.of(context).push(
@@ -40,6 +44,7 @@ class ProductivityOverviewPage extends StatelessWidget {
       body: ProductivityTimelinePanel(
         feed: feed ?? overviewProductivityTimelineFeed(),
         taskActions: taskActions,
+        hideCompletedItems: hideCompletedItems,
         backgroundIconName: 'House',
       ),
     );

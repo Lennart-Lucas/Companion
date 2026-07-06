@@ -6,7 +6,9 @@ import 'package:frontend/features/productivity/services/timeline_feed.dart';
 import 'package:frontend/features/productivity/widgets/productivity_timeline_panel.dart';
 
 class TasksPage extends StatelessWidget {
-  const TasksPage({super.key});
+  const TasksPage({super.key, this.hideCompletedItems = true});
+
+  final bool hideCompletedItems;
 
   Future<void> _openCreate(BuildContext context) async {
     await Navigator.of(context).push(
@@ -30,6 +32,7 @@ class TasksPage extends StatelessWidget {
       ),
       body: ProductivityTimelinePanel(
         feed: defaultProductivityTimelineFeed(),
+        hideCompletedItems: hideCompletedItems,
         backgroundIconName: 'Check Double',
       ),
     );

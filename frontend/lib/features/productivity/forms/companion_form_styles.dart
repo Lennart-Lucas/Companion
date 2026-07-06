@@ -21,6 +21,9 @@ class CompanionFormStyles {
 
   /// Task list timeline layout tokens.
   static const double taskTimelineWidth = 44;
+
+  /// Mirrors [taskTimelineWidth] on the trailing edge of list content.
+  static const double taskListTrailingInset = taskTimelineWidth;
   static const double taskTimelineLineWidth = 3;
   static const double taskTimelineNodeSize = 28;
   static const double taskTimelineNodeOuterSize = taskTimelineNodeSize + 8;
@@ -33,13 +36,41 @@ class CompanionFormStyles {
   static const double taskPanelIconBadgeGap = 12;
   static const double taskRowPanelRadius = 10;
   static const double taskRowPanelPadding = 12;
-  static const double taskRowBackgroundAlpha = 0.06;
+
+  /// Opacity of the task list panel gray fill.
+  static const double taskRowBackgroundAlpha = 0.9;
+
   static const double taskRowVerticalGap = 20;
   static const double taskTimelineLineTopSegment = 8;
   static const double taskTimelineLineRemainingGap = 6;
   static const double taskTimelineLineOverhang =
       (taskRowVerticalGap - taskTimelineLineRemainingGap) / 2;
   static const double taskListChipGap = 6;
+
+  static const Color _taskListPanelDarkGray = Color(0xFF2C2C2C);
+  static const Color _taskListPanelLightGray = Color(0xFFBDBDBD);
+
+  /// Translucent dark-gray fill for task rows, buckets, and tracker panels.
+  static Color taskListPanelBackground(ColorScheme scheme) {
+    final base = scheme.brightness == Brightness.dark
+        ? _taskListPanelDarkGray
+        : _taskListPanelLightGray;
+    return base.withValues(alpha: taskRowBackgroundAlpha);
+  }
+
+  /// Page padding for task timeline lists (mirrors timeline column on the right).
+  static EdgeInsets taskListPagePadding({
+    double horizontal = 16,
+    required double top,
+    double bottom = 16,
+  }) {
+    return EdgeInsets.fromLTRB(
+      horizontal,
+      top,
+      horizontal + taskListTrailingInset,
+      bottom,
+    );
+  }
 
   /// Field decoration aligned with [ThemeData.inputDecorationTheme] (Hub borders/fill).
   static InputDecoration fieldDecoration(BuildContext context) {

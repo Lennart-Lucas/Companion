@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/forms/tracker_form_config.dart';
 
 /// Full-screen single-page form to create a tracker.
@@ -9,8 +10,8 @@ class TrackerCreatePage extends StatelessWidget {
 
   static const _trackersQuery = RecordQuery(recordType: 'trackers', limit: 50);
 
-  void _refreshTrackers(BuildContext context) {
-    context.read<RecordBloc>().add(const QueryRecordsRequested(_trackersQuery));
+  Future<void> _refreshTrackers(BuildContext context) {
+    return refreshRecordQuery(context.read<RecordBloc>(), _trackersQuery);
   }
 
   @override
@@ -34,8 +35,9 @@ class TrackerCreatePage extends StatelessWidget {
           config: buildTrackerFormConfig(recordBloc),
           submitLabel: 'Create tracker',
           onCancel: () => Navigator.of(context).pop(),
-          onSubmitSuccess: (_) {
-            _refreshTrackers(context);
+          onSubmitSuccess: (_) async {
+            await _refreshTrackers(context);
+            if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Tracker created')),
             );

@@ -14,6 +14,8 @@ class ProjectRecordSubmitHandler extends FormSubmitHandler {
   final RecordId? recordId;
   final Project? preloadedProject;
 
+  static const _projectsQuery = RecordQuery(recordType: 'projects', limit: 50);
+
   late final RecordSubmitHandler _delegate = RecordSubmitHandler(
     recordBloc: recordBloc,
     recordType: 'projects',
@@ -42,8 +44,27 @@ class ProjectRecordSubmitHandler extends FormSubmitHandler {
   }
 
   @override
-  Future<FormSubmitResult> submit(Map<String, dynamic> values) =>
-      _delegate.submit(values);
+  Future<FormSubmitResult> submit(Map<String, dynamic> values) async {
+    final result = await _delegate.submit(values);
+    if (!result.success) return result;
+
+    final id = _resolveProjectId(result);
+    if (id == null) return result;
+
+    recordBloc.add(GetRecordRequested(recordType: 'projects', recordId: id));
+    recordBloc.remoteCoordinator?.refreshQueryRecords(_projectsQuery);
+    return result;
+  }
+
+  String? _resolveProjectId(FormSubmitResult result) {
+    if (recordId != null) return recordId;
+    final data = result.data;
+    if (data is Map<String, dynamic>) {
+      final id = data['id']?.toString();
+      if (id != null && id.isNotEmpty) return id;
+    }
+    return null;
+  }
 
   @override
   void dispose() => _delegate.dispose();

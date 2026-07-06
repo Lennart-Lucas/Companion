@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/forms/project_form_config.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 
@@ -17,11 +18,8 @@ class ProjectEditPage extends StatelessWidget {
 
   static const _projectsQuery = RecordQuery(recordType: 'projects', limit: 50);
 
-  void _refreshProjects(BuildContext context) {
-    context
-        .read<RecordBloc>()
-        .remoteCoordinator
-        ?.refreshQueryRecords(_projectsQuery);
+  Future<void> _refreshProjects(BuildContext context) {
+    return refreshRecordQuery(context.read<RecordBloc>(), _projectsQuery);
   }
 
   @override
@@ -50,8 +48,9 @@ class ProjectEditPage extends StatelessWidget {
           ),
           submitLabel: 'Save project',
           onCancel: () => Navigator.of(context).pop(),
-          onSubmitSuccess: (_) {
-            _refreshProjects(context);
+          onSubmitSuccess: (_) async {
+            await _refreshProjects(context);
+            if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Project saved')),
             );

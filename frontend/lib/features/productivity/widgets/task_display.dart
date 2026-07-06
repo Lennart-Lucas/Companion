@@ -1,4 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/models/task_list_entry.dart';
+import 'package:frontend/features/productivity/widgets/tracker_display.dart';
+
+/// Label and chip icon for a completed task (matches tracker "Done" outcome).
+const String taskCompletedStatusLabel = 'Done';
+
+IconData taskCompletedStatusChipIcon() => Icons.check_circle_outline;
+
+Color taskCompletedStatusColor() => trackerStrengthHighColor;
 
 /// Human-readable labels for task status / priority API values.
 String taskStatusLabel(String value) => switch (value) {

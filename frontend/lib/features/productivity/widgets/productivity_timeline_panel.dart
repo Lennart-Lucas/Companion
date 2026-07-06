@@ -11,13 +11,16 @@ import 'package:frontend/features/productivity/models/timeline_item.dart';
 import 'package:frontend/features/productivity/models/timeline_row.dart';
 import 'package:frontend/features/productivity/pages/task_create_page.dart';
 import 'package:frontend/features/productivity/pages/task_edit_page.dart';
+import 'package:frontend/features/productivity/pages/task_today_bucket_page.dart';
 import 'package:frontend/features/productivity/pages/tracker_detail_page.dart';
 import 'package:frontend/features/productivity/pages/tracker_edit_page.dart';
 import 'package:frontend/features/productivity/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/services/task_list_display.dart';
+import 'package:frontend/features/productivity/services/task_list_filter.dart';
 import 'package:frontend/features/productivity/services/timeline_feed.dart';
 import 'package:frontend/features/productivity/services/timeline_grouper.dart';
+import 'package:frontend/features/productivity/services/task_today_buckets.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 import 'package:frontend/features/productivity/services/tracker_check_in_repository.dart';
@@ -26,6 +29,7 @@ import 'package:frontend/features/productivity/widgets/tracker_check_in_dialog.d
 import 'package:frontend/features/productivity/widgets/tracker_check_in_timeline_tile.dart';
 import 'package:frontend/features/productivity/widgets/task_list_tile.dart';
 import 'package:frontend/features/productivity/widgets/task_list_week_strip.dart';
+import 'package:frontend/features/productivity/widgets/task_today_buckets_row.dart';
 
 /// Infinite-scroll productivity timeline with week strip and pluggable content.
 class ProductivityTimelinePanel extends StatefulWidget {
@@ -34,6 +38,7 @@ class ProductivityTimelinePanel extends StatefulWidget {
     required this.feed,
     required this.backgroundIconName,
     this.showAddTaskRows = true,
+    this.hideCompletedItems = true,
     this.taskActions,
     this.taskTimelineProvider,
     this.checkInRepository,
@@ -42,6 +47,9 @@ class ProductivityTimelinePanel extends StatefulWidget {
   final ProductivityTimelineFeed feed;
   final String backgroundIconName;
   final bool showAddTaskRows;
+
+  /// When true, completed tasks and succeeded tracker check-ins are hidden.
+  final bool hideCompletedItems;
   final TaskListTileActions? taskActions;
   final TaskTimelineProvider? taskTimelineProvider;
   final TrackerCheckInRepository? checkInRepository;
@@ -189,6 +197,9 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
         CompanionFormStyles.sectionHeaderMarginTop +
             CompanionFormStyles.sectionHeaderMarginBottom +
             24,
+      TimelineTodayBucketsRow() =>
+        TaskTodayBucketsRow.rowHeight +
+            CompanionFormStyles.sectionHeaderMarginBottom,
       TimelineAddTaskRow() =>
         CompanionFormStyles.taskTimelineNodeOuterSize +
             CompanionFormStyles.taskRowVerticalGap,
@@ -309,13 +320,46 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
   }
 
   List<TimelineRow> get _rows {
-    final sections = groupTimelineItems(_items, horizon: _horizon);
-    return flattenTimelineRows(
+    final taskEntries = _taskEntries;
+    final bucketCounts = computeTaskTodayBucketCounts(taskEntries, _listToday);
+    final visibleItems = filterVisibleTimelineItems(
+      _items,
+      hideCompleted: widget.hideCompletedItems,
+      now: _listToday,
+    );
+    final sections = groupTimelineItems(visibleItems, horizon: _horizon);
+    var rows = flattenTimelineRows(
       sections,
       showPastLoader: _loadingPast,
       showFutureLoader: _loadingFuture,
       showAddTaskRows: widget.showAddTaskRows,
     );
+    rows = applyTodayBucketsToTimelineRows(
+      rows: rows,
+      today: _listToday,
+      counts: bucketCounts,
+    );
+    return rows;
+  }
+
+  List<TaskListEntry> get _taskEntries => [
+        for (final item in _items)
+          if (item is TaskTimelineItem) item.entry,
+      ];
+
+  Future<void> _openTodayBucket(TaskTodayBucket bucket) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TaskTodayBucketPage(
+          bucket: bucket,
+          listToday: _listToday,
+          entries: taskEntriesForTodayBucket(_taskEntries, bucket, _listToday),
+          taskActions: _actions,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _expandFromBloc(context.read<RecordBloc>().state, force: true);
   }
 
   void _prefetchParentRecords() {
@@ -819,6 +863,10 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
           listToday: _listToday,
           headerKey: day != null ? _keyForDay(day) : null,
         ),
+      TimelineTodayBucketsRow(:final counts) => TaskTodayBucketsRow(
+          counts: counts,
+          onBucketTap: _openTodayBucket,
+        ),
       TimelineTaskEntryRow(
         :final entry,
         :final isFirstInDay,
@@ -949,11 +997,9 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
                     child: ListView.builder(
                       controller: _scrollController,
                       clipBehavior: Clip.hardEdge,
-                      padding: EdgeInsets.fromLTRB(
-                        _listHorizontalPadding,
-                        listTopPadding,
-                        _listHorizontalPadding,
-                        _listBottomPadding,
+                      padding: CompanionFormStyles.taskListPagePadding(
+                        top: listTopPadding,
+                        bottom: _listBottomPadding,
                       ),
                       itemCount: rows.length,
                       itemBuilder: (context, index) =>
@@ -985,7 +1031,7 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
 
   Widget _loadingSkeleton() {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: CompanionFormStyles.taskListPagePadding(top: 16),
       children: List.generate(
         5,
         (_) => Padding(

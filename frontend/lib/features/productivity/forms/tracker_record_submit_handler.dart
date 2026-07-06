@@ -80,10 +80,13 @@ class TrackerRecordSubmitHandler extends FormSubmitHandler {
   @override
   Future<FormSubmitResult> submit(Map<String, dynamic> values) async {
     final result = await _delegate.submit(values);
-    if (!result.success || recordId == null) return result;
+    if (!result.success) return result;
+
+    final id = _resolveTrackerId(result);
+    if (id == null) return result;
 
     recordBloc.add(
-      GetRecordRequested(recordType: 'trackers', recordId: recordId!),
+      GetRecordRequested(recordType: 'trackers', recordId: id),
     );
     final scheduleId = values['existing_schedule_id']?.toString();
     if (scheduleId != null && scheduleId.isNotEmpty) {
@@ -95,6 +98,16 @@ class TrackerRecordSubmitHandler extends FormSubmitHandler {
       const RecordQuery(recordType: 'trackers', limit: 50),
     );
     return result;
+  }
+
+  String? _resolveTrackerId(FormSubmitResult result) {
+    if (recordId != null) return recordId;
+    final data = result.data;
+    if (data is Map<String, dynamic>) {
+      final id = data['id']?.toString();
+      if (id != null && id.isNotEmpty) return id;
+    }
+    return null;
   }
 
   @override

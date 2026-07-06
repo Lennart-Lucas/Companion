@@ -231,7 +231,9 @@ class _TaskListTileState extends State<TaskListTile> {
         : null;
     final completedSubtasks =
         _entry.subtasks.where((item) => item.completed).length;
-    final statusColor = taskStatusColor(_entry.status, scheme);
+    final statusColor = _entry.status == 'completed'
+        ? taskCompletedStatusColor()
+        : taskStatusColor(_entry.status, scheme);
     final priorityColor = taskPriorityColor(_entry.priority, scheme);
 
     final tileOpacity = _busy ? 0.6 : 1.0;
@@ -318,13 +320,21 @@ class _TaskListTileState extends State<TaskListTile> {
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
                                     TaskMetaChip(
-                                      label: taskStatusLabel(_entry.status),
+                                      label: _entry.status == 'completed'
+                                          ? taskCompletedStatusLabel
+                                          : taskStatusLabel(_entry.status),
                                       tintColor: statusColor,
-                                      leading: taskStatusIcon(
-                                        status: _entry.status,
-                                        scheme: scheme,
-                                        size: 14,
-                                      ),
+                                      leading: _entry.status == 'completed'
+                                          ? Icon(
+                                              taskCompletedStatusChipIcon(),
+                                              size: 14,
+                                              color: statusColor,
+                                            )
+                                          : taskStatusIcon(
+                                              status: _entry.status,
+                                              scheme: scheme,
+                                              size: 14,
+                                            ),
                                     ),
                                     TaskMetaChip(
                                       label: taskPriorityLabel(_entry.priority),

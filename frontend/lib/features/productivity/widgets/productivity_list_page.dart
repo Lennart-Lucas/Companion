@@ -54,6 +54,7 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
   late final RecordQuery _query;
   List<ProductivityRecord> _displayRecords = [];
   int _loadedQueryVersion = -1;
+  final Map<RecordId, int> _loadedRecordVersions = {};
   bool _refetchPending = false;
   bool _bootstrapScheduled = false;
 
@@ -96,12 +97,30 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
       return;
     }
 
-    if (_loadedQueryVersion >= cached.version &&
-        (_displayRecords.isNotEmpty || cached.recordIds.isEmpty)) {
+    if (!_shouldSyncDisplayRecords(state)) {
       return;
     }
 
     _captureDisplayRecords(state);
+  }
+
+  bool _hasDisplayedRecordVersionChanged(RecordState state) {
+    for (final id in _displayRecords.map((record) => record.id)) {
+      final entry = state.snapshot.records[id];
+      if (entry == null) return true;
+      if (entry.version > (_loadedRecordVersions[id] ?? -1)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _shouldSyncDisplayRecords(RecordState state) {
+    final cached = state.snapshot.queries[_query.queryKey];
+    if (cached == null) return false;
+    if (cached.version > _loadedQueryVersion) return true;
+    if (_displayRecords.isEmpty && cached.recordIds.isNotEmpty) return true;
+    return _hasDisplayedRecordVersionChanged(state);
   }
 
   Future<void> _refetch() async {
@@ -151,7 +170,7 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
 
   Future<void> _captureDisplayRecordsAsync(RecordState state) async {
     final cached = state.snapshot.queries[_query.queryKey];
-    if (cached == null || cached.version <= _loadedQueryVersion) {
+    if (cached == null || !_shouldSyncDisplayRecords(state)) {
       return;
     }
 
@@ -181,6 +200,16 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
     if (!mounted) return;
     setState(() {
       _loadedQueryVersion = cached.version;
+      _loadedRecordVersions
+        ..clear()
+        ..addEntries(
+          cached.recordIds.map(
+            (id) => MapEntry(
+              id,
+              state.snapshot.records[id]?.version ?? -1,
+            ),
+          ),
+        );
       _displayRecords = resolved;
     });
   }

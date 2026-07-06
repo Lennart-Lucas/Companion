@@ -6,6 +6,7 @@ import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/icons/companion_project_field_icons.dart';
 import 'package:frontend/core/offline/local_record_cache_service.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
+import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
 import 'package:frontend/features/productivity/forms/project_field_option_tile.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
@@ -13,15 +14,18 @@ import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/pages/project_edit_page.dart';
 import 'package:frontend/features/productivity/pages/task_create_page.dart';
 import 'package:frontend/features/productivity/pages/task_edit_page.dart';
+import 'package:frontend/features/productivity/pages/task_today_bucket_page.dart';
 import 'package:frontend/features/productivity/services/project_list_actions.dart';
 import 'package:frontend/features/productivity/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/services/task_list_display.dart';
+import 'package:frontend/features/productivity/services/task_list_filter.dart';
 import 'package:frontend/features/productivity/services/task_list_grouper.dart';
+import 'package:frontend/features/productivity/services/task_today_buckets.dart';
 import 'package:frontend/features/productivity/widgets/project_display.dart';
-import 'package:frontend/features/productivity/widgets/task_display.dart';
 import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 import 'package:frontend/features/productivity/widgets/task_list_tile.dart';
+import 'package:frontend/features/productivity/widgets/task_today_buckets_row.dart';
 
 /// Read-only project overview with all linked tasks.
 class ProjectDetailPage extends StatefulWidget {
@@ -32,6 +36,7 @@ class ProjectDetailPage extends StatefulWidget {
     this.taskActions,
     this.taskListBuilder,
     this.projectActions,
+    this.hideCompletedItems = true,
   });
 
   final RecordId projectId;
@@ -39,6 +44,9 @@ class ProjectDetailPage extends StatefulWidget {
   final TaskListTileActions? taskActions;
   final TaskListBuilder? taskListBuilder;
   final ProjectListTileActions? projectActions;
+
+  /// When true, completed tasks are hidden from the task list.
+  final bool hideCompletedItems;
 
   @override
   State<ProjectDetailPage> createState() => _ProjectDetailPageState();
@@ -59,6 +67,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   bool _deleting = false;
   Project? _cachedProject;
   bool _projectHydrationRequested = false;
+  bool _hasSnapshotProject = false;
   bool _cacheBootstrapScheduled = false;
 
   ProjectListTileActions get _projectActions =>
@@ -82,10 +91,14 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
         );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final state = context.read<RecordBloc>().state;
+      if (state.snapshot.records[widget.projectId]?.record is Project) {
+        _hasSnapshotProject = true;
+      }
       _prefetchRecords();
       _ensureProjectHydrated();
       _scheduleCacheBootstrap();
-      _expandFromBloc(context.read<RecordBloc>().state);
+      _expandFromBloc(state);
     });
   }
 
@@ -146,15 +159,33 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
     }
   }
 
-  void _refreshRecords() {
+  Future<void> _refreshRecords() async {
     final bloc = context.read<RecordBloc>();
-    bloc.remoteCoordinator?.refreshQueryRecords(_tasksQuery);
-    bloc.remoteCoordinator?.refreshQueryRecords(_projectsQuery);
+    bloc.add(
+      GetRecordRequested(
+        recordType: 'projects',
+        recordId: widget.projectId,
+      ),
+    );
+    await Future.wait([
+      refreshRecordQuery(bloc, _projectsQuery),
+      refreshRecordQuery(bloc, _tasksQuery),
+    ]);
+  }
+
+  void _onProjectSnapshotChanged(RecordState state) {
+    final record = state.snapshot.records[widget.projectId]?.record;
+    if (record is! Project) return;
+
+    _hasSnapshotProject = true;
+    if (_cachedProject == null) return;
+    setState(() => _cachedProject = null);
   }
 
   Project? _project(RecordState state) {
     final record = state.snapshot.records[widget.projectId]?.record;
     if (record is Project) return record;
+    if (_hasSnapshotProject) return null;
     return widget.project ?? _cachedProject;
   }
 
@@ -233,8 +264,33 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   }
 
   List<TaskListRow> get _rows {
-    final sections = groupTaskListEntries(_entries, horizon: _horizon);
-    return flattenTaskListRows(sections);
+    final bucketCounts = computeTaskTodayBucketCounts(_entries, _listToday);
+    final visibleEntries = filterVisibleTaskListEntries(
+      _entries,
+      hideCompleted: widget.hideCompletedItems,
+    );
+    final sections = groupTaskListEntries(visibleEntries, horizon: _horizon);
+    return flattenTaskListRowsWithTodayBuckets(
+      sections: sections,
+      listToday: _listToday,
+      bucketCounts: bucketCounts,
+    );
+  }
+
+  Future<void> _openTodayBucket(TaskTodayBucket bucket, Project project) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TaskTodayBucketPage(
+          bucket: bucket,
+          listToday: _listToday,
+          entries: taskEntriesForTodayBucket(_entries, bucket, _listToday),
+          taskActions: _actions,
+          linkedProject: project,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _expandFromBloc(context.read<RecordBloc>().state, force: true);
   }
 
   void _updateEntry(TaskListEntry updated) {
@@ -256,8 +312,11 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
             ),
           ),
         )
-        .then((_) {
-          if (mounted) _refreshRecords();
+        .then((_) async {
+          if (!mounted) return;
+          await _refreshRecords();
+          if (!mounted) return;
+          await _expandFromBloc(context.read<RecordBloc>().state, force: true);
         });
   }
 
@@ -306,8 +365,11 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
             builder: (_) => TaskEditPage(taskId: task.id),
           ),
         )
-        .then((_) {
-          if (mounted) _refreshRecords();
+        .then((_) async {
+          if (!mounted) return;
+          await _refreshRecords();
+          if (!mounted) return;
+          await _expandFromBloc(context.read<RecordBloc>().state, force: true);
         });
   }
 
@@ -321,25 +383,16 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
       ),
     );
     if (mounted) {
-      _refreshRecords();
+      await _refreshRecords();
+      if (!mounted) return;
       await _expandFromBloc(context.read<RecordBloc>().state, force: true);
     }
   }
 
   Future<void> _onRefresh() async {
-    _refreshRecords();
-    final bloc = context.read<RecordBloc>();
-    final tasksKey = _tasksQuery.queryKey;
-    final versionBefore = bloc.state.snapshot.queries[tasksKey]?.version ?? -1;
-    try {
-      await bloc.stream
-          .firstWhere(
-            (s) =>
-                (s.snapshot.queries[tasksKey]?.version ?? -1) > versionBefore,
-          )
-          .timeout(const Duration(seconds: 30));
-    } catch (_) {}
-    if (mounted) await _expandFromBloc(bloc.state, force: true);
+    await _refreshRecords();
+    if (!mounted) return;
+    await _expandFromBloc(context.read<RecordBloc>().state, force: true);
   }
 
   Widget _buildRow(TaskListRow row, Project project) {
@@ -348,6 +401,10 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
           key: day == null ? null : ValueKey('day-${day.toIso8601String()}'),
           day: day,
           listToday: _listToday,
+        ),
+      TaskListTodayBucketsRow(:final counts) => TaskTodayBucketsRow(
+          counts: counts,
+          onBucketTap: (bucket) => _openTodayBucket(bucket, project),
         ),
       TaskListEntryRow(
         :final entry,
@@ -389,7 +446,10 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
 
         return false;
       },
-      listener: (context, state) => _expandFromBloc(state),
+      listener: (context, state) {
+        _onProjectSnapshotChanged(state);
+        _expandFromBloc(state);
+      },
       builder: (context, state) {
         final project = _project(state);
         if (project == null) {
@@ -460,7 +520,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
             child: RefreshIndicator(
             onRefresh: _onRefresh,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: CompanionFormStyles.taskListPagePadding(top: 16),
               children: [
                 _ProjectDetailHeader(project: project, progress: progress),
                 const SizedBox(height: 16),

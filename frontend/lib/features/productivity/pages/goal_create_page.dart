@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/forms/goal_form_config.dart';
 
 /// Full-screen single-page form to create a goal.
@@ -9,8 +10,8 @@ class GoalCreatePage extends StatelessWidget {
 
   static const _goalsQuery = RecordQuery(recordType: 'goals', limit: 50);
 
-  void _refreshGoals(BuildContext context) {
-    context.read<RecordBloc>().add(const QueryRecordsRequested(_goalsQuery));
+  Future<void> _refreshGoals(BuildContext context) {
+    return refreshRecordQuery(context.read<RecordBloc>(), _goalsQuery);
   }
 
   @override
@@ -34,8 +35,9 @@ class GoalCreatePage extends StatelessWidget {
           config: buildGoalFormConfig(recordBloc),
           submitLabel: 'Create goal',
           onCancel: () => Navigator.of(context).pop(),
-          onSubmitSuccess: (_) {
-            _refreshGoals(context);
+          onSubmitSuccess: (_) async {
+            await _refreshGoals(context);
+            if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Goal created')),
             );
