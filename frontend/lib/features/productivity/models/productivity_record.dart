@@ -62,6 +62,10 @@ class Goal extends ProductivityRecord {
   final String direction;
   final int milestoneCount;
   final Map<String, dynamic>? scheduleCreate;
+  final String checkInMode;
+  final int? quotaTimes;
+  final int? quotaPeriodInterval;
+  final String? quotaPeriodUnit;
 
   Goal({
     required this.id,
@@ -78,7 +82,13 @@ class Goal extends ProductivityRecord {
     this.direction = GoalDirection.increasing,
     this.milestoneCount = 0,
     this.scheduleCreate,
+    this.checkInMode = CheckInMode.fixedSchedule,
+    this.quotaTimes,
+    this.quotaPeriodInterval,
+    this.quotaPeriodUnit,
   });
+
+  bool get usesQuotaMode => checkInMode == CheckInMode.timesPerPeriod;
 
   static DateTime? _dateTimeFromJson(dynamic value) {
     if (value == null) return null;
@@ -140,7 +150,19 @@ class Goal extends ProductivityRecord {
       unit: data['unit'] as String? ?? '',
       direction: data['direction'] as String? ?? GoalDirection.increasing,
       milestoneCount: _milestoneCountFromJson(data['milestones']),
+      checkInMode: data['check_in_mode'] as String? ?? CheckInMode.fixedSchedule,
+      quotaTimes: _optionalIntFromJson(data['quota_times']),
+      quotaPeriodInterval: _optionalIntFromJson(data['quota_period_interval']),
+      quotaPeriodUnit: data['quota_period_unit'] as String?,
     );
+  }
+
+  static int? _optionalIntFromJson(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   static DateTime _startDateFromFormValues(Map<String, dynamic> values) {
@@ -180,6 +202,18 @@ class Goal extends ProductivityRecord {
       unit: (values['unit'] as String? ?? '').trim(),
       direction: values['direction'] as String? ?? GoalDirection.increasing,
       scheduleCreate: schedule.toScheduleCreateJson(preferAnchorField: true),
+      checkInMode: TaskRepeatType.isQuotaRepeatType(schedule.repeatType)
+          ? CheckInMode.timesPerPeriod
+          : CheckInMode.fixedSchedule,
+      quotaTimes: TaskRepeatType.isQuotaRepeatType(schedule.repeatType)
+          ? _optionalIntFromJson(values[TaskScheduleFormKeys.quotaTimes])
+          : null,
+      quotaPeriodInterval: TaskRepeatType.isQuotaRepeatType(schedule.repeatType)
+          ? 1
+          : null,
+      quotaPeriodUnit: TaskRepeatType.isQuotaRepeatType(schedule.repeatType)
+          ? TaskRepeatType.quotaUnitForRepeatType(schedule.repeatType)
+          : null,
     );
   }
 
@@ -196,6 +230,11 @@ class Goal extends ProductivityRecord {
         TaskScheduleFormKeys.anchor:
             DateTime(startDate.year, startDate.month, startDate.day),
         if (scheduleId != null) 'existing_schedule_id': scheduleId,
+        if (usesQuotaMode) ...{
+          TaskScheduleFormKeys.repeatType:
+              TaskRepeatType.repeatTypeForQuotaUnit(quotaPeriodUnit),
+          TaskScheduleFormKeys.quotaTimes: quotaTimes ?? 1,
+        },
       };
 
   bool get _isTempId => id.startsWith('temp-');
@@ -230,6 +269,12 @@ class Goal extends ProductivityRecord {
     }
     if (scheduleCreate != null) {
       map['schedule'] = scheduleCreate;
+    }
+    map['check_in_mode'] = checkInMode;
+    if (usesQuotaMode) {
+      map['quota_times'] = quotaTimes;
+      map['quota_period_interval'] = quotaPeriodInterval;
+      map['quota_period_unit'] = quotaPeriodUnit;
     }
     return map;
   }
@@ -275,6 +320,10 @@ class Tracker extends ProductivityRecord {
   final String? unit;
   final String habitDirection;
   final Map<String, dynamic>? scheduleCreate;
+  final String checkInMode;
+  final int? quotaTimes;
+  final int? quotaPeriodInterval;
+  final String? quotaPeriodUnit;
 
   Tracker({
     required this.id,
@@ -291,7 +340,13 @@ class Tracker extends ProductivityRecord {
     this.unit,
     this.habitDirection = TrackerHabitDirection.build,
     this.scheduleCreate,
+    this.checkInMode = CheckInMode.fixedSchedule,
+    this.quotaTimes,
+    this.quotaPeriodInterval,
+    this.quotaPeriodUnit,
   });
+
+  bool get usesQuotaMode => checkInMode == CheckInMode.timesPerPeriod;
 
   static DateTime? _dateTimeFromJson(dynamic value) {
     if (value == null) return null;
@@ -358,6 +413,11 @@ class Tracker extends ProductivityRecord {
       unit: data['unit'] as String?,
       habitDirection:
           data['habit_direction'] as String? ?? TrackerHabitDirection.build,
+      checkInMode: data['check_in_mode'] as String? ?? CheckInMode.fixedSchedule,
+      quotaTimes: Goal._optionalIntFromJson(data['quota_times']),
+      quotaPeriodInterval:
+          Goal._optionalIntFromJson(data['quota_period_interval']),
+      quotaPeriodUnit: data['quota_period_unit'] as String?,
     );
   }
 
@@ -402,6 +462,18 @@ class Tracker extends ProductivityRecord {
       habitDirection:
           values['habit_direction'] as String? ?? TrackerHabitDirection.build,
       scheduleCreate: schedule.toScheduleCreateJson(preferAnchorField: true),
+      checkInMode: TaskRepeatType.isQuotaRepeatType(schedule.repeatType)
+          ? CheckInMode.timesPerPeriod
+          : CheckInMode.fixedSchedule,
+      quotaTimes: TaskRepeatType.isQuotaRepeatType(schedule.repeatType)
+          ? Goal._optionalIntFromJson(values[TaskScheduleFormKeys.quotaTimes])
+          : null,
+      quotaPeriodInterval: TaskRepeatType.isQuotaRepeatType(schedule.repeatType)
+          ? 1
+          : null,
+      quotaPeriodUnit: TaskRepeatType.isQuotaRepeatType(schedule.repeatType)
+          ? TaskRepeatType.quotaUnitForRepeatType(schedule.repeatType)
+          : null,
     );
   }
 
@@ -419,6 +491,11 @@ class Tracker extends ProductivityRecord {
         TaskScheduleFormKeys.anchor:
             DateTime(startDate.year, startDate.month, startDate.day),
         if (scheduleId != null) 'existing_schedule_id': scheduleId,
+        if (usesQuotaMode) ...{
+          TaskScheduleFormKeys.repeatType:
+              TaskRepeatType.repeatTypeForQuotaUnit(quotaPeriodUnit),
+          TaskScheduleFormKeys.quotaTimes: quotaTimes ?? 1,
+        },
       };
 
   bool get _isTempId => id.startsWith('temp-');
@@ -474,6 +551,12 @@ class Tracker extends ProductivityRecord {
 
     if (scheduleCreate != null) {
       map['schedule'] = scheduleCreate;
+    }
+    map['check_in_mode'] = checkInMode;
+    if (usesQuotaMode) {
+      map['quota_times'] = quotaTimes;
+      map['quota_period_interval'] = quotaPeriodInterval;
+      map['quota_period_unit'] = quotaPeriodUnit;
     }
 
     return map;

@@ -2,10 +2,11 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Numeric, String, Text, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+from app.models.check_in_scheduling import CheckInMode
 
 
 class GoalType(str, enum.Enum):
@@ -49,6 +50,12 @@ class Goal(Base):
     target: Mapped[Decimal] = mapped_column(Numeric(), nullable=False)
     unit: Mapped[str] = mapped_column(String(64), nullable=False)
     direction: Mapped[str] = mapped_column(String(16), nullable=False)
+    check_in_mode: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=CheckInMode.fixed_schedule.value
+    )
+    quota_times: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quota_period_interval: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quota_period_unit: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

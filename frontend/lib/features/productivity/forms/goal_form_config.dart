@@ -75,6 +75,8 @@ AnvilFormConfig buildGoalFormConfig(
             ...TaskScheduleFormValues.defaultCreateValues(),
             TaskScheduleFormKeys.scheduleMode: TaskScheduleMode.repeating,
             TaskScheduleFormKeys.repeatEnabled: true,
+            TaskScheduleFormKeys.repeatType: TaskRepeatType.timesPerWeek,
+            TaskScheduleFormKeys.quotaTimes: 1,
           },
     validationRules: [
       AnvilFormValidationRule(

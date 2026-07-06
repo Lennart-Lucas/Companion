@@ -12,6 +12,9 @@ abstract final class TaskRepeatType {
   static const everyNYears = 'every_n_years';
   static const specificDates = 'specific_dates';
   static const monthDays = 'month_days';
+  static const timesPerWeek = 'times_per_week';
+  static const timesPerMonth = 'times_per_month';
+  static const timesPerYear = 'times_per_year';
 
   static const all = [
     none,
@@ -22,6 +25,15 @@ abstract final class TaskRepeatType {
     everyNYears,
     specificDates,
     monthDays,
+    timesPerWeek,
+    timesPerMonth,
+    timesPerYear,
+  ];
+
+  static const quotaRepeatTypes = [
+    timesPerWeek,
+    timesPerMonth,
+    timesPerYear,
   ];
 
   static String labelFor(String value) => switch (value) {
@@ -33,6 +45,9 @@ abstract final class TaskRepeatType {
         everyNYears => 'Every N years',
         specificDates => 'Specific dates',
         monthDays => 'Days of month',
+        timesPerWeek => 'Times per week',
+        timesPerMonth => 'Times per month',
+        timesPerYear => 'Times per year',
         _ => value,
       };
 
@@ -43,6 +58,22 @@ abstract final class TaskRepeatType {
       type == everyNMonths ||
       type == everyNYears ||
       type == monthDays;
+
+  static bool isQuotaRepeatType(String type) =>
+      type == timesPerWeek || type == timesPerMonth || type == timesPerYear;
+
+  static String? quotaUnitForRepeatType(String type) => switch (type) {
+        timesPerWeek => QuotaPeriodUnit.weeks,
+        timesPerMonth => QuotaPeriodUnit.months,
+        timesPerYear => QuotaPeriodUnit.years,
+        _ => null,
+      };
+
+  static String repeatTypeForQuotaUnit(String? unit) => switch (unit) {
+        QuotaPeriodUnit.months => timesPerMonth,
+        QuotaPeriodUnit.years => timesPerYear,
+        _ => timesPerWeek,
+      };
 
   /// Unit label for the interval field (e.g. "day", "weeks").
   static String intervalUnitLabel(String type, {required int interval}) {
@@ -101,6 +132,28 @@ abstract final class TaskScheduleFormKeys {
   static const exclusions = 'schedule_exclusions';
   static const existingScheduleId = 'existing_schedule_id';
   static const originalScheduleId = 'original_schedule_id';
+  static const quotaTimes = 'quota_times';
+  static const quotaPeriodUnit = 'quota_period_unit';
+}
+
+abstract final class QuotaPeriodUnit {
+  static const weeks = 'weeks';
+  static const months = 'months';
+  static const years = 'years';
+
+  static const all = [weeks, months, years];
+
+  static String labelFor(String value) => switch (value) {
+        weeks => 'weeks',
+        months => 'months',
+        years => 'years',
+        _ => value,
+      };
+}
+
+abstract final class CheckInMode {
+  static const fixedSchedule = 'fixed_schedule';
+  static const timesPerPeriod = 'times_per_period';
 }
 
 /// Reads/writes schedule slice of Anvil form values.
@@ -330,13 +383,17 @@ class TaskScheduleFormValues {
       until: endDate,
     );
 
+    final effectiveRrule = TaskRepeatType.isQuotaRepeatType(repeatType)
+        ? 'FREQ=YEARLY;INTERVAL=1'
+        : rrule;
+
     final map = <String, dynamic>{
       'dtstart': dtstart.toIso8601String(),
       'timezone': timezone,
     };
 
-    if (rrule != null) {
-      map['rrule'] = rrule;
+    if (effectiveRrule != null) {
+      map['rrule'] = effectiveRrule;
     }
 
     if (repeatType == TaskRepeatType.specificDates && specificDates.isNotEmpty) {
@@ -350,7 +407,7 @@ class TaskScheduleFormValues {
           _dtstartAtScheduleMidnight(_dateOnly(anchorDate), timezone)
               .toIso8601String();
     }
-    if (endDate != null && rrule == null) {
+    if (endDate != null && effectiveRrule == null) {
       map['end_date'] =
           _dtstartAtScheduleMidnight(_dateOnly(endDate!), timezone)
               .toIso8601String();
@@ -442,6 +499,13 @@ class TaskScheduleFormValues {
         if (d < 1 || d > 31) {
           return 'Days of month must be between 1 and 31';
         }
+      }
+    }
+
+    if (TaskRepeatType.isQuotaRepeatType(schedule.repeatType)) {
+      final times = _intFromValue(values[TaskScheduleFormKeys.quotaTimes], fallback: 0);
+      if (times < 1) {
+        return 'Times must be at least 1';
       }
     }
 
@@ -583,9 +647,10 @@ String scheduleSummaryLabel(Map<String, dynamic> schedule) {
   return scheduleSummaryFromApi(schedule);
 }
 
-List<AnvilFieldOption<String>> taskRepeatTypeOptions() {
+List<AnvilFieldOption<String>> taskRepeatTypeOptions({bool includeQuota = false}) {
   return TaskRepeatType.all
       .where((t) => t != TaskRepeatType.none)
+      .where((t) => includeQuota || !TaskRepeatType.isQuotaRepeatType(t))
       .map(
         (t) => AnvilFieldOption(
           value: t,

@@ -46,6 +46,7 @@ class _GoalsPageState extends State<GoalsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab-goals',
         tooltip: 'Add goal',
         onPressed: _openCreate,
         child: const Icon(Icons.add),

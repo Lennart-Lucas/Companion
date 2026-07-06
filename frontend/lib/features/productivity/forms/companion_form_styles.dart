@@ -37,13 +37,31 @@ class CompanionFormStyles {
   static const double taskPanelIconBadgeGap = 12;
   static const double taskRowPanelRadius = 10;
   static const double taskRowPanelPadding = 12;
-  static const double taskRowBackgroundAlpha = 0.06;
+  static const double taskBucketBackgroundAlpha = 0.1;
+  /// Opacity of the bucket-matched tint on timeline rows (background shows through).
+  static const double taskRowBackgroundOpacity = 0.82;
   static const double taskRowVerticalGap = 20;
   static const double taskTimelineLineTopSegment = 8;
   static const double taskTimelineLineRemainingGap = 6;
   static const double taskTimelineLineOverhang =
       (taskRowVerticalGap - taskTimelineLineRemainingGap) / 2;
   static const double taskListChipGap = 6;
+
+  /// Opaque on-surface tint blended onto [ColorScheme.surface] (bucket cards).
+  static Color taskSurfaceTint(ColorScheme scheme, double alpha) {
+    return Color.alphaBlend(
+      scheme.onSurface.withValues(alpha: alpha),
+      scheme.surface,
+    );
+  }
+
+  /// See-through row fill — same tint as buckets, with adjustable opacity.
+  static Color taskRowBackground(ColorScheme scheme) {
+    return taskSurfaceTint(
+      scheme,
+      taskBucketBackgroundAlpha,
+    ).withValues(alpha: taskRowBackgroundOpacity);
+  }
 
   /// Field decoration aligned with [ThemeData.inputDecorationTheme] (Hub borders/fill).
   static InputDecoration fieldDecoration(BuildContext context) {

@@ -8,7 +8,14 @@ from sqlalchemy.orm import selectinload
 from app.models.goal import Goal, GoalType
 from app.models.goal_check_in import GoalCheckIn
 from app.models.user import User
+from app.models.check_in_scheduling import SlotKind
 from app.scheduling.expander import ensure_dtstart_occurrence, expand_occurrences
+from app.scheduling.quota_materializer import (
+    compute_display_at,
+    entity_uses_quota_mode,
+    lock_check_in_on_log,
+    materialize_quota_check_ins,
+)
 from app.schemas.goal_check_in import (
     GoalCheckInResponse,
     GoalCheckInUpdate,
@@ -31,7 +38,7 @@ def _check_in_logged(check_in: GoalCheckIn) -> bool:
 
 
 def _check_in_to_response(
-    check_in: GoalCheckIn, goal_type: GoalType
+    check_in: GoalCheckIn, goal_type: GoalType, goal: Goal
 ) -> GoalCheckInResponse:
     return GoalCheckInResponse(
         id=check_in.id,
@@ -41,6 +48,10 @@ def _check_in_to_response(
         count_value=check_in.count_value,
         pulse_score=check_in.pulse_score,
         logged=_check_in_logged(check_in),
+        spawned_at=check_in.spawned_at,
+        locked_at=check_in.locked_at,
+        slot_kind=SlotKind(check_in.slot_kind),
+        display_at=compute_display_at(check_in, entity=goal),
     )
 
 
@@ -83,6 +94,8 @@ async def _get_or_create_check_in(
     check_in = GoalCheckIn(
         goal_id=goal.id,
         check_in_at=check_in_at,
+        spawned_at=check_in_at,
+        slot_kind=SlotKind.active.value,
     )
     session.add(check_in)
     await session.flush()
@@ -117,6 +130,16 @@ async def materialize_check_ins(
     if window_start > window_end:
         return []
 
+    if entity_uses_quota_mode(goal):
+        return await materialize_quota_check_ins(
+            session,
+            goal,
+            GoalCheckIn,
+            "goal_id",
+            start=window_start,
+            end=window_end,
+        )
+
     schedule = await _load_schedule(session, goal.schedule_id, goal.user_id)
     bundle = _schedule_to_bundle(schedule)
     datetimes = expand_occurrences(
@@ -141,6 +164,53 @@ async def materialize_check_ins(
     return sorted(check_ins, key=lambda c: c.check_in_at)
 
 
+async def _load_check_ins_in_window(
+    session: AsyncSession,
+    goal: Goal,
+    *,
+    start: datetime,
+    end: datetime,
+    max_count: int,
+) -> list[GoalCheckIn]:
+    window_start, window_end = _clip_window(goal, start=start, end=end)
+    if window_start > window_end:
+        return []
+
+    if entity_uses_quota_mode(goal):
+        active_result = await session.execute(
+            select(GoalCheckIn).where(
+                GoalCheckIn.goal_id == goal.id,
+                GoalCheckIn.slot_kind == SlotKind.active.value,
+            )
+        )
+        window_result = await session.execute(
+            select(GoalCheckIn)
+            .where(
+                GoalCheckIn.goal_id == goal.id,
+                GoalCheckIn.check_in_at >= window_start,
+                GoalCheckIn.check_in_at <= window_end,
+            )
+            .order_by(GoalCheckIn.check_in_at)
+            .limit(max_count)
+        )
+        by_id = {c.id: c for c in window_result.scalars().all()}
+        for active in active_result.scalars().all():
+            by_id[active.id] = active
+        return sorted(by_id.values(), key=lambda c: c.check_in_at)[:max_count]
+
+    result = await session.execute(
+        select(GoalCheckIn)
+        .where(
+            GoalCheckIn.goal_id == goal.id,
+            GoalCheckIn.check_in_at >= window_start,
+            GoalCheckIn.check_in_at <= window_end,
+        )
+        .order_by(GoalCheckIn.check_in_at)
+        .limit(max_count)
+    )
+    return list(result.scalars().all())
+
+
 async def list_check_ins(
     session: AsyncSession,
     user: User,
@@ -151,14 +221,28 @@ async def list_check_ins(
     max_count: int = 500,
 ) -> list[GoalCheckInResponse]:
     goal = await _load_goal_full(session, goal_id, user.id)
-    check_ins = await materialize_check_ins(
-        session, goal, start=start, end=end, max_count=max_count
-    )
+    window_start, window_end = _clip_window(goal, start=start, end=end)
+    if entity_uses_quota_mode(goal):
+        await materialize_quota_check_ins(
+            session,
+            goal,
+            GoalCheckIn,
+            "goal_id",
+            start=window_start,
+            end=window_end,
+        )
+        check_ins = await _load_check_ins_in_window(
+            session, goal, start=start, end=end, max_count=max_count
+        )
+    else:
+        check_ins = await materialize_check_ins(
+            session, goal, start=start, end=end, max_count=max_count
+        )
     if not check_ins:
         return []
 
     goal_type = GoalType(goal.goal_type)
-    return [_check_in_to_response(c, goal_type) for c in check_ins]
+    return [_check_in_to_response(c, goal_type, goal) for c in check_ins]
 
 
 async def get_check_in_owned(
@@ -199,6 +283,8 @@ async def update_check_in(
             detail="pulse check-ins are system-generated",
         )
 
+    was_logged = _check_in_logged(check_in)
+
     if goal_type == GoalType.task:
         if data.completed is None:
             raise HTTPException(
@@ -218,5 +304,25 @@ async def update_check_in(
         check_in.completed = None
         check_in.pulse_score = None
 
+    if (
+        entity_uses_quota_mode(goal)
+        and not was_logged
+        and check_in.slot_kind == SlotKind.active.value
+    ):
+        lock_check_in_on_log(check_in, goal)
+        window_start, window_end = _clip_window(
+            goal,
+            start=goal.start_date,
+            end=goal.end_date or datetime.now(UTC),
+        )
+        await materialize_quota_check_ins(
+            session,
+            goal,
+            GoalCheckIn,
+            "goal_id",
+            start=window_start,
+            end=window_end,
+        )
+
     await session.flush()
-    return _check_in_to_response(check_in, goal_type)
+    return _check_in_to_response(check_in, goal_type, goal)

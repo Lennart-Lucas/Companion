@@ -1,30 +1,49 @@
 import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/services/check_in_display.dart';
 
 /// A materialized tracker check-in moment from the API.
-class TrackerCheckIn {
+class TrackerCheckIn implements CheckInSlot {
   const TrackerCheckIn({
     required this.id,
     required this.checkInAt,
     required this.checkInType,
     required this.logged,
     required this.skipped,
+    required this.spawnedAt,
+    required this.slotKind,
     this.completed,
     this.countValue,
     this.valueSeconds,
     this.timerStartedAt,
+    this.lockedAt,
+    this.displayAt,
   });
 
   final int id;
+  @override
   final DateTime checkInAt;
   final String checkInType;
   final bool? completed;
   final num? countValue;
   final int? valueSeconds;
   final DateTime? timerStartedAt;
+  @override
   final bool logged;
   final bool skipped;
+  @override
+  final DateTime spawnedAt;
+  @override
+  final DateTime? lockedAt;
+  @override
+  final String slotKind;
+  final DateTime? displayAt;
+
+  DateTime get resolvedDisplayAt => displayAt ?? checkInAt;
 
   factory TrackerCheckIn.fromJson(Map<String, dynamic> json) {
+    final spawnedAt = DateTime.parse(
+      (json['spawned_at'] ?? json['check_in_at']) as String,
+    );
     return TrackerCheckIn(
       id: json['id'] as int,
       checkInAt: DateTime.parse(json['check_in_at'] as String),
@@ -37,6 +56,14 @@ class TrackerCheckIn {
           : DateTime.parse(json['timer_started_at'] as String),
       logged: json['logged'] as bool? ?? false,
       skipped: json['skipped'] as bool? ?? false,
+      spawnedAt: spawnedAt,
+      lockedAt: json['locked_at'] == null
+          ? null
+          : DateTime.parse(json['locked_at'] as String),
+      slotKind: json['slot_kind'] as String? ?? CheckInSlotKind.active,
+      displayAt: json['display_at'] == null
+          ? null
+          : DateTime.parse(json['display_at'] as String),
     );
   }
 

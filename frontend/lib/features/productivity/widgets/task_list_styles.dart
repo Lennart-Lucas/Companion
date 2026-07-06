@@ -493,9 +493,7 @@ class TaskRowPanel extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: scheme.onSurface.withValues(
-          alpha: CompanionFormStyles.taskRowBackgroundAlpha,
-        ),
+        color: CompanionFormStyles.taskRowBackground(scheme),
         borderRadius: BorderRadius.circular(
           CompanionFormStyles.taskRowPanelRadius,
         ),

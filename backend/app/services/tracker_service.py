@@ -104,6 +104,12 @@ async def create_tracker(
         target=data.target,
         unit=data.unit,
         habit_direction=data.habit_direction.value,
+        check_in_mode=data.check_in_mode.value,
+        quota_times=data.quota_times,
+        quota_period_interval=data.quota_period_interval,
+        quota_period_unit=(
+            data.quota_period_unit.value if data.quota_period_unit else None
+        ),
     )
     session.add(tracker)
     await session.flush()

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/features/productivity/pages/task_create_page.dart';
 import 'package:frontend/features/productivity/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/services/timeline_feed.dart';
+import 'package:frontend/features/productivity/services/timeline_filter.dart';
 import 'package:frontend/features/productivity/widgets/productivity_timeline_panel.dart';
 
 /// Productivity landing page: date-based timeline (tasks for now).
@@ -12,10 +13,12 @@ class ProductivityOverviewPage extends StatelessWidget {
     super.key,
     this.feed,
     this.taskActions,
+    this.filter = ProductivityTimelineFilter.showAll,
   });
 
   final ProductivityTimelineFeed? feed;
   final TaskListTileActions? taskActions;
+  final ProductivityTimelineFilter filter;
 
   Future<void> _openCreate(BuildContext context) async {
     await Navigator.of(context).push(
@@ -33,6 +36,7 @@ class ProductivityOverviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab-productivity-overview',
         tooltip: 'Add task',
         onPressed: () => _openCreate(context),
         child: const Icon(Icons.add),
@@ -41,6 +45,7 @@ class ProductivityOverviewPage extends StatelessWidget {
         feed: feed ?? overviewProductivityTimelineFeed(),
         taskActions: taskActions,
         backgroundIconName: 'House',
+        filter: filter,
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/tracker_check_in.dart';
+import 'package:frontend/features/productivity/services/check_in_display.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 
 /// Outcome of a single check-in moment for stats.
@@ -91,14 +92,18 @@ TrackerCheckInOutcome classifyTrackerCheckIn(
   TrackerCheckIn checkIn, {
   required DateTime now,
 }) {
-  if (checkIn.checkInAt.isAfter(now)) {
+  if (checkIn.slotKind == CheckInSlotKind.periodMiss) {
+    return TrackerCheckInOutcome.missed;
+  }
+  final displayAt = checkIn.displayAtFor(tracker, now: now);
+  if (displayAt.isAfter(now)) {
     return TrackerCheckInOutcome.pending;
   }
   if (checkIn.skipped) {
     return TrackerCheckInOutcome.skipped;
   }
 
-  final checkInDay = normalizeTaskListCalendarDay(checkIn.checkInAt.toLocal());
+  final checkInDay = normalizeTaskListCalendarDay(displayAt.toLocal());
   final today = normalizeTaskListCalendarDay(now.toLocal());
   if (tracker.checkInType == TrackerCheckInType.task && checkInDay == today) {
     if (checkIn.logged && isTrackerTargetReached(tracker, checkIn)) {

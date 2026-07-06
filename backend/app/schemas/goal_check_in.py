@@ -4,6 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.goal import GoalType
+from app.models.check_in_scheduling import SlotKind
 
 
 class GoalCheckInResponse(BaseModel):
@@ -14,6 +15,10 @@ class GoalCheckInResponse(BaseModel):
     count_value: Decimal | None = None
     pulse_score: int | None = None
     logged: bool
+    spawned_at: datetime
+    locked_at: datetime | None = None
+    slot_kind: SlotKind = SlotKind.active
+    display_at: datetime
 
     model_config = {"from_attributes": True}
 

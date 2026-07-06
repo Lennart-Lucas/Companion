@@ -99,6 +99,9 @@ TaskListRow _fromTimelineRow(TimelineRow row) {
     TimelineTrackerCheckInRow() => throw StateError(
         'Task list rows cannot include tracker check-in entries',
       ),
+    TimelineGoalCheckInRow() => throw StateError(
+        'Task list rows cannot include goal check-in entries',
+      ),
   };
 }
 

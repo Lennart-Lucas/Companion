@@ -3,10 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/features/productivity/pages/task_create_page.dart';
 import 'package:frontend/features/productivity/services/timeline_feed.dart';
+import 'package:frontend/features/productivity/services/timeline_filter.dart';
 import 'package:frontend/features/productivity/widgets/productivity_timeline_panel.dart';
 
 class TasksPage extends StatelessWidget {
-  const TasksPage({super.key});
+  const TasksPage({
+    super.key,
+    this.filter = ProductivityTimelineFilter.showAll,
+  });
+
+  final ProductivityTimelineFilter filter;
 
   Future<void> _openCreate(BuildContext context) async {
     await Navigator.of(context).push(
@@ -24,6 +30,7 @@ class TasksPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab-tasks',
         tooltip: 'Add task',
         onPressed: () => _openCreate(context),
         child: const Icon(Icons.add),
@@ -31,6 +38,7 @@ class TasksPage extends StatelessWidget {
       body: ProductivityTimelinePanel(
         feed: defaultProductivityTimelineFeed(),
         backgroundIconName: 'Check Double',
+        filter: filter,
       ),
     );
   }

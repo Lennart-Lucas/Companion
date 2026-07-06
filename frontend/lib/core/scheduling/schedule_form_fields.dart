@@ -25,6 +25,7 @@ class ScheduleFormConfig {
     this.companionEndDateFieldKey,
     this.companionEndDateLabel = 'End date',
     this.onModeChanged,
+    this.supportsQuotaRepeatTypes = false,
   });
 
   final List<String> modes;
@@ -41,6 +42,7 @@ class ScheduleFormConfig {
   final String? companionEndDateFieldKey;
   final String companionEndDateLabel;
   final ScheduleModeChanged? onModeChanged;
+  final bool supportsQuotaRepeatTypes;
 }
 
 abstract final class ScheduleFormConfigs {
@@ -74,6 +76,7 @@ abstract final class ScheduleFormConfigs {
     showExclusions: false,
     useAnchorField: true,
     companionEndDateFieldKey: 'end_date',
+    supportsQuotaRepeatTypes: true,
   );
 
   static final goal = ScheduleFormConfig(
@@ -84,6 +87,7 @@ abstract final class ScheduleFormConfigs {
     showExclusions: false,
     useAnchorField: true,
     companionEndDateFieldKey: 'end_date',
+    supportsQuotaRepeatTypes: true,
   );
 }
 
@@ -230,10 +234,14 @@ class ScheduleFormFields extends StatelessWidget {
               fieldKey: TaskScheduleFormKeys.repeatType,
               label: 'Repeat mode',
               isRequired: true,
-              options: taskRepeatTypeOptions(),
+              options: taskRepeatTypeOptions(
+                includeQuota: config.supportsQuotaRepeatTypes,
+              ),
               decoration: fieldDecoration,
             );
-            final intervalEnabled = TaskRepeatType.needsInterval(repeatType);
+            final isQuota = TaskRepeatType.isQuotaRepeatType(repeatType);
+            final intervalEnabled =
+                !isQuota && TaskRepeatType.needsInterval(repeatType);
             final everyDecoration = taskDateFieldDecoration(
               context,
               fieldDecoration,
@@ -245,7 +253,14 @@ class ScheduleFormFields extends StatelessWidget {
                     interval: interval,
                   )
                 : 'Every';
-            final everyField = wrapDimmedFormField(
+            final timesField = AnvilNumberField(
+              fieldKey: TaskScheduleFormKeys.quotaTimes,
+              label: 'Times',
+              isRequired: true,
+              min: 1,
+              decoration: fieldDecoration,
+            );
+            final intervalField = wrapDimmedFormField(
               dimmed: !intervalEnabled,
               child: AnvilNumberField(
                 fieldKey: TaskScheduleFormKeys.interval,
@@ -257,18 +272,32 @@ class ScheduleFormFields extends StatelessWidget {
               ),
             );
 
+            if (isQuota) {
+              if (narrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    repeatModeField,
+                    const SizedBox(height: fieldSpacing),
+                    timesField,
+                  ],
+                );
+              }
+              return AnvilFormRow(children: [repeatModeField, timesField]);
+            }
+
             if (narrow) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   repeatModeField,
                   const SizedBox(height: fieldSpacing),
-                  everyField,
+                  intervalField,
                 ],
               );
             }
 
-            return AnvilFormRow(children: [repeatModeField, everyField]);
+            return AnvilFormRow(children: [repeatModeField, intervalField]);
           },
         ),
         if (repeatType == TaskRepeatType.weekdays)

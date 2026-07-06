@@ -7,6 +7,7 @@ import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/timeline_item.dart';
 import 'package:frontend/features/productivity/services/task_bucket_summary.dart';
 import 'package:frontend/features/productivity/services/task_list_builder.dart';
+import 'package:frontend/features/productivity/services/goal_check_in_repository.dart';
 import 'package:frontend/features/productivity/services/tracker_check_in_repository.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 
@@ -68,11 +69,12 @@ ProductivityTimelineFeed defaultProductivityTimelineFeed({
   );
 }
 
-/// Overview feed with tasks and tracker check-in moments.
+/// Overview feed with tasks, tracker check-ins, and goal check-ins.
 ProductivityTimelineFeed overviewProductivityTimelineFeed({
   ApiClientService? apiClient,
   OfflineTaskContext? offlineContext,
   TrackerCheckInRepository? checkInRepository,
+  GoalCheckInRepository? goalCheckInRepository,
 }) {
   return ProductivityTimelineFeed(
     providers: [
@@ -83,6 +85,10 @@ ProductivityTimelineFeed overviewProductivityTimelineFeed({
       TrackerTimelineProvider(
         apiClient: apiClient,
         checkInRepository: checkInRepository,
+      ),
+      GoalTimelineProvider(
+        apiClient: apiClient,
+        checkInRepository: goalCheckInRepository,
       ),
     ],
   );
@@ -275,6 +281,100 @@ class TrackerTimelineProvider extends TimelineContentProvider {
 
     if (trackerStart.isAfter(horizonEnd)) return false;
     if (trackerEnd != null && trackerEnd.isBefore(horizonStart)) return false;
+    return true;
+  }
+}
+
+/// Expands goal check-in moments from the API into timeline items.
+class GoalTimelineProvider extends TimelineContentProvider {
+  GoalTimelineProvider({
+    ApiClientService? apiClient,
+    GoalCheckInRepository? checkInRepository,
+  }) : _checkInRepository = checkInRepository ??
+            (apiClient != null
+                ? HttpGoalCheckInRepository(apiClient)
+                : defaultGoalCheckInRepository());
+
+  static const goalsQuery = RecordQuery(recordType: 'goals', limit: 50);
+
+  final GoalCheckInRepository _checkInRepository;
+
+  @override
+  List<RecordQuery> get prefetchQueries => const [goalsQuery];
+
+  @override
+  RecordQuery? get watchQuery => goalsQuery;
+
+  @override
+  Future<List<TimelineSortableItem>> load(
+    RecordState state,
+    TaskListHorizon horizon,
+  ) async {
+    final goals = await resolveGoals(state);
+    final active = goals.where((goal) => _goalOverlapsHorizon(goal, horizon));
+
+    if (active.isEmpty) return const [];
+
+    final batches = await Future.wait(
+      active.map((goal) async {
+        final checkIns = await _checkInRepository.fetchCheckIns(
+          goal.id,
+          from: horizon.from,
+          to: horizon.to,
+        );
+        return checkIns
+            .map(
+              (checkIn) => GoalTimelineItem(
+                goal: goal,
+                checkIn: checkIn,
+              ),
+            )
+            .toList();
+      }),
+    );
+    return batches.expand((batch) => batch).toList();
+  }
+
+  List<Goal> goalsFromState(RecordState state) {
+    final cached = state.snapshot.queries[goalsQuery.queryKey];
+    if (cached == null) return const [];
+
+    return cached.recordIds
+        .map((id) => state.snapshot.records[id]?.record)
+        .where((record) => record != null && record.recordType == 'goals')
+        .cast<Goal>()
+        .toList();
+  }
+
+  Future<List<Goal>> resolveGoals(RecordState state) async {
+    final cached = state.snapshot.queries[goalsQuery.queryKey];
+    if (cached == null) return const [];
+
+    var goals = goalsFromState(state);
+    if (goals.length == cached.recordIds.length) {
+      return goals;
+    }
+
+    goals = await resolveTypedRecords<Goal>(
+      state: state,
+      recordType: 'goals',
+      recordIds: cached.recordIds,
+      cache: CompanionAnvilApp.instance.localCache,
+      registry: buildCompanionRecordRegistry(),
+    );
+    return goals;
+  }
+
+  static bool _goalOverlapsHorizon(Goal goal, TaskListHorizon horizon) {
+    final horizonStart = normalizeTaskListCalendarDay(horizon.from.toLocal());
+    final horizonEnd = normalizeTaskListCalendarDay(horizon.to.toLocal());
+    final goalStart = normalizeTaskListCalendarDay(goal.startDate.toLocal());
+    final goalEnd = goal.endDate != null
+        ? normalizeTaskListCalendarDay(goal.endDate!.toLocal())
+        : null;
+
+    if (goalStart.isAfter(horizonEnd)) return false;
+    if (goalEnd != null && goalEnd.isBefore(horizonStart)) return false;
     return true;
   }
 }

@@ -4,6 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.tracker import CheckInType
+from app.models.check_in_scheduling import SlotKind
 
 
 class TrackerCheckInResponse(BaseModel):
@@ -16,6 +17,10 @@ class TrackerCheckInResponse(BaseModel):
     timer_started_at: datetime | None = None
     skipped: bool = False
     logged: bool
+    spawned_at: datetime
+    locked_at: datetime | None = None
+    slot_kind: SlotKind = SlotKind.active
+    display_at: datetime
 
     model_config = {"from_attributes": True}
 

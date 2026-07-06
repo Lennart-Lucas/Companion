@@ -5,7 +5,9 @@ from typing import Self
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.goal import GoalDirection, GoalType
+from app.models.check_in_scheduling import CheckInMode
 from app.scheduling.rrule_codec import is_recurring
+from app.schemas.check_in_scheduling import QuotaFieldsMixin
 from app.schemas.goal_milestone import MilestoneCreate, MilestoneResponse
 from app.schemas.productivity_common import (
     ProductivityListResponse,
@@ -15,7 +17,7 @@ from app.schemas.productivity_common import (
 from app.schemas.schedule import ScheduleCreate
 
 
-class GoalCreate(BaseModel):
+class GoalCreate(QuotaFieldsMixin, BaseModel):
     name: str = Field(min_length=1, max_length=255)
     description: str | None = None
     icon: str | None = Field(default=None, max_length=64)
@@ -54,16 +56,17 @@ class GoalCreate(BaseModel):
             raise ValueError("goal requires schedule_id or schedule")
         if self.schedule_id is not None and self.schedule is not None:
             raise ValueError("goal cannot have both schedule_id and schedule")
-        if self.schedule is not None and not is_recurring(
-            self.schedule.rrule, self.schedule.rdates
-        ):
-            raise ValueError("goal schedule must be recurring")
+        if self.check_in_mode == CheckInMode.fixed_schedule:
+            if self.schedule is not None and not is_recurring(
+                self.schedule.rrule, self.schedule.rdates
+            ):
+                raise ValueError("goal schedule must be recurring")
         if self.end_date is not None and self.end_date <= self.start_date:
             raise ValueError("end_date must be after start_date")
         return self
 
 
-class GoalUpdate(BaseModel):
+class GoalUpdate(QuotaFieldsMixin, BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
     icon: str | None = Field(default=None, max_length=64)
@@ -103,14 +106,15 @@ class GoalUpdate(BaseModel):
     def validate_schedule_sources(self) -> Self:
         if self.schedule_id is not None and self.schedule is not None:
             raise ValueError("goal cannot have both schedule_id and schedule")
-        if self.schedule is not None and not is_recurring(
-            self.schedule.rrule, self.schedule.rdates
-        ):
-            raise ValueError("goal schedule must be recurring")
+        if self.check_in_mode == CheckInMode.fixed_schedule:
+            if self.schedule is not None and not is_recurring(
+                self.schedule.rrule, self.schedule.rdates
+            ):
+                raise ValueError("goal schedule must be recurring")
         return self
 
 
-class GoalResponse(BaseModel):
+class GoalResponse(QuotaFieldsMixin, BaseModel):
     id: int
     name: str
     description: str | None

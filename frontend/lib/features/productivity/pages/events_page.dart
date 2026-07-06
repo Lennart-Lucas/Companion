@@ -46,6 +46,7 @@ class _EventsPageState extends State<EventsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab-events',
         tooltip: 'Add event',
         onPressed: _openCreate,
         child: const Icon(Icons.add),

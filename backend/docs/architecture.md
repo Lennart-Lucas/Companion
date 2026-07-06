@@ -367,15 +367,17 @@ erDiagram
 
 ### Repeating goals and check-ins
 
-- **Schedule:** required `schedule_id` or inline `schedule` (mutually exclusive); must be recurring.
+- **Schedule:** required `schedule_id` or inline `schedule` (mutually exclusive); must be recurring for `fixed_schedule` mode.
+- **Quota mode:** same semantics as trackers (`check_in_mode`, quota fields, floating slots, period miss marker).
 - **Window:** `start_date` required; optional `end_date`. Check-in expansion clipped to this window.
 - **Check-ins** (`goal_check_ins`): materialized lazily via `GET /goals/{id}/check-ins?from=&to=`; log task/count progress with `PATCH`.
 
 ### Repeating trackers and check-ins
 
-- **Schedule:** required `schedule_id` or inline `schedule` (mutually exclusive); must be recurring (`repeat_type` ≠ `none`).
+- **Schedule:** required `schedule_id` or inline `schedule` (mutually exclusive); must be recurring (`repeat_type` ≠ `none`) for `fixed_schedule` mode.
+- **Quota mode (`times_per_period`):** optional `check_in_mode=times_per_period` with `quota_times`, `quota_period_interval`, and `quota_period_unit` (`weeks`, `months`, `years`). Calendar-aligned periods spawn floating active slots that lock on log; one `period_miss` marker remains on the last day when the quota is not met. Skip is not available in quota mode.
 - **Window:** `start_date` required; optional `end_date` (null = open-ended). Occurrence expansion is clipped to this window.
-- **Check-ins** (`tracker_check_ins`): materialized lazily via `GET /trackers/{id}/check-ins?from=&to=` using the scheduling expander; log progress with `PATCH`.
+- **Check-ins** (`tracker_check_ins`): materialized lazily via `GET /trackers/{id}/check-ins?from=&to=` using the scheduling expander (fixed schedule) or quota materializer (times per period); log progress with `PATCH`.
 
 ### Repeating tasks and subtasks
 

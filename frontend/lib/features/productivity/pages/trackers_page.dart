@@ -66,6 +66,7 @@ class _TrackersPageState extends State<TrackersPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab-trackers',
         tooltip: 'Add tracker',
         onPressed: _openCreate,
         child: const Icon(Icons.add),

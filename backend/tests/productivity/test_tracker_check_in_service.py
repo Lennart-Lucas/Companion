@@ -103,37 +103,51 @@ class TestCheckInAtInTrackerWindow:
 
 class TestCheckInResponse:
     def test_logged_false_when_empty(self):
+        at = datetime(2026, 5, 21, 9, 0, tzinfo=UTC)
         check_in = TrackerCheckIn(
             id=1,
             tracker_id=1,
-            check_in_at=datetime(2026, 5, 21, 9, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="active",
         )
+        tracker = _sample_tracker(start_date=at)
         assert _check_in_logged(check_in) is False
-        response = _check_in_to_response(check_in, CheckInType.task)
+        response = _check_in_to_response(check_in, CheckInType.task, tracker)
         assert response.logged is False
         assert response.completed is None
 
     def test_logged_true_when_count_set(self):
+        at = datetime(2026, 5, 21, 9, 0, tzinfo=UTC)
         check_in = TrackerCheckIn(
             id=2,
             tracker_id=1,
-            check_in_at=datetime(2026, 5, 21, 9, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="locked",
+            locked_at=at,
             count_value=Decimal("6"),
         )
+        tracker = _sample_tracker(start_date=at)
         assert _check_in_logged(check_in) is True
-        response = _check_in_to_response(check_in, CheckInType.count)
+        response = _check_in_to_response(check_in, CheckInType.count, tracker)
         assert response.logged is True
         assert response.count_value == Decimal("6")
 
     def test_logged_true_when_skipped(self):
+        at = datetime(2026, 5, 21, 9, 0, tzinfo=UTC)
         check_in = TrackerCheckIn(
             id=3,
             tracker_id=1,
-            check_in_at=datetime(2026, 5, 21, 9, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="locked",
+            locked_at=at,
             skipped=True,
         )
+        tracker = _sample_tracker(start_date=at)
         assert _check_in_logged(check_in) is True
-        response = _check_in_to_response(check_in, CheckInType.task)
+        response = _check_in_to_response(check_in, CheckInType.task, tracker)
         assert response.logged is True
         assert response.skipped is True
         assert response.completed is None
@@ -141,29 +155,40 @@ class TestCheckInResponse:
 
 class TestMergeCheckInsByAt:
     def test_merges_distinct_times(self):
+        at = datetime(2026, 6, 29, 10, 0, tzinfo=UTC)
         first = TrackerCheckIn(
             id=1,
             tracker_id=1,
-            check_in_at=datetime(2026, 6, 29, 10, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="active",
         )
         second = TrackerCheckIn(
             id=2,
             tracker_id=1,
             check_in_at=datetime(2026, 6, 29, 22, 0, tzinfo=UTC),
+            spawned_at=datetime(2026, 6, 29, 22, 0, tzinfo=UTC),
+            slot_kind="active",
         )
         merged = _merge_check_ins_by_at([second], [first])
         assert [c.id for c in merged] == [1, 2]
 
     def test_later_group_wins_same_instant(self):
+        at = datetime(2026, 6, 29, 10, 0, tzinfo=UTC)
         scheduled = TrackerCheckIn(
             id=1,
             tracker_id=1,
-            check_in_at=datetime(2026, 6, 29, 10, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="active",
         )
         stored = TrackerCheckIn(
             id=9,
             tracker_id=1,
-            check_in_at=datetime(2026, 6, 29, 10, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="locked",
+            locked_at=at,
             count_value=Decimal("3"),
         )
         merged = _merge_check_ins_by_at([scheduled], [stored])
@@ -173,23 +198,30 @@ class TestMergeCheckInsByAt:
 
 class TestDurationTimer:
     def test_timer_started_does_not_count_as_logged(self):
+        at = datetime(2026, 7, 3, 9, 0, tzinfo=UTC)
         started = datetime(2026, 7, 3, 10, 0, tzinfo=UTC)
         check_in = TrackerCheckIn(
             id=1,
             tracker_id=1,
-            check_in_at=datetime(2026, 7, 3, 9, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="active",
             timer_started_at=started,
         )
+        tracker = _sample_tracker(start_date=at)
         assert _check_in_logged(check_in) is False
-        response = _check_in_to_response(check_in, CheckInType.duration)
+        response = _check_in_to_response(check_in, CheckInType.duration, tracker)
         assert response.timer_started_at == started
         assert response.logged is False
 
     def test_start_timer_sets_timer_started_at(self):
+        at = datetime(2026, 7, 3, 9, 0, tzinfo=UTC)
         check_in = TrackerCheckIn(
             id=1,
             tracker_id=1,
-            check_in_at=datetime(2026, 7, 3, 9, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="active",
         )
         started = datetime(2026, 7, 3, 10, 15, tzinfo=UTC)
         _apply_check_in_log(
@@ -201,11 +233,14 @@ class TestDurationTimer:
         assert check_in.value_seconds is None
 
     def test_stop_timer_sets_value_seconds_and_clears_timer(self):
+        at = datetime(2026, 7, 3, 9, 0, tzinfo=UTC)
         started = datetime(2026, 7, 3, 10, 0, tzinfo=UTC)
         check_in = TrackerCheckIn(
             id=1,
             tracker_id=1,
-            check_in_at=datetime(2026, 7, 3, 9, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="active",
             value_seconds=300,
             timer_started_at=started,
         )
@@ -219,10 +254,13 @@ class TestDurationTimer:
         assert _check_in_logged(check_in) is True
 
     def test_skip_clears_timer_started_at(self):
+        at = datetime(2026, 7, 3, 9, 0, tzinfo=UTC)
         check_in = TrackerCheckIn(
             id=1,
             tracker_id=1,
-            check_in_at=datetime(2026, 7, 3, 9, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="active",
             value_seconds=120,
             timer_started_at=datetime(2026, 7, 3, 10, 0, tzinfo=UTC),
         )

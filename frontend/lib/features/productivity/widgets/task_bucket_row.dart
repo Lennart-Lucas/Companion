@@ -73,9 +73,9 @@ class _BucketCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final background = Color.alphaBlend(
-      scheme.onSurface.withValues(alpha: 0.1),
-      scheme.surface,
+    final background = CompanionFormStyles.taskSurfaceTint(
+      scheme,
+      CompanionFormStyles.taskBucketBackgroundAlpha,
     );
 
     return Material(

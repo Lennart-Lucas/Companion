@@ -87,6 +87,7 @@ class _ProjectsPageState extends State<ProjectsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab-projects',
         tooltip: 'Add project',
         onPressed: _openCreate,
         child: const Icon(Icons.add),

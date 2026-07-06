@@ -58,14 +58,18 @@ class TestClipWindow:
 
 class TestCheckInResponse:
     def test_logged_with_pulse_score(self):
+        at = datetime(2026, 5, 21, 9, 0, tzinfo=UTC)
+        goal = _sample_goal(start_date=at)
         check_in = GoalCheckIn(
             id=1,
             goal_id=1,
-            check_in_at=datetime(2026, 5, 21, 9, 0, tzinfo=UTC),
+            check_in_at=at,
+            spawned_at=at,
+            slot_kind="locked",
             pulse_score=7,
         )
         assert _check_in_logged(check_in) is True
-        response = _check_in_to_response(check_in, GoalType.pulse)
+        response = _check_in_to_response(check_in, GoalType.pulse, goal)
         assert response.logged is True
         assert response.pulse_score == 7
 

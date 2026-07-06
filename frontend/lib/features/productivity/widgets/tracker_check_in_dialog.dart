@@ -198,10 +198,23 @@ class _TrackerCheckInDialogState extends State<TrackerCheckInDialog> {
               contentPadding: EdgeInsets.zero,
               title: const Text('Skipped'),
               value: _skipped,
-              onChanged: _saving
+              onChanged: widget.tracker.usesQuotaMode || _saving
                   ? null
                   : (value) => setState(() => _skipped = value ?? false),
             ),
+            if (widget.tracker.usesQuotaMode)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Skip is not available for times-per-period schedules.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.7),
+                      ),
+                ),
+              ),
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(
