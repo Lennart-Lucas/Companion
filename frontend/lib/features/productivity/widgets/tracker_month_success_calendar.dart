@@ -18,15 +18,17 @@ class TrackerMonthSuccessCalendar extends StatelessWidget {
     this.trackerEndDate,
   });
 
-  static const panelHeight = 320.0;
+  static const panelHeight = 380.0;
+  static const _gridGap = 6.0;
+  static const _cellRadius = 12.0;
   static const _weekdayLabels = [
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
+    'MON',
+    'TUE',
+    'WED',
+    'THU',
+    'FRI',
+    'SAT',
+    'SUN',
   ];
 
   final DateTime displayedMonth;
@@ -77,48 +79,40 @@ class TrackerMonthSuccessCalendar extends StatelessWidget {
               height: 40,
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    tooltip: 'Previous month',
-                    onPressed: onPreviousMonth,
-                  ),
                   Expanded(
                     child: Text(
                       monthTitle,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
                       ),
                     ),
                   ),
                   if (onGoToCurrentMonth != null) ...[
-                    IconButton(
-                      icon: Icon(
-                        Icons.calendar_today_outlined,
-                        size: 18,
-                        color: scheme.onSurface,
-                      ),
+                    _CalendarNavButton(
+                      icon: Icons.calendar_today_outlined,
                       tooltip: 'Go to current month',
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      onPressed: onGoToCurrentMonth,
+                      onPressed: onGoToCurrentMonth!,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 6),
                   ],
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
+                  _CalendarNavButton(
+                    icon: Icons.chevron_left,
+                    tooltip: 'Previous month',
+                    onPressed: onPreviousMonth,
+                  ),
+                  const SizedBox(width: 6),
+                  _CalendarNavButton(
+                    icon: Icons.chevron_right,
                     tooltip: 'Next month',
                     onPressed: onNextMonth,
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Row(
                 children: [
                   for (final label in _weekdayLabels)
@@ -127,63 +121,112 @@ class TrackerMonthSuccessCalendar extends StatelessWidget {
                         label,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurface.withValues(alpha: 0.55),
-                          fontWeight: FontWeight.w500,
+                          color: scheme.onSurface.withValues(alpha: 0.45),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
                         ),
                       ),
                     ),
                 ],
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   const rowCount = 6;
                   const colCount = 7;
-                  final cellHeight = constraints.maxHeight / rowCount;
-                  final cellWidth = constraints.maxWidth / colCount;
+                  final cellWidth =
+                      (constraints.maxWidth - _gridGap * (colCount - 1)) /
+                          colCount;
+                  final cellHeight =
+                      (constraints.maxHeight - _gridGap * (rowCount - 1)) /
+                          rowCount;
 
                   return Column(
                     children: [
-                      for (var row = 0; row < rowCount; row++)
-                        SizedBox(
-                          height: cellHeight,
-                          child: Row(
-                            children: [
-                              for (var col = 0; col < colCount; col++)
-                                Expanded(
-                                  child: _MonthSuccessDayCell(
-                                    day: gridDays[row * colCount + col],
-                                    monthStart: monthStart,
-                                    listToday: listToday,
-                                    cellHeight: cellHeight,
-                                    cellWidth: cellWidth,
-                                    outcome: trackerDayOutcomeOn(
-                                      dayOutcomes,
-                                      gridDays[row * colCount + col],
-                                    ),
-                                    onTap: _isDayTappable(
-                                      gridDays[row * colCount + col],
-                                      monthStart,
-                                    )
-                                        ? () => onDaySelected!(
-                                              gridDays[row * colCount + col],
-                                            )
-                                        : null,
+                      for (var row = 0; row < rowCount; row++) ...[
+                        if (row > 0) const SizedBox(height: _gridGap),
+                        Row(
+                          children: [
+                            for (var col = 0; col < colCount; col++) ...[
+                              if (col > 0) const SizedBox(width: _gridGap),
+                              SizedBox(
+                                width: cellWidth,
+                                height: cellHeight,
+                                child: _MonthSuccessDayCell(
+                                  day: gridDays[row * colCount + col],
+                                  monthStart: monthStart,
+                                  listToday: listToday,
+                                  outcome: trackerDayOutcomeOn(
+                                    dayOutcomes,
+                                    gridDays[row * colCount + col],
                                   ),
+                                  onTap: _isDayTappable(
+                                    gridDays[row * colCount + col],
+                                    monthStart,
+                                  )
+                                      ? () => onDaySelected!(
+                                            gridDays[row * colCount + col],
+                                          )
+                                      : null,
                                 ),
+                              ),
                             ],
-                          ),
+                          ],
                         ),
+                      ],
                     ],
                   );
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             const _TrackerCalendarLegend(),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CalendarNavButton extends StatelessWidget {
+  const _CalendarNavButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: scheme.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: scheme.outline.withValues(alpha: 0.25),
+          ),
+        ),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: Icon(
+              icon,
+              size: 18,
+              color: scheme.onSurface,
+            ),
+          ),
         ),
       ),
     );
@@ -283,8 +326,6 @@ class _MonthSuccessDayCell extends StatelessWidget {
     required this.day,
     required this.monthStart,
     required this.listToday,
-    required this.cellHeight,
-    required this.cellWidth,
     required this.outcome,
     this.onTap,
   });
@@ -292,8 +333,6 @@ class _MonthSuccessDayCell extends StatelessWidget {
   final DateTime day;
   final DateTime monthStart;
   final DateTime listToday;
-  final double cellHeight;
-  final double cellWidth;
   final TrackerDayOutcome? outcome;
   final VoidCallback? onTap;
 
@@ -307,9 +346,6 @@ class _MonthSuccessDayCell extends StatelessWidget {
     final isFuture =
         normalized.isAfter(normalizeTaskListCalendarDay(listToday));
 
-    final marginH = cellWidth * 0.06;
-    final marginV = cellHeight * 0.08;
-
     final appearance = TrackerDayOutcomeAppearance.resolve(
       outcome: outcome,
       scheme: scheme,
@@ -318,62 +354,59 @@ class _MonthSuccessDayCell extends StatelessWidget {
       inMonth: inMonth,
     );
 
+    final hasCard = appearance.background != Colors.transparent;
+    final showMarker = appearance.marker != null && (hasCard || isToday);
+
     final column = Column(
-      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           '${day.day}',
-          style: theme.textTheme.labelMedium?.copyWith(
+          style: (hasCard
+                  ? theme.textTheme.titleSmall
+                  : theme.textTheme.bodyMedium)
+              ?.copyWith(
             color: appearance.dayNumberColor,
-            fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+            fontWeight: isToday || hasCard ? FontWeight.w700 : FontWeight.w500,
             height: 1,
           ),
         ),
-        if (appearance.marker != null && inMonth) ...[
-          const SizedBox(height: 1),
+        if (showMarker) ...[
+          const SizedBox(height: 2),
           appearance.marker!,
         ],
       ],
     );
 
-    final content = appearance.marker != null && inMonth
+    final content = hasCard || showMarker
         ? FittedBox(fit: BoxFit.scaleDown, child: column)
         : Center(child: column);
 
     final decoration = BoxDecoration(
       color: appearance.background,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(
+        TrackerMonthSuccessCalendar._cellRadius,
+      ),
       border: appearance.border,
     );
 
     if (onTap == null) {
-      return SizedBox(
-        height: cellHeight,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: marginH, vertical: marginV),
-          child: DecoratedBox(
-            decoration: decoration,
-            child: content,
-          ),
-        ),
+      return DecoratedBox(
+        decoration: decoration,
+        child: content,
       );
     }
 
-    return SizedBox(
-      height: cellHeight,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: marginH, vertical: marginV),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(10),
-            child: Ink(
-              decoration: decoration,
-              child: SizedBox.expand(child: content),
-            ),
-          ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(
+          TrackerMonthSuccessCalendar._cellRadius,
+        ),
+        child: Ink(
+          decoration: decoration,
+          child: SizedBox.expand(child: content),
         ),
       ),
     );

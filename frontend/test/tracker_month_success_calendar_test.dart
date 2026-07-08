@@ -30,8 +30,8 @@ void main() {
     expect(find.text('Missed'), findsOneWidget);
     expect(find.text('Skipped'), findsOneWidget);
     expect(find.text('Pending'), findsOneWidget);
-    expect(find.text('Mon'), findsOneWidget);
-    expect(find.text('Sun'), findsOneWidget);
+    expect(find.text('MON'), findsOneWidget);
+    expect(find.text('SUN'), findsOneWidget);
     expect(find.byIcon(Icons.check), findsWidgets);
     expect(find.byIcon(Icons.close), findsWidgets);
     expect(find.byIcon(Icons.schedule), findsWidgets);

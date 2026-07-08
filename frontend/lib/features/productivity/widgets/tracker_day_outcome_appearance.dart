@@ -29,37 +29,25 @@ class TrackerDayOutcomeAppearance {
         scheme.surfaceContainerHighest;
   }
 
-  static Color dayCellMuted(ColorScheme scheme) {
-    return Color.lerp(
-          scheme.surfaceContainerHigh,
-          scheme.onSurface,
-          0.05,
-        ) ??
-        scheme.surfaceContainer;
-  }
-
   static Color _blendOnBase(ColorScheme scheme, Color tint, double alpha) {
     return Color.alphaBlend(tint.withValues(alpha: alpha), dayCellBase(scheme));
   }
 
-  /// Resolves month-calendar styling for [outcome] and day context flags.
-  static TrackerDayOutcomeAppearance resolve({
-    required TrackerDayOutcome? outcome,
-    required ColorScheme scheme,
-    required bool isToday,
-    required bool isFuture,
-    required bool inMonth,
-  }) {
-    if (!inMonth) {
-      return TrackerDayOutcomeAppearance(
-        background: dayCellMuted(scheme),
-        dayNumberColor: scheme.onSurface.withValues(alpha: 0.3),
-      );
-    }
+  static TrackerDayOutcomeAppearance _emptyDay(ColorScheme scheme) {
+    return TrackerDayOutcomeAppearance(
+      background: Colors.transparent,
+      dayNumberColor: scheme.onSurface.withValues(alpha: 0.35),
+    );
+  }
 
+  static TrackerDayOutcomeAppearance _filledDay({
+    required ColorScheme scheme,
+    required TrackerDayOutcome outcome,
+    required bool isFuture,
+    bool muted = false,
+  }) {
     Color background;
     Widget? marker;
-    Border? border;
     Color dayNumberColor;
 
     switch (outcome) {
@@ -70,7 +58,7 @@ class TrackerDayOutcomeAppearance {
           size: _markerSize,
           color: trackerStrengthHighColor,
         );
-        dayNumberColor = scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.9);
+        dayNumberColor = scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.92);
       case TrackerDayOutcome.missed when !isFuture:
         background = _blendOnBase(scheme, trackerStrengthLowColor, 0.28);
         marker = const Icon(
@@ -78,7 +66,7 @@ class TrackerDayOutcomeAppearance {
           size: _markerSize,
           color: trackerStrengthLowColor,
         );
-        dayNumberColor = scheme.onSurface.withValues(alpha: 0.9);
+        dayNumberColor = scheme.onSurface.withValues(alpha: 0.92);
       case TrackerDayOutcome.skipped:
         background = _blendOnBase(scheme, scheme.onSurface, 0.1);
         marker = Text(
@@ -90,7 +78,7 @@ class TrackerDayOutcomeAppearance {
             height: 1,
           ),
         );
-        dayNumberColor = scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.9);
+        dayNumberColor = scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.92);
       case TrackerDayOutcome.pending:
         background = dayCellBase(scheme);
         marker = Icon(
@@ -98,30 +86,79 @@ class TrackerDayOutcomeAppearance {
           size: _pendingMarkerSize,
           color: scheme.onSurface.withValues(alpha: 0.55),
         );
-        dayNumberColor = scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.9);
+        dayNumberColor = scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.92);
       case TrackerDayOutcome.missed:
       case null:
         background = dayCellBase(scheme);
-        dayNumberColor = scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.9);
+        dayNumberColor = scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.92);
     }
 
-    if (isToday) {
-      border = Border.all(
-        color: scheme.primary,
-        width: 2,
-        strokeAlign: BorderSide.strokeAlignInside,
-      );
-      if (outcome == null || outcome == TrackerDayOutcome.missed) {
-        dayNumberColor = scheme.primary;
-      }
+    if (muted) {
+      dayNumberColor = scheme.onSurface.withValues(alpha: 0.55);
     }
 
     return TrackerDayOutcomeAppearance(
       background: background,
-      border: border,
       marker: marker,
       dayNumberColor: dayNumberColor,
     );
+  }
+
+  /// Resolves month-calendar styling for [outcome] and day context flags.
+  static TrackerDayOutcomeAppearance resolve({
+    required TrackerDayOutcome? outcome,
+    required ColorScheme scheme,
+    required bool isToday,
+    required bool isFuture,
+    required bool inMonth,
+  }) {
+    if (isFuture) {
+      return _emptyDay(scheme);
+    }
+
+    if (!inMonth) {
+      if (outcome != null) {
+        return _filledDay(
+          scheme: scheme,
+          outcome: outcome,
+          isFuture: false,
+          muted: true,
+        );
+      }
+      return _emptyDay(scheme);
+    }
+
+    if (isToday) {
+      final filled = outcome != null
+          ? _filledDay(
+              scheme: scheme,
+              outcome: outcome,
+              isFuture: false,
+            )
+          : null;
+
+      return TrackerDayOutcomeAppearance(
+        background: Colors.transparent,
+        border: Border.all(
+          color: scheme.primary,
+          width: 2,
+          strokeAlign: BorderSide.strokeAlignInside,
+        ),
+        marker: filled?.marker,
+        dayNumberColor: filled?.dayNumberColor ??
+            scheme.onSurface.withValues(alpha: 0.92),
+      );
+    }
+
+    if (outcome != null) {
+      return _filledDay(
+        scheme: scheme,
+        outcome: outcome,
+        isFuture: false,
+      );
+    }
+
+    return _emptyDay(scheme);
   }
 
   /// Miniature preview for the calendar legend (fixed 22×22).
