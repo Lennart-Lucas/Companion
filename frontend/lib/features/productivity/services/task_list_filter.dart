@@ -2,6 +2,7 @@ import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/timeline_item.dart';
 import 'package:frontend/features/productivity/services/task_list_display.dart';
 import 'package:frontend/features/productivity/services/tracker_stats.dart';
+import 'package:frontend/features/productivity/widgets/task_display.dart';
 
 /// Whether [entry] is in the completed task state.
 bool taskListEntryIsCompleted(TaskListEntry entry) =>
@@ -22,28 +23,78 @@ bool timelineItemIsCompleted(
   };
 }
 
+/// Whether a completed item should be hidden when [hideCompleted] is enabled.
+///
+/// Completed items on past calendar days remain visible; only today and future
+/// days (plus undated items) hide completed entries.
+bool shouldHideCompletedTimelineItem(
+  TimelineSortableItem item, {
+  required bool hideCompleted,
+  DateTime? listToday,
+}) {
+  if (!hideCompleted) return false;
+  if (!timelineItemIsCompleted(item, now: DateTime.now())) return false;
+
+  final day = item.localDay;
+  if (day != null &&
+      taskListDayIsBeforeToday(day, now: listToday ?? DateTime.now())) {
+    return false;
+  }
+  return true;
+}
+
+/// Whether a completed task entry should be hidden when [hideCompleted] is on.
+bool shouldHideCompletedTaskListEntry(
+  TaskListEntry entry, {
+  required bool hideCompleted,
+  DateTime? now,
+}) {
+  if (!hideCompleted) return false;
+  if (!taskListEntryIsCompleted(entry)) return false;
+
+  final day = taskListEntryLocalDay(entry);
+  if (day != null && taskListDayIsBeforeToday(day, now: now)) {
+    return false;
+  }
+  return true;
+}
+
 /// Drops completed task entries when [hideCompleted] is true (default).
+///
+/// Completed entries on past calendar days are kept visible.
 List<TaskListEntry> filterVisibleTaskListEntries(
   List<TaskListEntry> entries, {
   bool hideCompleted = true,
+  DateTime? now,
 }) {
   if (!hideCompleted) return entries;
   return [
     for (final entry in entries)
-      if (!taskListEntryIsCompleted(entry)) entry,
+      if (!shouldHideCompletedTaskListEntry(
+        entry,
+        hideCompleted: hideCompleted,
+        now: now,
+      ))
+        entry,
   ];
 }
 
 /// Drops completed tasks and succeeded tracker check-ins when [hideCompleted].
+///
+/// Completed items on past calendar days are kept visible.
 List<TimelineSortableItem> filterVisibleTimelineItems(
   List<TimelineSortableItem> items, {
   bool hideCompleted = true,
-  DateTime? now,
+  DateTime? listToday,
 }) {
   if (!hideCompleted) return items;
-  final reference = now ?? DateTime.now();
   return [
     for (final item in items)
-      if (!timelineItemIsCompleted(item, now: reference)) item,
+      if (!shouldHideCompletedTimelineItem(
+        item,
+        hideCompleted: hideCompleted,
+        listToday: listToday,
+      ))
+        item,
   ];
 }

@@ -30,6 +30,7 @@ class TaskListTile extends StatefulWidget {
     this.onEdit,
     this.onChanged,
     this.onDeleted,
+    this.hideLeadingIcon = false,
   });
 
   final TaskListEntry entry;
@@ -41,6 +42,9 @@ class TaskListTile extends StatefulWidget {
   final VoidCallback? onEdit;
   final ValueChanged<TaskListEntry>? onChanged;
   final VoidCallback? onDeleted;
+
+  /// When true, omits the category icon badge inside the row panel.
+  final bool hideLeadingIcon;
 
   @override
   State<TaskListTile> createState() => _TaskListTileState();
@@ -274,14 +278,16 @@ class _TaskListTileState extends State<TaskListTile> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          TaskTimelineIconBadge(
-                            color: scheme.primary,
-                            defaultIconName: TaskCategoryChipDefaults.taskIcon,
-                            materialFallback: Icons.done_all,
-                          ),
-                          const SizedBox(
-                            width: CompanionFormStyles.taskPanelIconBadgeGap,
-                          ),
+                          if (!widget.hideLeadingIcon) ...[
+                            TaskTimelineIconBadge(
+                              color: scheme.primary,
+                              defaultIconName: TaskCategoryChipDefaults.taskIcon,
+                              materialFallback: Icons.done_all,
+                            ),
+                            const SizedBox(
+                              width: CompanionFormStyles.taskPanelIconBadgeGap,
+                            ),
+                          ],
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,11 +354,13 @@ class _TaskListTileState extends State<TaskListTile> {
                                     if (_entry.task.isRecurring)
                                       TaskMetaChip(
                                         label: 'Repeating',
-                                        tintColor: scheme.secondary,
+                                        neutral: true,
                                         leading: Icon(
                                           Icons.repeat,
                                           size: 14,
-                                          color: scheme.secondary,
+                                          color: scheme.onSurface.withValues(
+                                            alpha: 0.85,
+                                          ),
                                         ),
                                       ),
                                     if (timeLabel != null)

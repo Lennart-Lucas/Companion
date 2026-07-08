@@ -57,4 +57,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(tapped, TaskTodayBucket.overdue);
   });
+
+  testWidgets('compact mode bleeds to list edges with no inter-card gap', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppThemeId.hubTheme,
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TaskTodayBucketsRow(
+              counts: TaskTodayBucketCounts.zero,
+              onBucketTap: (_) {},
+              compact: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Transform && widget.transform.getTranslation().x == -16,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is SizedBox && widget.width == 10,
+      ),
+      findsNothing,
+    );
+  });
 }

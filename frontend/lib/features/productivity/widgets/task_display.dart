@@ -126,6 +126,13 @@ bool taskListDayIsToday(DateTime localDay, {DateTime? now}) {
   return day == today;
 }
 
+/// Whether [localDay] is strictly before the current local calendar day.
+bool taskListDayIsBeforeToday(DateTime localDay, {DateTime? now}) {
+  final day = normalizeTaskListCalendarDay(localDay);
+  final today = normalizeTaskListCalendarDay(now ?? DateTime.now());
+  return day.isBefore(today);
+}
+
 /// Local Monday midnight of the week containing [date].
 DateTime taskListWeekStart(DateTime date) {
   final day = normalizeTaskListCalendarDay(date);
@@ -185,4 +192,29 @@ int taskListWeekPageForDay({
   final targetWeekStart = taskListWeekStart(day);
   final offsetWeeks = targetWeekStart.difference(anchorWeekStart).inDays ~/ 7;
   return initialPage + offsetWeeks;
+}
+
+/// Month start for a month pager page anchored to [listToday].
+DateTime taskListMonthForPage(
+  int page, {
+  required DateTime listToday,
+  int initialPage = 10000,
+}) {
+  final anchorMonth = taskListMonthStart(listToday);
+  final offsetMonths = page - initialPage;
+  return DateTime(anchorMonth.year, anchorMonth.month + offsetMonths);
+}
+
+/// PageView index for the month containing [day], anchored to [listToday].
+int taskListMonthPageForDay({
+  required DateTime day,
+  required DateTime listToday,
+  int initialPage = 10000,
+}) {
+  final anchorMonth = taskListMonthStart(listToday);
+  final targetMonth = taskListMonthStart(day);
+  final offsetMonths =
+      (targetMonth.year - anchorMonth.year) * 12 +
+      (targetMonth.month - anchorMonth.month);
+  return initialPage + offsetMonths;
 }

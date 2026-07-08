@@ -53,13 +53,13 @@ class ProjectDetailPage extends StatefulWidget {
 }
 
 class _ProjectDetailPageState extends State<ProjectDetailPage> {
-  static const _tasksQuery = RecordQuery(recordType: 'tasks', limit: 50);
   static const _projectsQuery = RecordQuery(recordType: 'projects', limit: 50);
 
   late final TaskListTileActions _actions;
   late final TaskListBuilder _builder;
 
   List<TaskListEntry> _entries = [];
+  ProjectTaskProgress _progress = const ProjectTaskProgress(total: 0, completed: 0);
   TaskListHorizon? _horizon;
   bool _expanding = false;
   String? _expandError;
@@ -69,6 +69,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   bool _projectHydrationRequested = false;
   bool _hasSnapshotProject = false;
   bool _cacheBootstrapScheduled = false;
+  Future<void>? _expandInFlight;
 
   ProjectListTileActions get _projectActions =>
       widget.projectActions ??
@@ -151,8 +152,8 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   void _prefetchRecords() {
     final bloc = context.read<RecordBloc>();
     final snapshot = bloc.state.snapshot;
-    if (snapshot.queries[_tasksQuery.queryKey] == null) {
-      bloc.add(const QueryRecordsRequested(_tasksQuery));
+    if (snapshot.queries[projectTasksListQuery.queryKey] == null) {
+      bloc.add(const QueryRecordsRequested(projectTasksListQuery));
     }
     if (snapshot.queries[_projectsQuery.queryKey] == null) {
       bloc.add(const QueryRecordsRequested(_projectsQuery));
@@ -167,10 +168,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
         recordId: widget.projectId,
       ),
     );
-    await Future.wait([
-      refreshRecordQuery(bloc, _projectsQuery),
-      refreshRecordQuery(bloc, _tasksQuery),
-    ]);
+    await refreshRecordQuery(bloc, projectTasksListQuery);
   }
 
   void _onProjectSnapshotChanged(RecordState state) {
@@ -185,37 +183,34 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   Project? _project(RecordState state) {
     final record = state.snapshot.records[widget.projectId]?.record;
     if (record is Project) return record;
+    if (record != null && record.recordType != 'projects') {
+      return widget.project ?? _cachedProject;
+    }
     if (_hasSnapshotProject) return null;
     return widget.project ?? _cachedProject;
   }
 
-  List<Task> _tasksForProject(RecordState state) {
-    final records = state.snapshot.records.values.map((entry) => entry.record);
-    return tasksForProject(records, widget.projectId);
-  }
-
-  TaskListEntry _entryFromTask(Task task) {
-    final at = task.plannedAt ?? task.deadline;
-    final resolvedAt =
-        taskListStatusIsTerminal(task.status) ? task.updatedAt : null;
-    return applyTaskListDisplayRules(
-      TaskListEntry(
-        task: task,
-        occurrenceAt: at,
-        status: task.status,
-        priority: task.priority,
-        subtasks: TaskListEntry.defaultSubtasks(task),
-        isVirtual: true,
-        resolvedAt: resolvedAt,
-      ),
-    );
-  }
-
   Future<void> _expandFromBloc(RecordState state, {bool force = false}) async {
+    if (_expandInFlight != null) {
+      await _expandInFlight;
+      if (!force) return;
+    }
+    final future = _expandFromBlocImpl(state, force: force);
+    _expandInFlight = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_expandInFlight, future)) {
+        _expandInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _expandFromBlocImpl(RecordState state, {bool force = false}) async {
     final project = _project(state);
     if (project == null) return;
 
-    final cached = state.snapshot.queries[_tasksQuery.queryKey];
+    final cached = state.snapshot.queries[projectTasksListQuery.queryKey];
     if (cached == null) return;
     if (!force &&
         cached.version <= _loadedQueryVersion &&
@@ -223,10 +218,14 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
       return;
     }
 
-    final tasks = _tasksForProject(state);
+    final tasks = await resolveLinkedTasksForProject(state, widget.projectId);
+    final progress = projectTaskProgressForProject(tasks, widget.projectId);
+
     if (tasks.isEmpty) {
+      if (!mounted) return;
       setState(() {
         _entries = [];
+        _progress = progress;
         _horizon = null;
         _expanding = false;
         _expandError = null;
@@ -235,9 +234,11 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       _expanding = true;
       _expandError = null;
+      _progress = progress;
     });
 
     final horizon = projectTaskListHorizon(project: project, tasks: tasks);
@@ -263,11 +264,29 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
     }
   }
 
+  TaskListEntry _entryFromTask(Task task) {
+    final at = task.plannedAt ?? task.deadline;
+    final resolvedAt =
+        taskListStatusIsTerminal(task.status) ? task.updatedAt : null;
+    return applyTaskListDisplayRules(
+      TaskListEntry(
+        task: task,
+        occurrenceAt: at,
+        status: task.status,
+        priority: task.priority,
+        subtasks: TaskListEntry.defaultSubtasks(task),
+        isVirtual: true,
+        resolvedAt: resolvedAt,
+      ),
+    );
+  }
+
   List<TaskListRow> get _rows {
     final bucketCounts = computeTaskTodayBucketCounts(_entries, _listToday);
     final visibleEntries = filterVisibleTaskListEntries(
       _entries,
       hideCompleted: widget.hideCompletedItems,
+      now: _listToday,
     );
     final sections = groupTaskListEntries(visibleEntries, horizon: _horizon);
     return flattenTaskListRowsWithTodayBuckets(
@@ -433,7 +452,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<RecordBloc, RecordState>(
       listenWhen: (previous, current) {
-        final tasksKey = _tasksQuery.queryKey;
+        final tasksKey = projectTasksListQuery.queryKey;
         final prevTasksVersion =
             previous.snapshot.queries[tasksKey]?.version ?? -1;
         final currTasksVersion =
@@ -442,7 +461,11 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
 
         final prevProject = previous.snapshot.records[widget.projectId];
         final currProject = current.snapshot.records[widget.projectId];
-        if (prevProject?.version != currProject?.version) return true;
+        if (prevProject?.record is Project &&
+            currProject?.record is Project &&
+            prevProject?.version != currProject?.version) {
+          return true;
+        }
 
         return false;
       },
@@ -459,10 +482,8 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
           );
         }
 
-        final records =
-            state.snapshot.records.values.map((entry) => entry.record);
-        final progress = projectTaskProgressForProject(records, project.id);
-        final linkedTasks = _tasksForProject(state);
+        final progress = _progress;
+        final linkedTasks = progress.total;
         final rows = _rows;
         final scheme = Theme.of(context).colorScheme;
         final projectColor =
@@ -538,7 +559,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                     padding: EdgeInsets.symmetric(vertical: 32),
                     child: Center(child: CircularProgressIndicator()),
                   )
-                else if (linkedTasks.isEmpty)
+                else if (linkedTasks == 0)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32),
                     child: Center(

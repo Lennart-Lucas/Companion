@@ -3,8 +3,8 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 
 import 'package:frontend/core/icons/companion_task_field_icon.dart';
-
 import 'package:frontend/core/icons/companion_task_field_icons.dart';
+import 'package:frontend/core/theme/companion_semantic_colors.dart';
 
 
 
@@ -203,8 +203,8 @@ Color taskStatusWatermarkColor(ColorScheme scheme) =>
 
 
 /// Semantic accent colors (readable on Hub dark surfaces).
-const Color _taskSemanticGreen = Color(0xFF66BB6A);
-const Color _taskSemanticBlue = Color(0xFF42A5F5);
+const Color _taskSemanticGreen = companionSuccessColor;
+const Color _taskSemanticBlue = companionTrackerBlue;
 
 Color taskStatusColor(String value, ColorScheme scheme) => switch (value) {
 

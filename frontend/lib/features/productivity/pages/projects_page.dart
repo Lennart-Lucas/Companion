@@ -8,6 +8,7 @@ import 'package:frontend/features/productivity/pages/project_detail_page.dart';
 import 'package:frontend/features/productivity/pages/project_edit_page.dart';
 import 'package:frontend/features/productivity/services/project_list_actions.dart';
 import 'package:frontend/features/productivity/widgets/productivity_list_page.dart';
+import 'package:frontend/features/productivity/widgets/project_display.dart';
 import 'package:frontend/features/productivity/widgets/project_list_tile.dart';
 
 class ProjectsPage extends StatefulWidget {
@@ -18,8 +19,6 @@ class ProjectsPage extends StatefulWidget {
 }
 
 class _ProjectsPageState extends State<ProjectsPage> {
-  static const _tasksQuery = RecordQuery(recordType: 'tasks', limit: 50);
-
   int _refreshNonce = 0;
 
   late final ProjectListActions _actions = ProjectListActions(
@@ -37,15 +36,16 @@ class _ProjectsPageState extends State<ProjectsPage> {
 
   void _prefetchTasks() {
     final bloc = context.read<RecordBloc>();
-    if (bloc.state.snapshot.queries[_tasksQuery.queryKey] == null) {
-      bloc.add(const QueryRecordsRequested(_tasksQuery));
+    final tasksCached =
+        bloc.state.snapshot.queries[projectTasksListQuery.queryKey];
+    if (tasksCached == null) {
+      bloc.add(const QueryRecordsRequested(projectTasksListQuery));
     }
   }
 
   void _refreshList() {
     if (!mounted) return;
     setState(() => _refreshNonce++);
-    _prefetchTasks();
   }
 
   Future<void> _openCreate() async {
@@ -97,6 +97,7 @@ class _ProjectsPageState extends State<ProjectsPage> {
         recordType: 'projects',
         emptyStateHint: 'Tap + to add a project',
         refreshNonce: _refreshNonce,
+        additionalRefreshQueries: const [projectTasksListQuery],
         showDividers: false,
         itemBuilder: (context, record, index, itemCount) {
           final project = record as Project;

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
+import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/core/records/typed_record_resolver.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
@@ -33,6 +34,7 @@ class ProductivityListPage extends StatefulWidget {
     this.onRecordTap,
     this.showDividers = true,
     this.refreshNonce = 0,
+    this.additionalRefreshQueries = const [],
   });
 
   final String title;
@@ -46,6 +48,9 @@ class ProductivityListPage extends StatefulWidget {
   /// Increment from parent to re-run [QueryRecordsRequested] (e.g. after pop).
   final int refreshNonce;
 
+  /// Extra queries to refresh alongside pull-to-refresh (e.g. tasks for progress).
+  final List<RecordQuery> additionalRefreshQueries;
+
   @override
   State<ProductivityListPage> createState() => _ProductivityListPageState();
 }
@@ -55,8 +60,9 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
   List<ProductivityRecord> _displayRecords = [];
   int _loadedQueryVersion = -1;
   final Map<RecordId, int> _loadedRecordVersions = {};
-  bool _refetchPending = false;
   bool _bootstrapScheduled = false;
+  Future<void>? _refetchInFlight;
+  Future<void>? _captureInFlight;
 
   @override
   void initState() {
@@ -81,10 +87,10 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
   void _scheduleBootstrap() {
     if (_bootstrapScheduled) return;
     _bootstrapScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _bootstrapScheduled = false;
       if (!mounted) return;
-      _bootstrapDisplayRecords(context.read<RecordBloc>().state);
+      await _captureDisplayRecordsAsync(context.read<RecordBloc>().state);
     });
   }
 
@@ -108,6 +114,7 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
     for (final id in _displayRecords.map((record) => record.id)) {
       final entry = state.snapshot.records[id];
       if (entry == null) return true;
+      if (entry.record.recordType != widget.recordType) continue;
       if (entry.version > (_loadedRecordVersions[id] ?? -1)) {
         return true;
       }
@@ -124,25 +131,30 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
   }
 
   Future<void> _refetch() async {
+    if (_refetchInFlight != null) {
+      await _refetchInFlight;
+      return;
+    }
+    final future = _refetchImpl();
+    _refetchInFlight = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_refetchInFlight, future)) {
+        _refetchInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _refetchImpl() async {
     final bloc = context.read<RecordBloc>();
-    final key = _query.queryKey;
-    final versionBefore = bloc.state.snapshot.queries[key]?.version ?? -1;
-    bloc.remoteCoordinator?.refreshQueryRecords(_query);
-    await bloc.stream
-        .firstWhere(
-          (s) {
-            final cached = s.snapshot.queries[key];
-            return cached != null &&
-                cached.freshness == RecordFreshness.fresh &&
-                cached.version > versionBefore;
-          },
-        )
-        .timeout(
-          const Duration(seconds: 30),
-          onTimeout: () => bloc.state,
-        );
+    await refreshRecordQuery(bloc, _query);
     if (mounted) {
-      _captureDisplayRecords(context.read<RecordBloc>().state);
+      await _captureDisplayRecordsAsync(context.read<RecordBloc>().state);
+    }
+    for (final query in widget.additionalRefreshQueries) {
+      // Tasks refresh is for progress bars only; don't block pull-to-refresh.
+      unawaited(refreshRecordQuery(bloc, query));
     }
   }
 
@@ -169,6 +181,22 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
   }
 
   Future<void> _captureDisplayRecordsAsync(RecordState state) async {
+    if (_captureInFlight != null) {
+      await _captureInFlight;
+      return;
+    }
+    final future = _captureDisplayRecordsImpl(state);
+    _captureInFlight = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_captureInFlight, future)) {
+        _captureInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _captureDisplayRecordsImpl(RecordState state) async {
     final cached = state.snapshot.queries[_query.queryKey];
     if (cached == null || !_shouldSyncDisplayRecords(state)) {
       return;
@@ -186,16 +214,13 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
     }
 
     if (resolved.length != cached.recordIds.length) {
-      if (!_refetchPending) {
-        _refetchPending = true;
-        context.read<RecordBloc>().remoteCoordinator?.refreshQueryRecords(_query);
-      }
       if (resolved.isEmpty) {
+        await refreshRecordQuery(context.read<RecordBloc>(), _query);
+        if (!mounted) return;
+        await _captureDisplayRecordsImpl(context.read<RecordBloc>().state);
         return;
       }
     }
-
-    _refetchPending = false;
 
     if (!mounted) return;
     setState(() {
@@ -206,7 +231,9 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
           cached.recordIds.map(
             (id) => MapEntry(
               id,
-              state.snapshot.records[id]?.version ?? -1,
+              state.snapshot.records[id]?.record.recordType == widget.recordType
+                  ? state.snapshot.records[id]?.version ?? -1
+                  : _loadedRecordVersions[id] ?? -1,
             ),
           ),
         );
@@ -267,6 +294,9 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
           for (final id in _displayRecords.map((r) => r.id)) {
             final prevEntry = previous.snapshot.records[id];
             final currEntry = current.snapshot.records[id];
+            if (currEntry?.record.recordType != widget.recordType) {
+              continue;
+            }
             if (prevEntry?.version != currEntry?.version) {
               return true;
             }

@@ -1,5 +1,9 @@
+import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/task_list_entry.dart';
+import 'package:frontend/features/productivity/models/timeline_item.dart';
 import 'package:frontend/features/productivity/models/timeline_row.dart';
+import 'package:frontend/features/productivity/models/tracker_check_in.dart';
+import 'package:frontend/features/productivity/services/tracker_stats.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 
 /// Summary buckets shown under the Today header.
@@ -123,12 +127,15 @@ TaskTodayBucket? classifyTaskTodayBucket(
 
 TaskTodayBucketCounts computeTaskTodayBucketCounts(
   Iterable<TaskListEntry> entries,
-  DateTime today,
-) {
+  DateTime today, {
+  Iterable<TrackerTimelineItem> trackerItems = const [],
+  DateTime? now,
+}) {
   var todo = 0;
   var overdue = 0;
   var unplanned = 0;
   var completed = 0;
+  final referenceNow = now ?? DateTime.now();
 
   for (final entry in entries) {
     if (entryCompletedToday(entry, today)) {
@@ -141,6 +148,25 @@ TaskTodayBucketCounts computeTaskTodayBucketCounts(
       overdue++;
     }
     if (entryMatchesTodoBucket(entry, today)) {
+      todo++;
+    }
+  }
+
+  for (final item in trackerItems) {
+    if (checkInCompletedToday(
+      item.tracker,
+      item.checkIn,
+      today,
+      now: referenceNow,
+    )) {
+      completed++;
+    }
+    if (checkInMatchesTodoBucket(
+      item.tracker,
+      item.checkIn,
+      today,
+      now: referenceNow,
+    )) {
       todo++;
     }
   }
@@ -162,6 +188,81 @@ List<TaskListEntry> taskEntriesForTodayBucket(
   return [
     for (final entry in entries)
       if (matchesTaskTodayBucket(entry, bucket, today)) entry,
+  ];
+}
+
+bool checkInIsOnToday(TrackerCheckIn checkIn, DateTime today) {
+  return normalizeTaskListCalendarDay(checkIn.checkInAt.toLocal()) ==
+      normalizeTaskListCalendarDay(today);
+}
+
+/// Whether [checkIn] succeeded on [today] (local calendar day).
+bool checkInCompletedToday(
+  Tracker tracker,
+  TrackerCheckIn checkIn,
+  DateTime today, {
+  DateTime? now,
+}) {
+  if (!checkInIsOnToday(checkIn, today)) return false;
+  return classifyTrackerCheckIn(
+        tracker,
+        checkIn,
+        now: now ?? DateTime.now(),
+      ) ==
+      TrackerCheckInOutcome.succeeded;
+}
+
+/// Pending tracker moments scheduled for [today] (not missed/skipped/done).
+bool checkInMatchesTodoBucket(
+  Tracker tracker,
+  TrackerCheckIn checkIn,
+  DateTime today, {
+  DateTime? now,
+}) {
+  if (!checkInIsOnToday(checkIn, today)) return false;
+  return classifyTrackerCheckIn(
+        tracker,
+        checkIn,
+        now: now ?? DateTime.now(),
+      ) ==
+      TrackerCheckInOutcome.pending;
+}
+
+/// Whether a tracker check-in belongs in [bucket] (only To Do and Completed).
+bool matchesTrackerTodayBucket(
+  Tracker tracker,
+  TrackerCheckIn checkIn,
+  TaskTodayBucket bucket,
+  DateTime today, {
+  DateTime? now,
+}) {
+  return switch (bucket) {
+    TaskTodayBucket.todo =>
+      checkInMatchesTodoBucket(tracker, checkIn, today, now: now),
+    TaskTodayBucket.completed =>
+      checkInCompletedToday(tracker, checkIn, today, now: now),
+    TaskTodayBucket.overdue || TaskTodayBucket.unplanned => false,
+  };
+}
+
+/// Tracker check-ins matching [bucket] for the bucket detail page.
+List<TrackerTimelineItem> trackerItemsForTodayBucket(
+  Iterable<TrackerTimelineItem> items,
+  TaskTodayBucket bucket,
+  DateTime today, {
+  DateTime? now,
+}) {
+  final referenceNow = now ?? DateTime.now();
+  return [
+    for (final item in items)
+      if (matchesTrackerTodayBucket(
+        item.tracker,
+        item.checkIn,
+        bucket,
+        today,
+        now: referenceNow,
+      ))
+        item,
   ];
 }
 

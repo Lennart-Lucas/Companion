@@ -7,7 +7,7 @@ void main() {
     test('resolves all registered themes', () {
       expect(
         AppThemeId.themeFor(AppThemeId.hub).colorScheme.primary,
-        const Color(0xFFFF9000),
+        const Color(0xFFE68A49),
       );
       expect(
         AppThemeId.themeFor(AppThemeId.abyss).colorScheme.primary,

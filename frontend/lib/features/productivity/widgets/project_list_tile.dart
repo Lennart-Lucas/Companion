@@ -37,22 +37,14 @@ class ProjectListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<RecordBloc, RecordState, ({Project project, ProjectTaskProgress progress})>(
+    return BlocSelector<RecordBloc, RecordState, Project>(
       selector: (state) {
         final cached = state.snapshot.records[project.id]?.record;
-        final resolved = cached is Project ? cached : project;
-        return (
-          project: resolved,
-          progress: projectTaskProgressForProject(
-            state.snapshot.records.values.map((entry) => entry.record),
-            project.id,
-          ),
-        );
+        return cached is Project ? cached : project;
       },
-      builder: (context, data) {
-        return _ProjectListTileBody(
-          project: data.project,
-          progress: data.progress,
+      builder: (context, resolvedProject) {
+        return _ProjectListTileWithProgress(
+          project: resolvedProject,
           actions: actions,
           onTap: onTap,
           onLongPress: onLongPress,
@@ -60,6 +52,102 @@ class ProjectListTile extends StatelessWidget {
           onDeleted: onDeleted,
         );
       },
+    );
+  }
+}
+
+class _ProjectListTileWithProgress extends StatefulWidget {
+  const _ProjectListTileWithProgress({
+    required this.project,
+    required this.actions,
+    this.onTap,
+    this.onLongPress,
+    this.onEdit,
+    this.onDeleted,
+  });
+
+  final Project project;
+  final ProjectListTileActions actions;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDeleted;
+
+  @override
+  State<_ProjectListTileWithProgress> createState() =>
+      _ProjectListTileWithProgressState();
+}
+
+class _ProjectListTileWithProgressState extends State<_ProjectListTileWithProgress> {
+  ProjectTaskProgress _progress = const ProjectTaskProgress(total: 0, completed: 0);
+  int _resolvedTasksQueryVersion = -1;
+  Future<void>? _resolveInFlight;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scheduleResolve());
+  }
+
+  @override
+  void didUpdateWidget(covariant _ProjectListTileWithProgress oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.project.id != widget.project.id) {
+      _resolvedTasksQueryVersion = -1;
+      _scheduleResolve();
+    }
+  }
+
+  bool _shouldResolve(RecordState previous, RecordState current) {
+    final key = projectTasksListQuery.queryKey;
+    final prevVersion = previous.snapshot.queries[key]?.version ?? -1;
+    final currVersion = current.snapshot.queries[key]?.version ?? -1;
+    if (currVersion != prevVersion) return true;
+
+    for (final id in current.snapshot.queries[key]?.recordIds ?? const []) {
+      final prevEntry = previous.snapshot.records[id];
+      final currEntry = current.snapshot.records[id];
+      if (prevEntry?.version != currEntry?.version) return true;
+    }
+    return false;
+  }
+
+  void _scheduleResolve() {
+    if (!mounted) return;
+    final state = context.read<RecordBloc>().state;
+    final version =
+        state.snapshot.queries[projectTasksListQuery.queryKey]?.version ?? -1;
+    if (version == _resolvedTasksQueryVersion && _resolveInFlight == null) {
+      return;
+    }
+    _resolveInFlight ??=
+        _resolveProgress(state).whenComplete(() => _resolveInFlight = null);
+  }
+
+  Future<void> _resolveProgress(RecordState state) async {
+    final progress = await resolveProjectTaskProgress(state, widget.project.id);
+    if (!mounted) return;
+    setState(() {
+      _progress = progress;
+      _resolvedTasksQueryVersion =
+          state.snapshot.queries[projectTasksListQuery.queryKey]?.version ?? -1;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<RecordBloc, RecordState>(
+      listenWhen: _shouldResolve,
+      listener: (context, state) => _scheduleResolve(),
+      child: _ProjectListTileBody(
+        project: widget.project,
+        progress: _progress,
+        actions: widget.actions,
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        onEdit: widget.onEdit,
+        onDeleted: widget.onDeleted,
+      ),
     );
   }
 }

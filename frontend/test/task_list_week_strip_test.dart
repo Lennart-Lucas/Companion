@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/features/productivity/widgets/task_list_week_strip.dart';
+import 'package:frontend/features/productivity/widgets/task_list_week_strip_controller.dart';
 
 void main() {
-  testWidgets('TaskListWeekStrip shows chevron, month title, and weekdays', (
+  testWidgets('TaskListWeekStrip shows styled weekday labels and dates', (
     WidgetTester tester,
   ) async {
     final listToday = DateTime(2026, 6, 10);
@@ -23,47 +24,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.expand_more), findsOneWidget);
-    expect(find.byIcon(Icons.calendar_today_outlined), findsOneWidget);
-    expect(find.text('June 2026'), findsOneWidget);
-    expect(find.text('Mon'), findsOneWidget);
+    expect(find.text('MON'), findsOneWidget);
     expect(find.text('10'), findsOneWidget);
-  });
-
-  testWidgets('TaskListWeekStrip expands calendar when header is tapped', (
-    WidgetTester tester,
-  ) async {
-    final listToday = DateTime(2026, 6, 10);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppThemeId.hubTheme,
-        home: Scaffold(
-          body: TaskListWeekStrip(
-            listToday: listToday,
-            selectedDay: listToday,
-            onDaySelected: (_) {},
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.chevron_left), findsNothing);
-
-    await tester.tap(find.text('June 2026'));
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
-    expect(find.text('June 2026'), findsOneWidget);
+    expect(find.byIcon(Icons.expand_more), findsNothing);
     expect(find.byIcon(Icons.calendar_today_outlined), findsNothing);
   });
 
-  testWidgets('TaskListWeekStrip calendar chevron collapses month grid', (
+  testWidgets('TaskListWeekStrip expands calendar when month view is selected', (
     WidgetTester tester,
   ) async {
     final listToday = DateTime(2026, 6, 10);
+    final controller = TaskListWeekStripController();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -72,6 +43,7 @@ void main() {
           body: TaskListWeekStrip(
             listToday: listToday,
             selectedDay: listToday,
+            controller: controller,
             onDaySelected: (_) {},
           ),
         ),
@@ -79,21 +51,50 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('June 2026'));
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.expand_more));
+    controller.showMonthView();
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.chevron_left), findsNothing);
-    expect(find.byIcon(Icons.calendar_today_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right), findsNothing);
+    expect(find.text('June 2026'), findsOneWidget);
+  });
+
+  testWidgets('TaskListWeekStrip collapses month grid when week view is selected', (
+    WidgetTester tester,
+  ) async {
+    final listToday = DateTime(2026, 6, 10);
+    final controller = TaskListWeekStripController();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppThemeId.hubTheme,
+        home: Scaffold(
+          body: TaskListWeekStrip(
+            listToday: listToday,
+            selectedDay: listToday,
+            controller: controller,
+            onDaySelected: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    controller.showMonthView();
+    await tester.pumpAndSettle();
+    expect(find.text('June 2026'), findsOneWidget);
+
+    controller.showWeekView();
+    await tester.pumpAndSettle();
+
+    expect(find.text('June 2026'), findsNothing);
   });
 
   testWidgets('TaskListWeekStrip calendar month navigation updates title', (
     WidgetTester tester,
   ) async {
     final listToday = DateTime(2026, 6, 10);
+    final controller = TaskListWeekStripController();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -102,6 +103,7 @@ void main() {
           body: TaskListWeekStrip(
             listToday: listToday,
             selectedDay: listToday,
+            controller: controller,
             onDaySelected: (_) {},
           ),
         ),
@@ -109,14 +111,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('June 2026'));
+    controller.showMonthView();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
-    await tester.pumpAndSettle();
+    await tester.fling(
+      find.byKey(const ValueKey('task-list-month-pager')),
+      const Offset(-500, 0),
+      2500,
+    );
+    await tester.pump(const Duration(milliseconds: 350));
 
     expect(find.text('July 2026'), findsOneWidget);
-    expect(find.text('June 2026'), findsNothing);
   });
 
   testWidgets('TaskListWeekStrip invokes onDaySelected when week day is tapped', (
@@ -150,6 +155,7 @@ void main() {
   ) async {
     final listToday = DateTime(2026, 6, 10);
     DateTime? tappedDay;
+    final controller = TaskListWeekStripController();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -158,6 +164,7 @@ void main() {
           body: TaskListWeekStrip(
             listToday: listToday,
             selectedDay: null,
+            controller: controller,
             onDaySelected: (day) => tappedDay = day,
           ),
         ),
@@ -165,7 +172,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('June 2026'));
+    controller.showMonthView();
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('25'));
@@ -180,6 +187,7 @@ void main() {
   ) async {
     final listToday = DateTime(2026, 3, 10);
     DateTime? tappedDay;
+    final controller = TaskListWeekStripController();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -188,6 +196,7 @@ void main() {
           body: TaskListWeekStrip(
             listToday: listToday,
             selectedDay: null,
+            controller: controller,
             onDaySelected: (day) => tappedDay = day,
           ),
         ),
@@ -195,12 +204,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('March 2026'));
+    controller.showMonthView();
     await tester.pumpAndSettle();
 
-    // April grid includes March 31 as a leading outside-month day.
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.fling(
+      find.text('March 2026'),
+      const Offset(-500, 0),
+      2500,
+    );
     await tester.pumpAndSettle();
+    expect(find.text('April 2026'), findsOneWidget);
     await tester.tap(find.text('31'));
     await tester.pumpAndSettle();
 
@@ -212,6 +225,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final listToday = DateTime(2026, 6, 10);
+    final controller = TaskListWeekStripController();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -220,6 +234,7 @@ void main() {
           body: TaskListWeekStrip(
             listToday: listToday,
             selectedDay: null,
+            controller: controller,
             onDaySelected: (_) {},
           ),
         ),
@@ -229,7 +244,7 @@ void main() {
 
     expect(find.text('8'), findsOneWidget);
 
-    await tester.tap(find.text('June 2026'));
+    controller.showMonthView();
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('25'));
@@ -240,11 +255,15 @@ void main() {
     expect(find.text('22'), findsOneWidget);
   });
 
-  testWidgets('TaskListWeekStrip go-to-today button navigates to today', (
+  testWidgets('TaskListWeekStrip go-to-today navigates to today', (
     WidgetTester tester,
   ) async {
     final listToday = DateTime(2026, 6, 10);
     DateTime? tappedDay;
+    final controller = TaskListWeekStripController();
+    final pageController = PageController(
+      initialPage: TaskListWeekStrip.defaultInitialPage,
+    );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -253,6 +272,8 @@ void main() {
           body: TaskListWeekStrip(
             listToday: listToday,
             selectedDay: null,
+            controller: controller,
+            pageController: pageController,
             onDaySelected: (day) => tappedDay = day,
           ),
         ),
@@ -260,11 +281,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.drag(find.byType(PageView), const Offset(-400, 0));
-    await tester.pumpAndSettle();
+    pageController.jumpToPage(TaskListWeekStrip.defaultInitialPage + 2);
+    await tester.pump();
 
-    await tester.tap(find.byIcon(Icons.calendar_today_outlined));
-    await tester.pumpAndSettle();
+    await controller.goToToday();
+    await tester.pump();
 
     expect(tappedDay, listToday);
     expect(find.text('10'), findsOneWidget);
@@ -275,6 +296,7 @@ void main() {
   ) async {
     final listToday = DateTime(2026, 6, 10);
     final heights = <double>[];
+    final controller = TaskListWeekStripController();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -283,6 +305,7 @@ void main() {
           body: TaskListWeekStrip(
             listToday: listToday,
             selectedDay: listToday,
+            controller: controller,
             onOverlayHeightChanged: heights.add,
             onDaySelected: (_) {},
           ),
@@ -294,7 +317,7 @@ void main() {
     expect(heights, isNotEmpty);
     expect(heights.last, TaskListWeekStrip.collapsedHeight);
 
-    await tester.tap(find.text('June 2026'));
+    controller.showMonthView();
     await tester.pumpAndSettle();
 
     expect(

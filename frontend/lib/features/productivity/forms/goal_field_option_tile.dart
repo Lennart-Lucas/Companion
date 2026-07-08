@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 
 List<AnvilFieldOption<String>> goalTypeOptions() => const [
@@ -48,7 +49,7 @@ Widget goalDirectionOptionTile(
             : Icons.trending_down,
         size: 22,
         color: option.value == GoalDirection.increasing
-            ? const Color(0xFF4CAF50)
+            ? companionSuccessColor
             : scheme.error,
       ),
       const SizedBox(width: 10),

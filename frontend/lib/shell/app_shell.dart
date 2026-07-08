@@ -8,6 +8,7 @@ import 'package:frontend/features/productivity/pages/projects_page.dart';
 import 'package:frontend/features/productivity/pages/tasks_page.dart';
 import 'package:frontend/features/productivity/pages/trackers_page.dart';
 import 'package:frontend/features/settings/pages/settings_ui_page.dart';
+import 'package:frontend/shell/shell_app_bar_actions.dart';
 
 /// Root shell: overlay sidebar toggled from the app bar hamburger.
 class AppShell extends StatelessWidget {
@@ -18,6 +19,7 @@ class AppShell extends StatelessWidget {
     return CollapsibleDrawer(
       hideRailWhenClosed: true,
       showAppBar: true,
+      appBarActionsListenable: ShellAppBarActions.actions,
       menuItems: [
         MenuGroup(
           key: 'productivity',

@@ -319,6 +319,7 @@ class TrackerCheckInTimelineTile extends StatefulWidget {
     this.onOutcomePressed,
     this.onOutcomeLongPress,
     this.outcomeToggleEnabled = true,
+    this.hideLeadingIcon = false,
   });
 
   final Tracker tracker;
@@ -333,6 +334,9 @@ class TrackerCheckInTimelineTile extends StatefulWidget {
   final VoidCallback? onOutcomePressed;
   final VoidCallback? onOutcomeLongPress;
   final bool outcomeToggleEnabled;
+
+  /// When true, omits the tracker icon badge inside the row panel.
+  final bool hideLeadingIcon;
 
   @override
   State<TrackerCheckInTimelineTile> createState() =>
@@ -558,15 +562,17 @@ class _TrackerCheckInTimelineTileState extends State<TrackerCheckInTimelineTile>
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            TaskTimelineIconBadge(
-                              color: trackerColor,
-                              iconName: tracker.icon,
-                              defaultIconName: 'Chart Line',
-                              materialFallback: Icons.show_chart,
-                            ),
-                            const SizedBox(
-                              width: CompanionFormStyles.taskPanelIconBadgeGap,
-                            ),
+                            if (!widget.hideLeadingIcon) ...[
+                              TaskTimelineIconBadge(
+                                color: trackerColor,
+                                iconName: tracker.icon,
+                                defaultIconName: 'Chart Line',
+                                materialFallback: Icons.show_chart,
+                              ),
+                              const SizedBox(
+                                width: CompanionFormStyles.taskPanelIconBadgeGap,
+                              ),
+                            ],
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

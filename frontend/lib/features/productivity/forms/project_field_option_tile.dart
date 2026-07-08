@@ -2,6 +2,7 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/core/icons/companion_project_field_icons.dart';
+import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/features/productivity/widgets/project_display.dart';
 
 /// Colored icon + label row for project status dropdown items.
@@ -26,9 +27,9 @@ Widget projectStatusOptionTile(
 
 Color projectStatusColor(String value, ColorScheme scheme) => switch (value) {
       'planning' => scheme.primary.withValues(alpha: 0.85),
-      'active' => const Color(0xFF42A5F5),
-      'on_hold' => const Color(0xFFFFA726),
-      'completed' => const Color(0xFF4CAF50),
+      'active' => companionTrackerBlue,
+      'on_hold' => scheme.primary,
+      'completed' => companionSuccessColor,
       'cancelled' => scheme.error,
       _ => scheme.onSurface,
     };

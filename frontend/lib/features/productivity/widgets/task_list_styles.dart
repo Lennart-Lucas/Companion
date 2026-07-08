@@ -2,13 +2,14 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
 import 'package:frontend/features/productivity/forms/task_field_option_tile.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 import 'package:frontend/features/productivity/widgets/tracker_display.dart';
 
 /// Timeline accent for non-status metadata (e.g. time label).
-const Color taskTimelineAccentColor = Color(0xFF42A5F5);
+const Color taskTimelineAccentColor = companionTrackerBlue;
 
 /// Default registry icon names for parent chips (matches list tiles).
 abstract final class TaskCategoryChipDefaults {
@@ -241,7 +242,7 @@ Widget timelineCirclePlayIcon({
 }
 
 /// Blue pause control for duration tracker timers.
-const Color durationTimerPauseColor = Color(0xFF2196F3);
+const Color durationTimerPauseColor = companionTrackerBlue;
 
 Widget timelineCirclePauseIcon({
   required double size,

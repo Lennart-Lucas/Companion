@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:frontend/core/theme/companion_semantic_colors.dart';
+
 /// Theme-backed decorations for Companion productivity forms.
 class CompanionFormStyles {
   CompanionFormStyles._();
@@ -47,7 +49,7 @@ class CompanionFormStyles {
       (taskRowVerticalGap - taskTimelineLineRemainingGap) / 2;
   static const double taskListChipGap = 6;
 
-  static const Color _taskListPanelDarkGray = Color(0xFF2C2C2C);
+  static const Color _taskListPanelDarkGray = companionCardSurface;
   static const Color _taskListPanelLightGray = Color(0xFFBDBDBD);
 
   /// Translucent dark-gray fill for task rows, buckets, and tracker panels.

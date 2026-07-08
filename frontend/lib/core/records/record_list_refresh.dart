@@ -7,16 +7,21 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 Future<void> refreshRecordQuery(RecordBloc bloc, RecordQuery query) async {
   final key = query.queryKey;
   final versionBefore = bloc.state.snapshot.queries[key]?.version ?? -1;
+
+  bool isComplete(RecordState state) {
+    final cached = state.snapshot.queries[key];
+    return cached != null &&
+        cached.freshness == RecordFreshness.fresh &&
+        cached.version > versionBefore;
+  }
+
   bloc.remoteCoordinator?.refreshQueryRecords(query);
+
+  if (isComplete(bloc.state)) return;
+
   await bloc.stream
-      .firstWhere(
-        (state) {
-          final cached = state.snapshot.queries[key];
-          return cached != null &&
-              cached.freshness == RecordFreshness.fresh &&
-              cached.version > versionBefore;
-        },
-      )
+      .where(isComplete)
+      .first
       .timeout(
         const Duration(seconds: 30),
         onTimeout: () => bloc.state,

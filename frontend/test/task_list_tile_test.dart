@@ -7,6 +7,7 @@ import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/task_subtask.dart';
 import 'package:frontend/features/productivity/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/services/task_list_display.dart';
+import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 import 'package:frontend/features/productivity/widgets/task_list_tile.dart';
 
 class _FakeTaskListActions implements TaskListTileActions {
@@ -272,5 +273,25 @@ void main() {
     expect(find.text('Edit'), findsOneWidget);
     expect(find.text('Copy'), findsOneWidget);
     expect(find.text('Delete task'), findsOneWidget);
+  });
+
+  testWidgets('hideLeadingIcon omits the category icon badge', (
+    WidgetTester tester,
+  ) async {
+    final actions = _FakeTaskListActions();
+    final entry = buildEntry();
+
+    await tester.pumpWidget(
+      _wrap(
+        TaskListTile(
+          entry: entry,
+          actions: actions,
+          hideLeadingIcon: true,
+        ),
+      ),
+    );
+
+    expect(find.byType(TaskTimelineIconBadge), findsNothing);
+    expect(find.text('Ship feature'), findsOneWidget);
   });
 }

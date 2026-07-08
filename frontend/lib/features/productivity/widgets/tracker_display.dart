@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
 import 'package:frontend/features/productivity/forms/duration_hms.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/widgets/project_display.dart';
-const Color trackerHabitBuildColor = Color(0xFF4CAF50);
+const Color trackerHabitBuildColor = companionSuccessColor;
 
 String trackerCheckInTypeLabel(String value) => switch (value) {
       TrackerCheckInType.task => 'Task',
@@ -83,9 +84,9 @@ String? trackerDateRangeLabel(DateTime start, DateTime? end) {
 Color? parseTrackerColor(String? hex, Color fallback) =>
     parseProjectColor(hex, fallback);
 
-const Color trackerStrengthHighColor = Color(0xFF4CAF50);
-const Color trackerStrengthMidColor = Color(0xFFFFA726);
-const Color trackerStrengthLowColor = Color(0xFFE53935);
+const Color trackerStrengthHighColor = companionSuccessColor;
+const Color trackerStrengthMidColor = companionPrimaryOrange;
+const Color trackerStrengthLowColor = companionUrgentColor;
 
 Color trackerStrengthBarColor(double fraction) {
   final clamped = fraction.clamp(0.0, 1.0);

@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/widgets/goal_display.dart';
 
@@ -38,7 +39,7 @@ class GoalListTile extends StatelessWidget {
             : Icons.trending_down,
         size: 20,
         color: goal.direction == GoalDirection.increasing
-            ? const Color(0xFF4CAF50)
+            ? companionSuccessColor
             : scheme.error,
       ),
     );

@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/task_list_entry.dart';
+import 'package:frontend/features/productivity/models/timeline_item.dart';
+import 'package:frontend/features/productivity/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/services/task_today_buckets.dart';
 
 void main() {
@@ -110,6 +112,124 @@ void main() {
 
       expect(filtered.length, 1);
       expect(filtered.single.task.id, 'u');
+    });
+  });
+
+  group('tracker today buckets', () {
+    final tracker = Tracker(
+      id: 't1',
+      name: 'Habit',
+      checkInType: TrackerCheckInType.task,
+      startDate: DateTime(2026, 1, 1),
+    );
+
+    TrackerTimelineItem trackerItem(TrackerCheckIn checkIn) {
+      return TrackerTimelineItem(tracker: tracker, checkIn: checkIn);
+    }
+
+    test('pending and succeeded today check-ins count in To Do and Completed', () {
+      final items = [
+        trackerItem(
+          TrackerCheckIn(
+            id: 1,
+            checkInAt: DateTime(2026, 7, 6, 8),
+            checkInType: TrackerCheckInType.task,
+            logged: true,
+            skipped: false,
+            completed: true,
+          ),
+        ),
+        trackerItem(
+          TrackerCheckIn(
+            id: 2,
+            checkInAt: DateTime(2026, 7, 6, 18),
+            checkInType: TrackerCheckInType.task,
+            logged: false,
+            skipped: false,
+            completed: false,
+          ),
+        ),
+      ];
+
+      final counts = computeTaskTodayBucketCounts(
+        const [],
+        today,
+        trackerItems: items,
+        now: DateTime(2026, 7, 6, 12),
+      );
+
+      expect(counts.todo, 1);
+      expect(counts.completed, 1);
+      expect(counts.overdue, 0);
+      expect(counts.unplanned, 0);
+    });
+
+    test('check-ins on other days do not affect today buckets', () {
+      final items = [
+        trackerItem(
+          TrackerCheckIn(
+            id: 1,
+            checkInAt: DateTime(2026, 7, 5, 8),
+            checkInType: TrackerCheckInType.task,
+            logged: false,
+            skipped: false,
+            completed: false,
+          ),
+        ),
+      ];
+
+      final counts = computeTaskTodayBucketCounts(
+        const [],
+        today,
+        trackerItems: items,
+        now: DateTime(2026, 7, 6, 12),
+      );
+
+      expect(counts.todo, 0);
+      expect(counts.completed, 0);
+      expect(counts.overdue, 0);
+      expect(counts.unplanned, 0);
+    });
+
+    test('trackerItemsForTodayBucket excludes overdue and unplanned', () {
+      final pending = trackerItem(
+        TrackerCheckIn(
+          id: 1,
+          checkInAt: DateTime(2026, 7, 6, 18),
+          checkInType: TrackerCheckInType.task,
+          logged: false,
+          skipped: false,
+          completed: false,
+        ),
+      );
+
+      expect(
+        trackerItemsForTodayBucket(
+          [pending],
+          TaskTodayBucket.todo,
+          today,
+          now: DateTime(2026, 7, 6, 12),
+        ).length,
+        1,
+      );
+      expect(
+        trackerItemsForTodayBucket(
+          [pending],
+          TaskTodayBucket.overdue,
+          today,
+          now: DateTime(2026, 7, 6, 12),
+        ),
+        isEmpty,
+      );
+      expect(
+        trackerItemsForTodayBucket(
+          [pending],
+          TaskTodayBucket.unplanned,
+          today,
+          now: DateTime(2026, 7, 6, 12),
+        ),
+        isEmpty,
+      );
     });
   });
 }

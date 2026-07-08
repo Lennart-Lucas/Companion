@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
+import 'package:frontend/features/productivity/forms/companion_layout.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/tracker_check_in.dart';
@@ -29,6 +30,9 @@ import 'package:frontend/features/productivity/widgets/tracker_check_in_dialog.d
 import 'package:frontend/features/productivity/widgets/tracker_check_in_timeline_tile.dart';
 import 'package:frontend/features/productivity/widgets/task_list_tile.dart';
 import 'package:frontend/features/productivity/widgets/task_list_week_strip.dart';
+import 'package:frontend/features/productivity/widgets/task_list_week_strip_controller.dart';
+import 'package:frontend/features/productivity/widgets/task_list_calendar_header_controls.dart';
+import 'package:frontend/shell/shell_app_bar_actions.dart';
 import 'package:frontend/features/productivity/widgets/task_today_buckets_row.dart';
 
 /// Infinite-scroll productivity timeline with week strip and pluggable content.
@@ -42,6 +46,9 @@ class ProductivityTimelinePanel extends StatefulWidget {
     this.taskActions,
     this.taskTimelineProvider,
     this.checkInRepository,
+    this.scopeToDay,
+    this.showWeekStrip = true,
+    this.enablePagination = true,
   });
 
   final ProductivityTimelineFeed feed;
@@ -53,6 +60,15 @@ class ProductivityTimelinePanel extends StatefulWidget {
   final TaskListTileActions? taskActions;
   final TaskTimelineProvider? taskTimelineProvider;
   final TrackerCheckInRepository? checkInRepository;
+
+  /// When set, only items for this local calendar day are shown.
+  final DateTime? scopeToDay;
+
+  /// Whether the week strip overlay is shown above the list.
+  final bool showWeekStrip;
+
+  /// Whether scrolling near the edges loads more past/future days.
+  final bool enablePagination;
 
   @override
   State<ProductivityTimelinePanel> createState() =>
@@ -68,13 +84,14 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
 
   double _weekStripOverlayHeight = TaskListWeekStrip.collapsedHeight;
 
-  double get _listTopPadding =>
-      _weekStripOverlayHeight + _listHorizontalPadding;
+  double get _listTopPadding => widget.showWeekStrip
+      ? _weekStripOverlayHeight + _listHorizontalPadding
+      : _listHorizontalPadding;
 
   int _loadedQueryVersion = -1;
   int _expandOpGeneration = 0;
   List<TimelineSortableItem> _items = [];
-  TaskListHorizon _horizon = TaskListHorizon.aroundToday();
+  late TaskListHorizon _horizon;
   bool _expanding = false;
   bool _loadingPast = false;
   bool _loadingFuture = false;
@@ -91,6 +108,9 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
   final PageController _weekPageController = PageController(
     initialPage: TaskListWeekStrip.defaultInitialPage,
   );
+  final TaskListWeekStripController _weekStripController =
+      TaskListWeekStripController();
+  bool _appBarActionsSyncScheduled = false;
   final Map<String, GlobalKey> _dayHeaderKeys = {};
 
   late final TaskTimelineProvider _taskProvider =
@@ -133,19 +153,67 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
     return DateTime(now.year, now.month, now.day);
   }
 
+  TaskListHorizon _initialHorizon() {
+    final scoped = widget.scopeToDay;
+    if (scoped != null) {
+      final day = normalizeTaskListCalendarDay(scoped);
+      return TaskListHorizon.forLocalDays(day, day);
+    }
+    return TaskListHorizon.aroundToday();
+  }
+
   @override
   void initState() {
     super.initState();
+    _horizon = _initialHorizon();
+    _weekStripController.addListener(_syncAppBarActions);
     _fetchQueries();
     _prefetchParentRecords();
     _scheduleBootstrap();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncAppBarActions());
   }
 
   @override
   void dispose() {
+    if (widget.showWeekStrip) {
+      ShellAppBarActions.clear();
+    }
+    _weekStripController.removeListener(_syncAppBarActions);
+    _weekStripController.dispose();
     _scrollController.dispose();
     _weekPageController.dispose();
     super.dispose();
+  }
+
+  void _syncAppBarActions() {
+    if (_appBarActionsSyncScheduled) return;
+    _appBarActionsSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _appBarActionsSyncScheduled = false;
+      if (!mounted) return;
+      _applyAppBarActions();
+    });
+  }
+
+  void _applyAppBarActions() {
+    if (!widget.showWeekStrip) {
+      ShellAppBarActions.clear();
+      return;
+    }
+
+    ShellAppBarActions.set([
+      TaskListCalendarHeaderControls(
+        isMonthView: _weekStripController.isMonthView,
+        onViewModeChanged: (monthView) {
+          if (monthView) {
+            _weekStripController.showMonthView();
+          } else {
+            _weekStripController.showWeekView();
+          }
+        },
+        onToday: () => _weekStripController.goToToday(),
+      ),
+    ]);
   }
 
   GlobalKey _keyForDay(DateTime day) {
@@ -260,7 +328,8 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
     final maxExtent = position.maxScrollExtent;
     final estimate = (_listTopPadding + _scrollOffsetForRowIndex(index, rows))
         .clamp(0.0, maxExtent);
-    final stripHeight = _weekStripOverlayHeight;
+    final stripHeight =
+        widget.showWeekStrip ? _weekStripOverlayHeight : 0.0;
     final offsetBefore = position.pixels;
 
     var headerContext = _keyForDay(day).currentContext;
@@ -279,15 +348,18 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
       return;
     }
 
-    var lo = (offsetBefore < estimate ? offsetBefore : estimate) - 200;
-    var hi = (offsetBefore > estimate ? offsetBefore : estimate) + 200;
+    final scrollingUp = offsetBefore > estimate;
+    var lo = scrollingUp ? 0.0 : offsetBefore;
+    var hi = scrollingUp ? offsetBefore : maxExtent;
     lo = lo.clamp(0.0, maxExtent);
     hi = hi.clamp(0.0, maxExtent);
 
-    for (var step = 0; step < 20; step++) {
+    for (var step = 0; step < 25; step++) {
       if (opId != _scrollToDayOpId || !mounted) return;
 
-      final mid = step == 0 ? estimate.clamp(lo, hi) : (lo + hi) / 2;
+      final mid = (!scrollingUp && step == 0)
+          ? estimate.clamp(lo, hi)
+          : (lo + hi) / 2;
       _scrollController.jumpTo(mid);
       await WidgetsBinding.instance.endOfFrame;
       if (opId != _scrollToDayOpId || !mounted) return;
@@ -321,11 +393,16 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
 
   List<TimelineRow> get _rows {
     final taskEntries = _taskEntries;
-    final bucketCounts = computeTaskTodayBucketCounts(taskEntries, _listToday);
+    final bucketCounts = computeTaskTodayBucketCounts(
+      taskEntries,
+      _listToday,
+      trackerItems: _trackerItems,
+      now: DateTime.now(),
+    );
     final visibleItems = filterVisibleTimelineItems(
       _items,
       hideCompleted: widget.hideCompletedItems,
-      now: _listToday,
+      listToday: _listToday,
     );
     final sections = groupTimelineItems(visibleItems, horizon: _horizon);
     var rows = flattenTimelineRows(
@@ -347,14 +424,29 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
           if (item is TaskTimelineItem) item.entry,
       ];
 
+  List<TrackerTimelineItem> get _trackerItems => [
+        for (final item in _items)
+          if (item is TrackerTimelineItem) item,
+      ];
+
   Future<void> _openTodayBucket(TaskTodayBucket bucket) async {
+    final referenceNow = DateTime.now();
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => TaskTodayBucketPage(
           bucket: bucket,
           listToday: _listToday,
           entries: taskEntriesForTodayBucket(_taskEntries, bucket, _listToday),
+          trackerItems: trackerItemsForTodayBucket(
+            _trackerItems,
+            bucket,
+            _listToday,
+            now: referenceNow,
+          ),
           taskActions: _actions,
+          trackerActions: _trackerItems.isEmpty ? null : _trackerActions,
+          checkInRepository: _checkInRepository,
+          onTrackerListChanged: refreshList,
         ),
       ),
     );
@@ -424,9 +516,9 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
     setState(() {
       _expandError = null;
       _expanding = true;
-      _horizon = TaskListHorizon.aroundToday();
-      _initialScrollDone = false;
-      _selectedDay = _listToday;
+      _horizon = _initialHorizon();
+      _initialScrollDone = widget.scopeToDay != null;
+      _selectedDay = widget.scopeToDay ?? _listToday;
     });
     final bloc = context.read<RecordBloc>();
     final key = _primaryWatchQuery.queryKey;
@@ -641,6 +733,7 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
     ScrollNotification notification,
     RecordState state,
   ) {
+    if (!widget.enablePagination) return false;
     if (!_scrollController.hasClients || _loadMoreLocked) return false;
     if (notification is! ScrollUpdateNotification &&
         notification is! ScrollEndNotification) {
@@ -658,7 +751,7 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
   }
 
   void _scrollToTodayIfNeeded() {
-    if (_initialScrollDone) return;
+    if (widget.scopeToDay != null || _initialScrollDone) return;
     setState(() => _selectedDay ??= _listToday);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _initialScrollDone) return;
@@ -855,7 +948,8 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
     };
   }
 
-  Widget _buildRow(TimelineRow row, RecordState state) {
+  Widget _buildRow(TimelineRow row, RecordState state, {required bool compact}) {
+    final hideLeadingIcon = compact;
     return switch (row) {
       TimelineDateHeaderRow(:final day) => TaskListDateHeader(
           key: day == null ? null : ValueKey('day-${day.toIso8601String()}'),
@@ -866,6 +960,7 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
       TimelineTodayBucketsRow(:final counts) => TaskTodayBucketsRow(
           counts: counts,
           onBucketTap: _openTodayBucket,
+          compact: compact,
         ),
       TimelineTaskEntryRow(
         :final entry,
@@ -879,6 +974,7 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
           linkedGoal: _linkedGoal(entry.task, state),
           isFirst: isFirstInDay,
           isLast: false,
+          hideLeadingIcon: hideLeadingIcon,
           onEdit: () => _openEdit(entry.task),
           onChanged: _updateEntry,
           onDeleted: refreshList,
@@ -896,6 +992,7 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
           actions: _trackerActions,
           isFirst: isFirstInDay,
           isLast: false,
+          hideLeadingIcon: hideLeadingIcon,
           onTap: () => _openTrackerDetail(tracker),
           onLongPress: () => _openTrackerEdit(tracker),
           onEdit: () => _openTrackerEdit(tracker),
@@ -981,8 +1078,10 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
           }
 
           final rows = _rows;
-          final stripHeight = _weekStripOverlayHeight;
+          final stripHeight =
+              widget.showWeekStrip ? _weekStripOverlayHeight : 0.0;
           final listTopPadding = _listTopPadding;
+          final compact = CompanionLayout.isCompact(context);
 
           return Stack(
             clipBehavior: Clip.hardEdge,
@@ -996,32 +1095,38 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
                         _handleScrollNotification(notification, state),
                     child: ListView.builder(
                       controller: _scrollController,
-                      clipBehavior: Clip.hardEdge,
+                      clipBehavior:
+                          compact ? Clip.none : Clip.hardEdge,
                       padding: CompanionFormStyles.taskListPagePadding(
                         top: listTopPadding,
                         bottom: _listBottomPadding,
                       ),
                       itemCount: rows.length,
                       itemBuilder: (context, index) =>
-                          _buildRow(rows[index], state),
+                          _buildRow(rows[index], state, compact: compact),
                     ),
                   ),
                 ),
               ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: TaskListWeekStrip(
-                  listToday: _listToday,
-                  selectedDay: _selectedDay,
-                  pageController: _weekPageController,
-                  onOverlayHeightChanged: (height) {
-                    setState(() => _weekStripOverlayHeight = height);
-                  },
-                  onDaySelected: (day) => _scrollToDay(day, state),
+              if (widget.showWeekStrip)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: TaskListWeekStrip(
+                    listToday: _listToday,
+                    selectedDay: _selectedDay,
+                    controller: _weekStripController,
+                    pageController: _weekPageController,
+                    onOverlayHeightChanged: (height) {
+                      if ((height - _weekStripOverlayHeight).abs() < 0.5) {
+                        return;
+                      }
+                      setState(() => _weekStripOverlayHeight = height);
+                    },
+                    onDaySelected: (day) => _scrollToDay(day, state),
+                  ),
                 ),
-              ),
             ],
           );
         },

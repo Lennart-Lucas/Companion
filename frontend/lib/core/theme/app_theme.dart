@@ -38,17 +38,17 @@ abstract final class AppThemeId {
   ) =>
       switch (id) {
         hub => (
-            background: const Color(0xFF000000),
-            surface: const Color(0xFF121212),
-            primary: const Color(0xFFFF9000),
+            background: const Color(0xFF12100E),
+            surface: const Color(0xFF1A1816),
+            primary: const Color(0xFFE68A49),
           ),
         abyss => companionAbyssPreviewColors,
         canopy => companionCanopyPreviewColors,
         nebula => companionNebulaPreviewColors,
         _ => (
-            background: const Color(0xFF000000),
-            surface: const Color(0xFF121212),
-            primary: const Color(0xFFFF9000),
+            background: const Color(0xFF12100E),
+            surface: const Color(0xFF1A1816),
+            primary: const Color(0xFFE68A49),
           ),
       };
 }

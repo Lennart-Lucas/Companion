@@ -1,10 +1,16 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 
+import 'package:frontend/core/app/companion_anvil_app.dart';
+import 'package:frontend/core/records/companion_record_registry.dart';
+import 'package:frontend/core/records/typed_record_resolver.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/services/task_list_display.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
+
+/// Shared tasks list query used for project progress on list/detail screens.
+const projectTasksListQuery = RecordQuery(recordType: 'tasks', limit: 50);
 
 String projectStatusLabel(String value) => switch (value) {
       'planning' => 'Planning',
@@ -73,6 +79,45 @@ ProjectTaskProgress projectTaskProgressForProject(
     if (record.status == 'completed') completed++;
   }
   return ProjectTaskProgress(total: total, completed: completed);
+}
+
+/// Resolves tasks from the cached tasks query (with local-cache fallback) before
+/// counting progress for [projectId].
+Future<ProjectTaskProgress> resolveProjectTaskProgress(
+  RecordState state,
+  String projectId,
+) async {
+  final cached = state.snapshot.queries[projectTasksListQuery.queryKey];
+  if (cached == null) {
+    return const ProjectTaskProgress(total: 0, completed: 0);
+  }
+
+  final tasks = await resolveTypedRecords<Task>(
+    state: state,
+    recordType: 'tasks',
+    recordIds: cached.recordIds,
+    cache: CompanionAnvilApp.instance.localCache,
+    registry: buildCompanionRecordRegistry(),
+  );
+  return projectTaskProgressForProject(tasks, projectId);
+}
+
+/// Linked tasks for [projectId], resolved from the tasks query cache.
+Future<List<Task>> resolveLinkedTasksForProject(
+  RecordState state,
+  String projectId,
+) async {
+  final cached = state.snapshot.queries[projectTasksListQuery.queryKey];
+  if (cached == null) return const [];
+
+  final tasks = await resolveTypedRecords<Task>(
+    state: state,
+    recordType: 'tasks',
+    recordIds: cached.recordIds,
+    cache: CompanionAnvilApp.instance.localCache,
+    registry: buildCompanionRecordRegistry(),
+  );
+  return tasksForProject(tasks, projectId);
 }
 
 /// All tasks linked to [projectId] from cached [RecordBloc] records.

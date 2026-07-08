@@ -3,7 +3,7 @@ import 'dart:math' show pi;
 import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 
-/// Expandable month grid for the task list week strip.
+/// Single-month grid for the task list month pager.
 class TaskListMonthCalendar extends StatelessWidget {
   const TaskListMonthCalendar({
     super.key,
@@ -11,9 +11,8 @@ class TaskListMonthCalendar extends StatelessWidget {
     required this.listToday,
     required this.selectedDay,
     required this.onDaySelected,
-    required this.onPreviousMonth,
-    required this.onNextMonth,
-    required this.onCollapse,
+    this.onCollapse,
+    this.showCollapseControl = true,
     this.chevronTurns = 0.5,
   });
 
@@ -24,9 +23,8 @@ class TaskListMonthCalendar extends StatelessWidget {
   final DateTime listToday;
   final DateTime? selectedDay;
   final ValueChanged<DateTime> onDaySelected;
-  final VoidCallback onPreviousMonth;
-  final VoidCallback onNextMonth;
-  final VoidCallback onCollapse;
+  final VoidCallback? onCollapse;
+  final bool showCollapseControl;
   final double chevronTurns;
 
   @override
@@ -46,10 +44,8 @@ class TaskListMonthCalendar extends StatelessWidget {
           children: [
             SizedBox(
               height: 40,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Align(
+              child: showCollapseControl
+                  ? Align(
                       alignment: Alignment.centerLeft,
                       child: InkWell(
                         onTap: onCollapse,
@@ -82,20 +78,23 @@ class TaskListMonthCalendar extends StatelessWidget {
                           ),
                         ),
                       ),
+                    )
+                  : Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        child: Text(
+                          monthTitle,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    tooltip: 'Previous month',
-                    onPressed: onPreviousMonth,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    tooltip: 'Next month',
-                    onPressed: onNextMonth,
-                  ),
-                ],
-              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
