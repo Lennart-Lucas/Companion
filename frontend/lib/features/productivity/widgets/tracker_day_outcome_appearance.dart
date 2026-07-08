@@ -16,8 +16,8 @@ class TrackerDayOutcomeAppearance {
   final Widget? marker;
   final Color dayNumberColor;
 
-  static const _markerSize = 12.0;
-  static const _pendingMarkerSize = 11.0;
+  static const _markerSize = 15.0;
+  static const _pendingMarkerSize = 14.0;
 
   /// Slightly darker than [TrackerRowPanel] (`surfaceContainerHigh`), no border.
   static Color dayCellBase(ColorScheme scheme) {
