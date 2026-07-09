@@ -13,6 +13,10 @@ from app.schemas.goal_check_in import (
     GoalCheckInResponse,
     GoalCheckInUpdate,
 )
+from app.services.check_in_slot_helpers import (
+    lock_check_in_slot,
+    materialization_fields,
+)
 from app.services.schedule_service import _load_schedule, _schedule_to_bundle
 
 
@@ -83,6 +87,7 @@ async def _get_or_create_check_in(
     check_in = GoalCheckIn(
         goal_id=goal.id,
         check_in_at=check_in_at,
+        **materialization_fields(check_in_at),
     )
     session.add(check_in)
     await session.flush()
@@ -218,5 +223,6 @@ async def update_check_in(
         check_in.completed = None
         check_in.pulse_score = None
 
+    lock_check_in_slot(check_in)
     await session.flush()
     return _check_in_to_response(check_in, goal_type)

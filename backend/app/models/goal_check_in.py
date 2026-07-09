@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -23,6 +23,13 @@ class GoalCheckIn(Base):
     completed: Mapped[bool | None] = mapped_column(nullable=True)
     count_value: Mapped[Decimal | None] = mapped_column(Numeric(), nullable=True)
     pulse_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    spawned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    locked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    slot_kind: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -13,6 +13,10 @@ from app.schemas.tracker_check_in import (
     TrackerCheckInResponse,
     TrackerCheckInUpdate,
 )
+from app.services.check_in_slot_helpers import (
+    lock_check_in_slot,
+    materialization_fields,
+)
 from app.services.schedule_service import _load_schedule, _schedule_to_bundle
 
 
@@ -148,6 +152,9 @@ def _apply_check_in_log(
         check_in.skipped = False
         check_in.timer_started_at = None
 
+    if _check_in_logged(check_in) or check_in.skipped:
+        lock_check_in_slot(check_in)
+
 
 async def create_check_in(
     session: AsyncSession,
@@ -184,7 +191,11 @@ async def create_check_in(
         await session.flush()
         return _check_in_to_response(existing, check_in_type)
 
-    check_in = TrackerCheckIn(tracker_id=tracker.id, check_in_at=check_in_at)
+    check_in = TrackerCheckIn(
+        tracker_id=tracker.id,
+        check_in_at=check_in_at,
+        **materialization_fields(check_in_at),
+    )
     session.add(check_in)
     _apply_check_in_log(check_in, check_in_type, data)
     await session.flush()
@@ -237,7 +248,11 @@ async def materialize_check_ins(
         if existing is not None:
             check_ins.append(existing)
             continue
-        check_in = TrackerCheckIn(tracker_id=tracker.id, check_in_at=dt)
+        check_in = TrackerCheckIn(
+            tracker_id=tracker.id,
+            check_in_at=dt,
+            **materialization_fields(dt),
+        )
         session.add(check_in)
         check_ins.append(check_in)
 
