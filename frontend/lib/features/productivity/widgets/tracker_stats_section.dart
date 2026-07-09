@@ -3,9 +3,10 @@ import 'package:frontend/features/productivity/forms/companion_form_styles.dart'
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/services/tracker_stats.dart';
 import 'package:frontend/features/productivity/widgets/tracker_display.dart';
+import 'package:frontend/features/productivity/widgets/tracker_stat_items.dart';
 import 'package:frontend/features/productivity/widgets/tracker_month_success_calendar.dart';
+import 'package:frontend/features/productivity/widgets/tracker_stats_highlight_row.dart';
 import 'package:frontend/features/productivity/widgets/tracker_success_trend_chart.dart';
-import 'package:frontend/features/productivity/widgets/tracker_week_success_strip.dart';
 
 class TrackerStatsSection extends StatelessWidget {
   const TrackerStatsSection({
@@ -18,6 +19,8 @@ class TrackerStatsSection extends StatelessWidget {
     required this.onNextMonth,
     this.onGoToCurrentMonth,
     this.onDaySelected,
+    this.showHighlightRow = true,
+    this.showStatCards = true,
   });
 
   final Tracker tracker;
@@ -28,57 +31,41 @@ class TrackerStatsSection extends StatelessWidget {
   final VoidCallback onNextMonth;
   final VoidCallback? onGoToCurrentMonth;
   final ValueChanged<DateTime>? onDaySelected;
-
-  String _percent(double value) => '${(value * 100).round()}%';
+  final bool showHighlightRow;
+  final bool showStatCards;
 
   @override
   Widget build(BuildContext context) {
-    final cards = <_StatItem>[
-      _StatItem('Current streak', '${stats.currentStreak}'),
-      _StatItem('Best streak', '${stats.bestStreak}'),
-      _StatItem('Total check-ins', '${stats.totalCheckIns}'),
-      _StatItem('This week', _percent(stats.thisWeekPercent)),
-      _StatItem('Succeeded', '${stats.succeeded}'),
-      _StatItem('Missed', '${stats.missed}'),
-      _StatItem('Skipped', '${stats.skipped}'),
-      _StatItem('Success rate', _percent(stats.successRate)),
-    ];
-
-    if (tracker.checkInType == TrackerCheckInType.count) {
-      final unit = stats.unitLabel ?? 'units';
-      cards.addAll([
-        _StatItem('Done $unit', _formatNum(stats.doneUnits)),
-        _StatItem('Missed $unit', _formatNum(stats.missedUnits)),
-      ]);
-    } else if (tracker.checkInType == TrackerCheckInType.duration) {
-      cards.addAll([
-        _StatItem('Done minutes', _formatNum(stats.doneMinutes)),
-        _StatItem('Missed minutes', _formatNum(stats.missedMinutes)),
-      ]);
-    }
+    final cards = buildTrackerStatItems(tracker: tracker, stats: stats);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: CompanionFormStyles.taskListChipGap,
-          runSpacing: CompanionFormStyles.taskListChipGap,
-          children: [
-            for (final card in cards) TrackerStatCard(
-              label: card.label,
-              value: card.value,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        TrackerWeekSuccessStrip(
+        if (showHighlightRow) ...[
+          const SizedBox(height: 16),
+          TrackerStatsHighlightRow(stats: stats),
+          const SizedBox(height: 16),
+        ],
+        if (showStatCards) ...[
+          Wrap(
+            spacing: CompanionFormStyles.taskListChipGap,
+            runSpacing: CompanionFormStyles.taskListChipGap,
+            children: [
+              for (final card in cards)
+                TrackerStatCard(
+                  label: card.label,
+                  value: card.value,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+        TrackerSuccessTrendChart(
+          weeklyRates: stats.weeklySuccessRates,
+          weeklyHasData: stats.weeklyHasData,
           listToday: listToday,
-          dayOutcomes: stats.dayOutcomes,
-          thisWeekPercent: stats.thisWeekPercent,
+          trackerStartDate: tracker.startDate,
         ),
-        const SizedBox(height: 16),
-        TrackerSuccessTrendChart(weeklyRates: stats.weeklySuccessRates),
         const SizedBox(height: 16),
         TrackerMonthSuccessCalendar(
           displayedMonth: displayedMonth,
@@ -94,20 +81,6 @@ class TrackerStatsSection extends StatelessWidget {
       ],
     );
   }
-
-  String _formatNum(num value) {
-    if (value == value.roundToDouble()) {
-      return value.round().toString();
-    }
-    return value.toStringAsFixed(1);
-  }
-}
-
-class _StatItem {
-  const _StatItem(this.label, this.value);
-
-  final String label;
-  final String value;
 }
 
 class TrackerStatCard extends StatelessWidget {

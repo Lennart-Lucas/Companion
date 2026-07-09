@@ -421,4 +421,121 @@ void main() {
       isFalse,
     );
   });
+
+  test('habit strength grows on consecutive completed days', () {
+    final start = DateTime(2026, 6, 1);
+    final strength = computeHabitStrength(
+      trackerStart: start,
+      reference: DateTime(2026, 6, 3),
+      dayOutcomes: {
+        DateTime(2026, 6, 1): TrackerDayOutcome.succeeded,
+        DateTime(2026, 6, 2): TrackerDayOutcome.succeeded,
+        DateTime(2026, 6, 3): TrackerDayOutcome.succeeded,
+      },
+    );
+    expect(strength, closeTo(22.11, 0.1));
+  });
+
+  test('habit strength decays slowly then faster on consecutive misses', () {
+    var strength = 98.0;
+    var consecutiveMisses = 0;
+    for (var i = 0; i < 3; i++) {
+      consecutiveMisses += 1;
+      final decay = 0.005 + consecutiveMisses * 0.003;
+      strength -= strength * decay;
+    }
+    expect(strength, closeTo(94.8, 0.2));
+
+    final fromHigh = computeHabitStrength(
+      trackerStart: DateTime(2026, 1, 1),
+      reference: DateTime(2026, 1, 10),
+      dayOutcomes: {
+        for (var i = 1; i <= 9; i++)
+          DateTime(2026, 1, i): TrackerDayOutcome.succeeded,
+        DateTime(2026, 1, 10): TrackerDayOutcome.missed,
+      },
+    );
+    // 9 days of growth then 1 miss — should be high but below asymptote.
+    expect(fromHigh, greaterThan(50));
+  });
+
+  test('habit strength skips today while pending', () {
+    final start = DateTime(2026, 6, 1);
+    final withPending = computeHabitStrength(
+      trackerStart: start,
+      reference: DateTime(2026, 6, 2),
+      dayOutcomes: {
+        DateTime(2026, 6, 1): TrackerDayOutcome.succeeded,
+        DateTime(2026, 6, 2): TrackerDayOutcome.pending,
+      },
+    );
+    final withoutPending = computeHabitStrength(
+      trackerStart: start,
+      reference: DateTime(2026, 6, 1),
+      dayOutcomes: {
+        DateTime(2026, 6, 1): TrackerDayOutcome.succeeded,
+      },
+    );
+    expect(withPending, closeTo(withoutPending, 0.001));
+  });
+
+  test('consistency uses last 30 scheduled days', () {
+    final start = DateTime(2026, 1, 1);
+    final reference = DateTime(2026, 1, 30);
+    final outcomes = <DateTime, TrackerDayOutcome>{};
+    for (var i = 0; i < 30; i++) {
+      final day = start.add(Duration(days: i));
+      outcomes[day] =
+          i < 29 ? TrackerDayOutcome.succeeded : TrackerDayOutcome.missed;
+    }
+
+    final result = computeTrackerConsistency(
+      trackerStart: start,
+      trackerEnd: null,
+      reference: reference,
+      dayOutcomes: outcomes,
+    );
+
+    expect(result.scheduled, 30);
+    expect(result.completed, 29);
+    expect(result.rate, closeTo(29 / 30, 0.001));
+  });
+
+  test('consistency window caps at 30 when tracker is older', () {
+    final start = DateTime(2026, 1, 1);
+    final reference = DateTime(2026, 3, 1);
+    final outcomes = <DateTime, TrackerDayOutcome>{};
+    for (var i = 0; i < 60; i++) {
+      outcomes[start.add(Duration(days: i))] = TrackerDayOutcome.succeeded;
+    }
+    // Miss the last day in the 30-day window.
+    outcomes[DateTime(2026, 3, 1)] = TrackerDayOutcome.missed;
+
+    final result = computeTrackerConsistency(
+      trackerStart: start,
+      trackerEnd: null,
+      reference: reference,
+      dayOutcomes: outcomes,
+    );
+
+    expect(result.scheduled, 30);
+    expect(result.completed, 29);
+  });
+
+  test('consistency counts missed and skipped as not completed', () {
+    final start = DateTime(2026, 6, 1);
+    final result = computeTrackerConsistency(
+      trackerStart: start,
+      trackerEnd: null,
+      reference: DateTime(2026, 6, 3),
+      dayOutcomes: {
+        DateTime(2026, 6, 1): TrackerDayOutcome.succeeded,
+        DateTime(2026, 6, 2): TrackerDayOutcome.missed,
+        DateTime(2026, 6, 3): TrackerDayOutcome.skipped,
+      },
+    );
+    expect(result.scheduled, 3);
+    expect(result.completed, 1);
+    expect(result.rate, closeTo(1 / 3, 0.001));
+  });
 }

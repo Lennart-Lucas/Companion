@@ -8,9 +8,11 @@ import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/services/tracker_check_in_repository.dart';
 import 'package:frontend/features/productivity/services/tracker_list_actions.dart';
+import 'package:frontend/features/productivity/services/tracker_stats.dart';
 import 'package:frontend/features/productivity/widgets/tracker_display.dart';
+import 'package:frontend/features/productivity/widgets/tracker_list_progress_badge.dart';
 import 'package:frontend/features/productivity/widgets/tracker_list_tile.dart';
-import 'package:frontend/features/productivity/widgets/tracker_strength_bar_loader.dart';
+import 'package:frontend/features/productivity/widgets/tracker_list_tile_stats_loader.dart';
 import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 
 class _FakeTrackerListActions implements TrackerListTileActions {
@@ -127,6 +129,11 @@ void main() {
   testWidgets('TrackerListTile shows name and count target chips', (
     WidgetTester tester,
   ) async {
+    tester.view.physicalSize = const Size(900, 600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final tracker = Tracker(
       id: '1',
       name: 'Water intake',
@@ -155,13 +162,13 @@ void main() {
     expect(find.text('Build'), findsOneWidget);
     expect(find.textContaining('2026-06-01'), findsOneWidget);
     expect(find.textContaining('2026-12-01'), findsOneWidget);
-    expect(find.byType(TaskTimelineIconBadge), findsOneWidget);
-    expect(find.byType(TrackerStrengthBarLoader), findsOneWidget);
-    expect(find.text('Strength'), findsOneWidget);
-    expect(find.text('0%'), findsOneWidget);
+    expect(find.byType(TrackerListProgressBadge), findsOneWidget);
+    expect(find.byType(TrackerListTileStatsLoader), findsOneWidget);
+    expect(find.byType(TrackerProgressRing), findsOneWidget);
+    expect(find.text(formatTrackerStreakLabel(0, compact: false)), findsOneWidget);
   });
 
-  testWidgets('TrackerListTile shows strength bar at 0% while loading', (
+  testWidgets('TrackerListTile shows progress at 0% while loading', (
     WidgetTester tester,
   ) async {
     final tracker = Tracker(
@@ -176,14 +183,14 @@ void main() {
       _wrap(TrackerListTile(tracker: tracker, actions: fakeActions)),
     );
 
-    expect(find.text('Strength'), findsOneWidget);
-    expect(find.text('0%'), findsOneWidget);
-    expect(find.byType(TrackerStrengthBar), findsOneWidget);
+    expect(find.byType(TrackerListProgressBadge), findsOneWidget);
+    expect(find.text(formatTrackerStreakLabel(0, compact: false)), findsOneWidget);
   });
 
-  testWidgets('TrackerListTile shows computed strength from check-ins', (
+  testWidgets('TrackerListTile shows computed habit strength from check-ins', (
     WidgetTester tester,
   ) async {
+    final listToday = DateTime.utc(2026, 6, 14);
     final tracker = Tracker(
       id: '1',
       name: 'Water intake',
@@ -193,22 +200,27 @@ void main() {
       habitDirection: TrackerHabitDirection.build,
       startDate: DateTime.utc(2026, 6, 1),
     );
+    final checkIns = _successCheckIns();
+    final stats = computeTrackerStats(tracker, checkIns, now: listToday);
 
     await tester.pumpWidget(
       _wrap(
         TrackerListTile(
           tracker: tracker,
           actions: fakeActions,
-          checkInRepository: _FakeTrackerCheckInRepository(_successCheckIns()),
+          listToday: listToday,
+          checkInRepository: _FakeTrackerCheckInRepository(checkIns),
         ),
       ),
     );
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Strength'), findsOneWidget);
-    expect(find.text('100%'), findsOneWidget);
-    expect(find.byType(TrackerStrengthBar), findsOneWidget);
+    expect(find.byType(TrackerListProgressBadge), findsOneWidget);
+    expect(
+      find.text(formatTrackerStreakLabel(stats.currentStreak, compact: false)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('TrackerListTile shows task type without target chip', (
@@ -254,9 +266,14 @@ void main() {
     expect(find.text('Quit'), findsOneWidget);
   });
 
-  testWidgets('TrackerListTile shows description when set', (
+  testWidgets('TrackerListTile wide layout shows description', (
     WidgetTester tester,
   ) async {
+    tester.view.physicalSize = const Size(900, 600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final tracker = Tracker(
       id: '4',
       name: 'Sleep',
@@ -271,6 +288,75 @@ void main() {
     );
 
     expect(find.text('Track nightly rest'), findsOneWidget);
+    expect(
+      find.text(formatTrackerStreakLabel(0, compact: false)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('TrackerListTile compact layout hides description', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 700);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final tracker = Tracker(
+      id: '4',
+      name: 'Sleep',
+      description: 'Track nightly rest',
+      checkInType: TrackerCheckInType.task,
+      habitDirection: TrackerHabitDirection.build,
+      startDate: DateTime.utc(2026, 6, 1),
+    );
+
+    await tester.pumpWidget(
+      _wrap(TrackerListTile(tracker: tracker, actions: fakeActions)),
+    );
+
+    expect(find.text('Track nightly rest'), findsNothing);
+    expect(
+      find.text(formatTrackerStreakLabel(0, compact: true)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('TrackerListTile inGrid shows description when narrow', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 700);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final tracker = Tracker(
+      id: '7',
+      name: 'Sleep',
+      description: 'Track nightly rest',
+      checkInType: TrackerCheckInType.task,
+      habitDirection: TrackerHabitDirection.build,
+      startDate: DateTime.utc(2026, 6, 1),
+    );
+
+    await tester.pumpWidget(
+      _wrap(
+        SizedBox(
+          width: 368,
+          child: TrackerListTile(
+            tracker: tracker,
+            actions: fakeActions,
+            inGrid: true,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Track nightly rest'), findsOneWidget);
+    expect(
+      find.text(formatTrackerStreakLabel(0, compact: false)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('TrackerListTile onTap and onLongPress fire independently', (

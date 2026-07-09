@@ -77,6 +77,7 @@ class _TrackersPageState extends State<TrackersPage> {
         emptyStateHint: 'Tap + to add a tracker',
         refreshNonce: _refreshNonce,
         showDividers: false,
+        wrapLayout: true,
         itemBuilder: (context, record, index, itemCount) {
           if (record is! Tracker) {
             return const SizedBox.shrink();
@@ -84,6 +85,7 @@ class _TrackersPageState extends State<TrackersPage> {
           return TrackerListTile(
             tracker: record,
             actions: _actions,
+            inGrid: true,
             onTap: () => _openDetail(context, record),
             onLongPress: () => _openEdit(context, record),
             onEdit: () => _openEdit(context, record),

@@ -5,6 +5,7 @@ import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/offline/local_record_cache_service.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
+import 'package:frontend/features/productivity/forms/companion_layout.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/pages/tracker_edit_page.dart';
@@ -15,6 +16,7 @@ import 'package:frontend/features/productivity/widgets/task_display.dart';
 import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 import 'package:frontend/features/productivity/widgets/tracker_check_in_dialog.dart';
 import 'package:frontend/features/productivity/widgets/tracker_display.dart';
+import 'package:frontend/features/productivity/widgets/tracker_detail_sidebar.dart';
 import 'package:frontend/features/productivity/widgets/tracker_stats_section.dart';
 
 /// Read-only tracker overview with computed check-in statistics.
@@ -405,132 +407,103 @@ class _TrackerDetailPageState extends State<TrackerDetailPage> {
             opacity: 0.32,
             baseSize: 260,
             child: RefreshIndicator(
-            onRefresh: _onRefresh,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _TrackerDetailHeader(
-                  tracker: tracker,
-                  strength: stats.strength,
-                ),
-                if (_loadingCheckIns)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (_checkInError != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          _checkInError!,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        OutlinedButton(
-                          onPressed: _loadCheckIns,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  TrackerStatsSection(
-                    tracker: tracker,
-                    stats: stats,
-                    listToday: _listToday,
-                    displayedMonth: _displayedMonth,
-                    onPreviousMonth: _showPreviousMonth,
-                    onNextMonth: _showNextMonth,
-                    onGoToCurrentMonth: _goToCurrentMonth,
-                    onDaySelected: (day) => _onCalendarDaySelected(tracker, day),
-                  ),
-              ],
+              onRefresh: _onRefresh,
+              child: _buildBody(
+                context: context,
+                tracker: tracker,
+                stats: stats,
+                trackerColor: trackerColor,
+              ),
             ),
-          ),
           ),
         );
       },
     );
   }
-}
 
-class _TrackerDetailHeader extends StatelessWidget {
-  const _TrackerDetailHeader({
-    required this.tracker,
-    required this.strength,
-  });
-
-  final Tracker tracker;
-  final double strength;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final theme = Theme.of(context);
-    final habitColor =
-        trackerHabitDirectionColor(tracker.habitDirection, scheme);
-    final description = tracker.description?.trim();
-    final dateLabel =
-        trackerDateRangeLabel(tracker.startDate, tracker.endDate);
-    final typeTargetLabel = trackerTypeTargetChipLabel(tracker);
-
-    return TrackerRowPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (description != null && description.isNotEmpty) ...[
-            Text(
-              description,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurface.withValues(alpha: 0.75),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-          Wrap(
-            spacing: CompanionFormStyles.taskListChipGap,
-            runSpacing: CompanionFormStyles.taskListChipGap,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              TaskMetaChip(
-                label: typeTargetLabel,
-                tintColor: scheme.primary,
-                leading: Icon(
-                  trackerCheckInTypeIcon(tracker.checkInType),
-                  size: 14,
-                  color: scheme.primary,
-                ),
-              ),
-              TaskMetaChip(
-                label: trackerHabitDirectionLabel(tracker.habitDirection),
-                tintColor: habitColor,
-                leading: Icon(
-                  trackerHabitDirectionIcon(tracker.habitDirection),
-                  size: 14,
-                  color: habitColor,
-                ),
-              ),
-              if (dateLabel != null)
-                TaskMetaChip(
-                  label: dateLabel,
-                  tintColor: taskTimelineAccentColor,
-                  leading: Icon(
-                    Icons.calendar_today_outlined,
-                    size: 14,
-                    color: taskTimelineAccentColor,
-                  ),
-                ),
-            ],
+  Widget _buildBody({
+    required BuildContext context,
+    required Tracker tracker,
+    required TrackerStats stats,
+    required Color trackerColor,
+  }) {
+    if (_loadingCheckIns) {
+      return ListView(
+        children: const [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
           ),
-          const SizedBox(height: 10),
-          TrackerStrengthBar(fraction: strength),
         ],
-      ),
+      );
+    }
+
+    if (_checkInError != null) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            _checkInError!,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: _loadCheckIns,
+            child: const Text('Retry'),
+          ),
+        ],
+      );
+    }
+
+    final statsSection = TrackerStatsSection(
+      tracker: tracker,
+      stats: stats,
+      listToday: _listToday,
+      displayedMonth: _displayedMonth,
+      onPreviousMonth: _showPreviousMonth,
+      onNextMonth: _showNextMonth,
+      onGoToCurrentMonth: _goToCurrentMonth,
+      onDaySelected: (day) => _onCalendarDaySelected(tracker, day),
+      showHighlightRow: CompanionLayout.isCompact(context),
+      showStatCards: CompanionLayout.isCompact(context),
+    );
+
+    if (CompanionLayout.isCompact(context)) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          TrackerDetailHeader(
+            tracker: tracker,
+            habitStrength: stats.habitStrength,
+          ),
+          statsSection,
+        ],
+      );
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TrackerDetailSidebar(
+          tracker: tracker,
+          stats: stats,
+        ),
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: scheme.outline.withValues(alpha: 0.2),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [statsSection],
+          ),
+        ),
+      ],
     );
   }
 }

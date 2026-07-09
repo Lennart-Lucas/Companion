@@ -66,6 +66,18 @@ class ProjectTaskProgress {
   double get fraction => total == 0 ? 0 : completed / total;
 }
 
+/// Formats task completion for project list tiles.
+String formatProjectTaskProgressLabel(
+  ProjectTaskProgress progress, {
+  required bool compact,
+}) {
+  if (progress.total == 0) {
+    return compact ? 'No tasks' : 'No tasks yet';
+  }
+  if (compact) return '${progress.completed}/${progress.total}';
+  return '${progress.completed}/${progress.total} tasks done';
+}
+
 ProjectTaskProgress projectTaskProgressForProject(
   Iterable<Record?> records,
   String projectId,

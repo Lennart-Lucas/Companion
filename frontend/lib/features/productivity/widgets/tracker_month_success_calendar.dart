@@ -45,6 +45,26 @@ class TrackerMonthSuccessCalendar extends StatelessWidget {
   final DateTime? trackerStartDate;
   final DateTime? trackerEndDate;
 
+  static const _headerOverhead = 108.0;
+
+  double _cellWidthFor(double width) =>
+      (width - _gridGap * (_colCount - 1)) / _colCount;
+
+  double _cellHeightFor(double width, BoxConstraints constraints) {
+    final cellWidth = _cellWidthFor(width);
+    var cellHeight =
+        (cellWidth * _cellHeightFactor).clamp(_minCellHeight, _maxCellHeight);
+
+    if (!constraints.hasBoundedHeight) return cellHeight;
+
+    final maxGridHeight = constraints.maxHeight - _headerOverhead;
+    if (maxGridHeight <= 0) return _minCellHeight;
+
+    final maxByHeight =
+        (maxGridHeight - _gridGap * (_rowCount - 1)) / _rowCount;
+    return cellHeight.clamp(_minCellHeight, maxByHeight);
+  }
+
   bool _isDayTappable(DateTime day, DateTime monthStart) {
     if (onDaySelected == null) return false;
     if (!taskListDayInMonth(day, monthStart)) return false;
@@ -77,10 +97,8 @@ class TrackerMonthSuccessCalendar extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
-          final cellWidth =
-              (width - _gridGap * (_colCount - 1)) / _colCount;
-          final cellHeight = (cellWidth * _cellHeightFactor)
-              .clamp(_minCellHeight, _maxCellHeight);
+          final cellWidth = _cellWidthFor(width);
+          final cellHeight = _cellHeightFor(width, constraints);
           final gridHeight =
               cellHeight * _rowCount + _gridGap * (_rowCount - 1);
 
@@ -210,23 +228,25 @@ class _CalendarNavButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: scheme.surfaceContainerHighest,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(
-            color: scheme.outline.withValues(alpha: 0.25),
+        color: Colors.transparent,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: scheme.onSurface.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
           ),
-        ),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            width: 32,
-            height: 32,
-            child: Icon(
-              icon,
-              size: 18,
-              color: scheme.onSurface,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(8),
+            splashColor: scheme.onSurface.withValues(alpha: 0.08),
+            highlightColor: scheme.onSurface.withValues(alpha: 0.05),
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: Icon(
+                icon,
+                size: 18,
+                color: scheme.onSurface.withValues(alpha: 0.85),
+              ),
             ),
           ),
         ),
@@ -364,10 +384,7 @@ class _MonthSuccessDayCell extends StatelessWidget {
       children: [
         Text(
           '${day.day}',
-          style: (hasCard
-                  ? theme.textTheme.titleLarge
-                  : theme.textTheme.titleMedium)
-              ?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: appearance.dayNumberColor,
             fontWeight: isToday || hasCard ? FontWeight.w700 : FontWeight.w500,
             height: 1,

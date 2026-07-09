@@ -1,3 +1,5 @@
+import 'dart:math' show pi;
+
 import 'package:flutter/material.dart';
 import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
@@ -211,4 +213,133 @@ class _TrackerStrengthBarBody extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Circular progress ring for tracker stats and list tiles.
+class TrackerProgressRing extends StatelessWidget {
+  const TrackerProgressRing({
+    super.key,
+    required this.fraction,
+    required this.color,
+    required this.size,
+    this.center,
+    this.strokeWidth = 4.5,
+    this.trackColor,
+    /// Fraction of a full circle used for the track arc (e.g. 0.75 = 3/4 ring).
+    this.trackSweep = 1.0,
+  });
+
+  final double fraction;
+  final Color color;
+  final double size;
+  final Widget? center;
+  final double strokeWidth;
+  final Color? trackColor;
+  final double trackSweep;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final resolvedTrackColor =
+        trackColor ?? scheme.onSurface.withValues(alpha: 0.12);
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: Size(size, size),
+            painter: _TrackerProgressRingPainter(
+              fraction: fraction,
+              color: color,
+              trackColor: resolvedTrackColor,
+              strokeWidth: strokeWidth,
+              trackSweep: trackSweep,
+            ),
+          ),
+          if (center != null) center!,
+        ],
+      ),
+    );
+  }
+}
+
+class _TrackerProgressRingPainter extends CustomPainter {
+  const _TrackerProgressRingPainter({
+    required this.fraction,
+    required this.color,
+    required this.trackColor,
+    required this.strokeWidth,
+    required this.trackSweep,
+  });
+
+  final double fraction;
+  final Color color;
+  final Color trackColor;
+  final double strokeWidth;
+  final double trackSweep;
+
+  double get _sweepRadians => 2 * pi * trackSweep.clamp(0.0, 1.0);
+
+  /// Full rings start at the top; partial rings leave a gap at the bottom.
+  double get _startAngle =>
+      trackSweep >= 1.0 ? -pi / 2 : 3 * pi / 4;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - strokeWidth) / 2;
+    final arcRect = Rect.fromCircle(center: center, radius: radius);
+
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    if (trackSweep >= 1.0) {
+      canvas.drawCircle(center, radius, trackPaint);
+    } else {
+      canvas.drawArc(
+        arcRect,
+        _startAngle,
+        _sweepRadians,
+        false,
+        trackPaint,
+      );
+    }
+
+    if (fraction <= 0) return;
+
+    final progressPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      arcRect,
+      _startAngle,
+      _sweepRadians * fraction.clamp(0.0, 1.0),
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrackerProgressRingPainter oldDelegate) {
+    return oldDelegate.fraction != fraction ||
+        oldDelegate.color != color ||
+        oldDelegate.trackColor != trackColor ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.trackSweep != trackSweep;
+  }
+}
+
+/// Formats current streak for tracker list tiles.
+String formatTrackerStreakLabel(int days, {required bool compact}) {
+  if (compact) return '${days}d streak';
+  return days == 1 ? '1-day streak' : '$days-day streak';
 }

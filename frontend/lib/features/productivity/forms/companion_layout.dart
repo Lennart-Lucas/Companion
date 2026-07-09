@@ -13,6 +13,9 @@ abstract final class CompanionLayout {
     return MediaQuery.sizeOf(context).width < compactBreakpoint;
   }
 
+  /// Minimum width for a tracker list tile in the wrap grid.
+  static const trackerListTileMinWidth = 760.0;
+
   /// Left inset cancelled when buckets bleed inside a padded list.
   static const double compactBucketBleedLeft = listHorizontalPadding;
 

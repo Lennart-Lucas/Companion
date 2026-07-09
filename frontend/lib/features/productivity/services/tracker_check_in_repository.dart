@@ -318,26 +318,14 @@ Future<TrackerCheckIn> stopDurationTrackerTimer(
   );
 }
 
-/// Fetches a window wide enough for list-tile strength (last ~30 moments).
+/// Fetches tracker history for habit-strength display on list tiles.
 Future<List<TrackerCheckIn>> fetchCheckInsForStrength(
   Tracker tracker, {
   TrackerCheckInRepository? repository,
   DateTime? now,
 }) {
   final repo = repository ?? defaultTrackerCheckInRepository();
-  final reference = now ?? DateTime.now();
-  final from = reference.subtract(const Duration(days: 120));
-  final clippedFrom =
-      tracker.startDate.isAfter(from) ? tracker.startDate : from;
-  final end = tracker.endDate;
-  final to = end != null && end.isBefore(reference) ? end : reference;
-
-  return repo.fetchCheckIns(
-    tracker.id,
-    from: clippedFrom,
-    to: to,
-    maxCount: 500,
-  );
+  return repo.fetchTrackerHistory(tracker, now: now);
 }
 
 /// Returns check-ins whose local calendar day matches [day].

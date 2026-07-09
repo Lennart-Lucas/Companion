@@ -36,6 +36,11 @@ class TrackerStats {
     required this.missedMinutes,
     required this.dayOutcomes,
     required this.weeklySuccessRates,
+    required this.weeklyHasData,
+    required this.habitStrength,
+    required this.consistency,
+    required this.consistencyCompleted,
+    required this.consistencyScheduled,
     required this.unitLabel,
   });
 
@@ -54,6 +59,13 @@ class TrackerStats {
   final num missedMinutes;
   final Map<DateTime, TrackerDayOutcome> dayOutcomes;
   final List<double> weeklySuccessRates;
+  final List<bool> weeklyHasData;
+  /// Ingrained habit health (0–100), built slowly day by day.
+  final double habitStrength;
+  /// Recent completion rate over the last 30 scheduled days (0–1).
+  final double consistency;
+  final int consistencyCompleted;
+  final int consistencyScheduled;
   final String? unitLabel;
 
   static const empty = TrackerStats(
@@ -72,6 +84,11 @@ class TrackerStats {
     missedMinutes: 0,
     dayOutcomes: {},
     weeklySuccessRates: [],
+    weeklyHasData: [],
+    habitStrength: 0,
+    consistency: 0,
+    consistencyCompleted: 0,
+    consistencyScheduled: 0,
     unitLabel: null,
   );
 }
@@ -91,15 +108,16 @@ TrackerCheckInOutcome classifyTrackerCheckIn(
   TrackerCheckIn checkIn, {
   required DateTime now,
 }) {
-  if (checkIn.checkInAt.isAfter(now)) {
+  final checkInDay = normalizeTaskListCalendarDay(checkIn.checkInAt.toLocal());
+  final today = normalizeTaskListCalendarDay(now.toLocal());
+
+  if (checkInDay.isAfter(today)) {
     return TrackerCheckInOutcome.pending;
   }
   if (checkIn.skipped) {
     return TrackerCheckInOutcome.skipped;
   }
 
-  final checkInDay = normalizeTaskListCalendarDay(checkIn.checkInAt.toLocal());
-  final today = normalizeTaskListCalendarDay(now.toLocal());
   if (tracker.checkInType == TrackerCheckInType.task && checkInDay == today) {
     if (checkIn.logged && isTrackerTargetReached(tracker, checkIn)) {
       return TrackerCheckInOutcome.succeeded;
@@ -152,7 +170,22 @@ TrackerStats computeTrackerStats(
   DateTime? now,
 }) {
   if (checkIns.isEmpty) {
+    final reference = now ?? DateTime.now();
+    final consistency = computeTrackerConsistency(
+      dayOutcomes: const {},
+      trackerStart: tracker.startDate,
+      trackerEnd: tracker.endDate,
+      reference: reference,
+    );
     return TrackerStats.empty.copyWith(
+      habitStrength: computeHabitStrength(
+        dayOutcomes: const {},
+        trackerStart: tracker.startDate,
+        reference: reference,
+      ),
+      consistency: consistency.rate,
+      consistencyCompleted: consistency.completed,
+      consistencyScheduled: consistency.scheduled,
       unitLabel: tracker.checkInType == TrackerCheckInType.count
           ? tracker.unit?.trim()
           : null,
@@ -216,7 +249,18 @@ TrackerStats computeTrackerStats(
       weekDenominator == 0 ? 0.0 : weekSucceeded / weekDenominator;
 
   final dayOutcomes = _rollupDayOutcomes(evaluated);
-  final weeklySuccessRates = _weeklySuccessRates(past, reference);
+  final weeklyTrend = _weeklyTrend(past, reference);
+  final habitStrength = computeHabitStrength(
+    dayOutcomes: dayOutcomes,
+    trackerStart: tracker.startDate,
+    reference: reference,
+  );
+  final consistency = computeTrackerConsistency(
+    dayOutcomes: dayOutcomes,
+    trackerStart: tracker.startDate,
+    trackerEnd: tracker.endDate,
+    reference: reference,
+  );
 
   final countTotals = tracker.checkInType == TrackerCheckInType.count
       ? _countTotals(tracker, past)
@@ -240,7 +284,12 @@ TrackerStats computeTrackerStats(
     doneMinutes: durationTotals.done,
     missedMinutes: durationTotals.missed,
     dayOutcomes: dayOutcomes,
-    weeklySuccessRates: weeklySuccessRates,
+    weeklySuccessRates: weeklyTrend.rates,
+    weeklyHasData: weeklyTrend.hasData,
+    habitStrength: habitStrength,
+    consistency: consistency.rate,
+    consistencyCompleted: consistency.completed,
+    consistencyScheduled: consistency.scheduled,
     unitLabel: tracker.checkInType == TrackerCheckInType.count
         ? tracker.unit?.trim()
         : null,
@@ -250,6 +299,10 @@ TrackerStats computeTrackerStats(
 extension on TrackerStats {
   TrackerStats copyWith({
     String? unitLabel,
+    double? habitStrength,
+    double? consistency,
+    int? consistencyCompleted,
+    int? consistencyScheduled,
   }) {
     return TrackerStats(
       strength: strength,
@@ -267,9 +320,96 @@ extension on TrackerStats {
       missedMinutes: missedMinutes,
       dayOutcomes: dayOutcomes,
       weeklySuccessRates: weeklySuccessRates,
+      weeklyHasData: weeklyHasData,
+      habitStrength: habitStrength ?? this.habitStrength,
+      consistency: consistency ?? this.consistency,
+      consistencyCompleted: consistencyCompleted ?? this.consistencyCompleted,
+      consistencyScheduled: consistencyScheduled ?? this.consistencyScheduled,
       unitLabel: unitLabel ?? this.unitLabel,
     );
   }
+}
+
+/// Habit strength health (0–100) from daily outcomes between [trackerStart] and [reference].
+///
+/// Completed days grow strength toward 100; misses apply compounding decay that
+/// worsens with consecutive misses. Today while still pending is skipped.
+double computeHabitStrength({
+  required Map<DateTime, TrackerDayOutcome> dayOutcomes,
+  required DateTime trackerStart,
+  required DateTime reference,
+}) {
+  var strength = 0.0;
+  var consecutiveMisses = 0;
+  final start = normalizeTaskListCalendarDay(trackerStart);
+  final end = normalizeTaskListCalendarDay(reference);
+  if (end.isBefore(start)) return 0;
+
+  for (var day = start; !day.isAfter(end); day = day.add(const Duration(days: 1))) {
+    final outcome = dayOutcomes[day];
+    final isToday = day == end;
+
+    if (outcome == TrackerDayOutcome.succeeded) {
+      strength += (100 - strength) * 0.08;
+      consecutiveMisses = 0;
+    } else if (outcome == TrackerDayOutcome.pending && isToday) {
+      continue;
+    } else {
+      consecutiveMisses += 1;
+      final decay = 0.005 + consecutiveMisses * 0.003;
+      strength -= strength * decay;
+    }
+    strength = strength.clamp(0.0, 100.0);
+  }
+  return strength;
+}
+
+/// Recent consistency over the last 30 scheduled calendar days (0–1 rate).
+({double rate, int completed, int scheduled}) computeTrackerConsistency({
+  required Map<DateTime, TrackerDayOutcome> dayOutcomes,
+  required DateTime trackerStart,
+  required DateTime? trackerEnd,
+  required DateTime reference,
+  int windowSize = 30,
+}) {
+  final start = normalizeTaskListCalendarDay(trackerStart);
+  final today = normalizeTaskListCalendarDay(reference);
+  final rangeEnd = trackerEnd != null
+      ? normalizeTaskListCalendarDay(trackerEnd)
+      : today;
+  final effectiveEnd = rangeEnd.isBefore(today) ? rangeEnd : today;
+  if (effectiveEnd.isBefore(start)) {
+    return (rate: 0.0, completed: 0, scheduled: 0);
+  }
+
+  final scheduledDays = <DateTime>[];
+  for (var day = start;
+      !day.isAfter(effectiveEnd);
+      day = day.add(const Duration(days: 1))) {
+    final outcome = dayOutcomes[day];
+    if (day == today && outcome == TrackerDayOutcome.pending) continue;
+    scheduledDays.add(day);
+  }
+
+  final window = scheduledDays.length > windowSize
+      ? scheduledDays.sublist(scheduledDays.length - windowSize)
+      : scheduledDays;
+  if (window.isEmpty) {
+    return (rate: 0.0, completed: 0, scheduled: 0);
+  }
+
+  var completed = 0;
+  for (final day in window) {
+    if (dayOutcomes[day] == TrackerDayOutcome.succeeded) {
+      completed++;
+    }
+  }
+
+  return (
+    rate: completed / window.length,
+    completed: completed,
+    scheduled: window.length,
+  );
 }
 
 Map<DateTime, TrackerDayOutcome> _rollupDayOutcomes(
@@ -332,12 +472,13 @@ int _bestStreak(List<_EvaluatedCheckIn> past) {
   return best;
 }
 
-List<double> _weeklySuccessRates(
+({List<double> rates, List<bool> hasData}) _weeklyTrend(
   List<_EvaluatedCheckIn> past,
   DateTime reference,
 ) {
   final currentWeekStart = taskListWeekStart(reference);
   final rates = <double>[];
+  final hasData = <bool>[];
 
   for (var offset = 7; offset >= 0; offset--) {
     final weekStart = currentWeekStart.subtract(Duration(days: 7 * offset));
@@ -354,8 +495,9 @@ List<double> _weeklySuccessRates(
         .length;
     final denominator = succeeded + missed;
     rates.add(denominator == 0 ? 0.0 : succeeded / denominator);
+    hasData.add(denominator > 0);
   }
-  return rates;
+  return (rates: rates, hasData: hasData);
 }
 
 ({num done, num missed}) _countTotals(

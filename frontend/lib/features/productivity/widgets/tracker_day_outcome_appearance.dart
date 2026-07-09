@@ -129,13 +129,24 @@ class TrackerDayOutcomeAppearance {
     }
 
     if (isToday) {
-      final filled = outcome != null
-          ? _filledDay(
-              scheme: scheme,
-              outcome: outcome,
-              isFuture: false,
-            )
-          : null;
+      if (outcome != null && outcome != TrackerDayOutcome.pending) {
+        final filled = _filledDay(
+          scheme: scheme,
+          outcome: outcome,
+          isFuture: false,
+        );
+
+        return TrackerDayOutcomeAppearance(
+          background: filled.background,
+          border: Border.all(
+            color: scheme.primary,
+            width: 2,
+            strokeAlign: BorderSide.strokeAlignInside,
+          ),
+          marker: filled.marker,
+          dayNumberColor: filled.dayNumberColor,
+        );
+      }
 
       return TrackerDayOutcomeAppearance(
         background: Colors.transparent,
@@ -144,9 +155,7 @@ class TrackerDayOutcomeAppearance {
           width: 2,
           strokeAlign: BorderSide.strokeAlignInside,
         ),
-        marker: filled?.marker,
-        dayNumberColor: filled?.dayNumberColor ??
-            scheme.onSurface.withValues(alpha: 0.92),
+        dayNumberColor: scheme.onSurface.withValues(alpha: 0.92),
       );
     }
 

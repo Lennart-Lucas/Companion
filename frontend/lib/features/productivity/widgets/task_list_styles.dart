@@ -489,24 +489,29 @@ class TaskMetaChip extends StatelessWidget {
     this.leading,
     this.tintColor,
     this.neutral = false,
+    this.bordered = true,
   });
 
   final String label;
   final Widget? leading;
   final Color? tintColor;
   final bool neutral;
+  final bool bordered;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final accent = tintColor ?? scheme.onSurface;
+    final backgroundAlpha = bordered ? 0.12 : 0.18;
     final background = neutral
-        ? scheme.onSurface.withValues(alpha: 0.12)
-        : accent.withValues(alpha: 0.12);
-    final borderColor = neutral
-        ? scheme.onSurface.withValues(alpha: 0.2)
-        : accent.withValues(alpha: 0.35);
+        ? scheme.onSurface.withValues(alpha: backgroundAlpha)
+        : accent.withValues(alpha: backgroundAlpha);
+    final borderColor = bordered
+        ? (neutral
+            ? scheme.onSurface.withValues(alpha: 0.2)
+            : accent.withValues(alpha: 0.35))
+        : Colors.transparent;
     final foreground =
         neutral ? scheme.onSurface.withValues(alpha: 0.85) : accent;
 
@@ -515,7 +520,7 @@ class TaskMetaChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: borderColor),
+        border: bordered ? Border.all(color: borderColor) : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -524,9 +529,13 @@ class TaskMetaChip extends StatelessWidget {
             leading!,
             const SizedBox(width: 4),
           ],
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(color: foreground),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(color: foreground),
+            ),
           ),
         ],
       ),

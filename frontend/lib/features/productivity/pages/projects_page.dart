@@ -99,11 +99,13 @@ class _ProjectsPageState extends State<ProjectsPage> {
         refreshNonce: _refreshNonce,
         additionalRefreshQueries: const [projectTasksListQuery],
         showDividers: false,
+        wrapLayout: true,
         itemBuilder: (context, record, index, itemCount) {
           final project = record as Project;
           return ProjectListTile(
             project: project,
             actions: _actions,
+            inGrid: true,
             onTap: () => _openDetail(context, project),
             onLongPress: () => _openEdit(context, project),
             onEdit: () => _openEdit(context, project),

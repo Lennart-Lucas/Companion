@@ -7,8 +7,10 @@ import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/services/project_list_actions.dart';
 import 'package:frontend/features/productivity/widgets/project_display.dart';
+import 'package:frontend/features/productivity/widgets/project_list_progress_badge.dart';
 import 'package:frontend/features/productivity/widgets/project_list_tile.dart';
-import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
+import 'package:frontend/features/productivity/widgets/project_list_tile_stats_loader.dart';
+import 'package:frontend/features/productivity/widgets/tracker_display.dart';
 
 class _FakeProjectListActions implements ProjectListTileActions {
   Project? lastCopied;
@@ -34,10 +36,15 @@ void main() {
     fakeActions = _FakeProjectListActions();
   });
 
-  Project _sampleProject({String id = '1', String name = 'Backend API'}) =>
+  Project _sampleProject({
+    String id = '1',
+    String name = 'Backend API',
+    String? description,
+  }) =>
       Project(
         id: id,
         name: name,
+        description: description,
         status: 'active',
         startDate: DateTime.utc(2026, 6, 1),
         deadline: DateTime.utc(2026, 8, 1),
@@ -80,6 +87,11 @@ void main() {
   testWidgets('ProjectListTile shows name, status chip, and date range', (
     WidgetTester tester,
   ) async {
+    tester.view.physicalSize = const Size(900, 600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final project = _sampleProject();
 
     await tester.pumpWidget(
@@ -91,8 +103,10 @@ void main() {
     expect(find.textContaining('2026-06-01'), findsOneWidget);
     expect(find.textContaining('2026-08-01'), findsOneWidget);
     expect(find.text('No tasks yet'), findsOneWidget);
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    expect(find.byType(TaskTimelineIconBadge), findsOneWidget);
+    expect(find.byType(ProjectListProgressBadge), findsOneWidget);
+    expect(find.byType(TrackerProgressRing), findsOneWidget);
+    expect(find.byType(ProjectListTileStatsLoader), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
   });
 
   testWidgets('ProjectListTile shows status only when no dates', (
@@ -115,6 +129,87 @@ void main() {
 
     expect(find.text('Planning phase'), findsOneWidget);
     expect(find.text('Planning'), findsOneWidget);
+  });
+
+  testWidgets('ProjectListTile wide layout shows description', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final project = _sampleProject(description: 'Ship the REST API');
+
+    await tester.pumpWidget(
+      _wrap(ProjectListTile(project: project, actions: fakeActions)),
+    );
+
+    expect(find.text('Ship the REST API'), findsOneWidget);
+    expect(
+      find.text(formatProjectTaskProgressLabel(
+        const ProjectTaskProgress(total: 0, completed: 0),
+        compact: false,
+      )),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('ProjectListTile compact layout hides description', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 700);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final project = _sampleProject(description: 'Ship the REST API');
+
+    await tester.pumpWidget(
+      _wrap(ProjectListTile(project: project, actions: fakeActions)),
+    );
+
+    expect(find.text('Ship the REST API'), findsNothing);
+    expect(
+      find.text(formatProjectTaskProgressLabel(
+        const ProjectTaskProgress(total: 0, completed: 0),
+        compact: true,
+      )),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('ProjectListTile inGrid shows description when narrow', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 700);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final project = _sampleProject(description: 'Ship the REST API');
+
+    await tester.pumpWidget(
+      _wrap(
+        SizedBox(
+          width: 368,
+          child: ProjectListTile(
+            project: project,
+            actions: fakeActions,
+            inGrid: true,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Ship the REST API'), findsOneWidget);
+    expect(
+      find.text(formatProjectTaskProgressLabel(
+        const ProjectTaskProgress(total: 0, completed: 0),
+        compact: false,
+      )),
+      findsOneWidget,
+    );
   });
 
   test('tasksForProject filters and sorts linked tasks', () {

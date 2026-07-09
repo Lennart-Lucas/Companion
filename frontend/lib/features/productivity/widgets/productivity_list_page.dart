@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'dart:async';
 
 import 'package:anvil_foundry/anvil_foundry.dart';
@@ -8,6 +10,7 @@ import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/core/records/typed_record_resolver.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
+import 'package:frontend/features/productivity/forms/companion_layout.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 
 typedef ProductivityListItemBuilder = Widget Function(
@@ -35,6 +38,8 @@ class ProductivityListPage extends StatefulWidget {
     this.showDividers = true,
     this.refreshNonce = 0,
     this.additionalRefreshQueries = const [],
+    this.wrapLayout = false,
+    this.tileMinWidth = CompanionLayout.trackerListTileMinWidth,
   });
 
   final String title;
@@ -50,6 +55,12 @@ class ProductivityListPage extends StatefulWidget {
 
   /// Extra queries to refresh alongside pull-to-refresh (e.g. tasks for progress).
   final List<RecordQuery> additionalRefreshQueries;
+
+  /// When true, items flow in a responsive wrap grid instead of a vertical list.
+  final bool wrapLayout;
+
+  /// Minimum tile width when [wrapLayout] is true.
+  final double tileMinWidth;
 
   @override
   State<ProductivityListPage> createState() => _ProductivityListPageState();
@@ -241,7 +252,43 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
     });
   }
 
+  ({int columns, double tileWidth}) _wrapGridMetrics(double maxWidth) {
+    const padding = 16.0;
+    const gap = CompanionFormStyles.taskRowVerticalGap;
+    final available = maxWidth - padding * 2;
+    final columns = math.max(
+      1,
+      ((available + gap) / (widget.tileMinWidth + gap)).floor(),
+    );
+    final tileWidth = (available - gap * (columns - 1)) / columns;
+    return (columns: columns, tileWidth: tileWidth);
+  }
+
   Widget _loadingSkeleton() {
+    if (widget.wrapLayout) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          const padding = 16.0;
+          const gap = CompanionFormStyles.taskRowVerticalGap;
+          final metrics = _wrapGridMetrics(constraints.maxWidth);
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(padding),
+            child: Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: List.generate(
+                math.max(4, metrics.columns * 2),
+                (_) => SizedBox(
+                  width: metrics.tileWidth,
+                  child: const AnvilSkeletonLoader(height: 120),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
     if (!widget.showDividers) {
       return ListView(
         padding: const EdgeInsets.all(16),
@@ -344,7 +391,30 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
             );
           }
 
-          final listView = widget.showDividers
+          final listView = widget.wrapLayout
+              ? LayoutBuilder(
+                  builder: (context, constraints) {
+                    const padding = 16.0;
+                    const gap = CompanionFormStyles.taskRowVerticalGap;
+                    final metrics = _wrapGridMetrics(constraints.maxWidth);
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(padding),
+                      child: Wrap(
+                        spacing: gap,
+                        runSpacing: gap,
+                        children: [
+                          for (var i = 0; i < _displayRecords.length; i++)
+                            SizedBox(
+                              width: metrics.tileWidth,
+                              child: _buildListItem(context, i),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                )
+              : widget.showDividers
               ? ListView.separated(
                   clipBehavior: Clip.none,
                   padding: const EdgeInsets.all(16),
