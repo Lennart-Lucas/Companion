@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
+import 'package:frontend/core/http/companion_api_errors.dart';
 import 'package:frontend/core/records/companion_record_hydration.dart';
 import 'package:frontend/features/productivity/models/goal_milestone.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
@@ -105,7 +106,13 @@ class GoalRecordSubmitHandler extends FormSubmitHandler {
       recordBloc.remoteCoordinator?.refreshQueryRecords(_goalsQuery);
       return result;
     } catch (error) {
-      return FormSubmitResult.failure(error: error.toString());
+      final message = _formatSubmitError(error);
+      if (recordId != null) {
+        return FormSubmitResult.failure(
+          error: 'Goal updated, but milestones could not be saved: $message',
+        );
+      }
+      return FormSubmitResult.failure(error: message);
     }
   }
 
@@ -139,9 +146,20 @@ class GoalRecordSubmitHandler extends FormSubmitHandler {
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'Failed to save milestones: HTTP ${response.statusCode}',
+        formatCompanionApiError(
+          statusCode: response.statusCode,
+          body: response.body,
+          action: 'Save milestones',
+        ),
       );
     }
+  }
+
+  String _formatSubmitError(Object error) {
+    if (error is Exception) {
+      return error.toString().replaceFirst('Exception: ', '');
+    }
+    return error.toString();
   }
 
   @override

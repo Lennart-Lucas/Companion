@@ -61,8 +61,10 @@ class Goal extends ProductivityRecord {
   final num target;
   final String unit;
   final String direction;
-  final List<GoalMilestone> milestones;
+  final List<GoalMilestone>? _milestones;
   final Map<String, dynamic>? scheduleCreate;
+
+  List<GoalMilestone> get milestones => _milestones ?? const [];
 
   int get milestoneCount => milestones.length;
 
@@ -79,9 +81,9 @@ class Goal extends ProductivityRecord {
     required this.target,
     required this.unit,
     this.direction = GoalDirection.increasing,
-    this.milestones = const [],
+    List<GoalMilestone>? milestones,
     this.scheduleCreate,
-  });
+  }) : _milestones = milestones;
 
   static DateTime? _dateTimeFromJson(dynamic value) {
     if (value == null) return null;
@@ -755,7 +757,16 @@ class Project extends ProductivityRecord {
     }
     if (value is String) {
       final trimmed = value.trim();
-      return trimmed.isEmpty ? null : trimmed;
+      if (trimmed.isEmpty) return null;
+      if (_colorHexPattern.hasMatch(trimmed)) {
+        return trimmed.toUpperCase();
+      }
+      final withoutHash =
+          trimmed.startsWith('#') ? trimmed.substring(1) : trimmed;
+      if (RegExp(r'^[0-9A-Fa-f]{6}$').hasMatch(withoutHash)) {
+        return '#${withoutHash.toUpperCase()}';
+      }
+      return trimmed;
     }
     return null;
   }

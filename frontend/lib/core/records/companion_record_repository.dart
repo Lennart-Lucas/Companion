@@ -1,4 +1,5 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
+import 'package:frontend/core/http/companion_api_errors.dart';
 
 /// REST adapter for Companion FastAPI list endpoints (`GET /{type}?limit&offset`).
 class CompanionRecordRepository implements RecordRepositoryService {
@@ -16,7 +17,13 @@ class CompanionRecordRepository implements RecordRepositoryService {
 
   void _ensureSuccess(ApiResponse response, String action) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('$action failed: HTTP ${response.statusCode}');
+      throw Exception(
+        formatCompanionApiError(
+          statusCode: response.statusCode,
+          body: response.body,
+          action: action,
+        ),
+      );
     }
   }
 

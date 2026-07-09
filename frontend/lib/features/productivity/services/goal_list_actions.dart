@@ -1,4 +1,5 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
+import 'package:frontend/core/http/companion_api_errors.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/offline/mutation_outbox_service.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
@@ -71,7 +72,13 @@ class GoalListActions implements GoalListTileActions {
 
   void _ensureSuccess(ApiResponse response, String action) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('$action failed: HTTP ${response.statusCode}');
+      throw Exception(
+        formatCompanionApiError(
+          statusCode: response.statusCode,
+          body: response.body,
+          action: action,
+        ),
+      );
     }
   }
 }

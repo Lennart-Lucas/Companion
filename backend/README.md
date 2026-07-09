@@ -85,6 +85,74 @@ make dev-migrate && make prod-migrate
 
 Each stack has its own database volume and network — they do not share data.
 
+## Server deployment (production)
+
+Deploy on a Linux host with Docker using `docker-compose.prod.yml` (compose project `companion-prod`). The API listens on host port **8001**; Postgres on **5433**.
+
+### First-time setup
+
+```bash
+cd ~/Companion/backend
+cp .env.prod.example .env.prod   # once: set JWT_SECRET, CORS_ORIGINS, etc.
+docker compose -p companion-prod -f docker-compose.prod.yml up --build -d
+docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
+```
+
+The **worker** service should set `PYTHONPATH=/app` so startup migrations can import the `app` package (see `docker-compose.prod.yml`).
+
+### Update after `git pull`
+
+From the repository root:
+
+```bash
+cd ~/Companion
+git pull origin main
+cd backend
+docker compose -p companion-prod -f docker-compose.prod.yml up --build -d
+docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
+```
+
+**One-liner** (from `~`):
+
+```bash
+cd ~/Companion && git pull origin main && cd backend && docker compose -p companion-prod -f docker-compose.prod.yml up --build -d && docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
+```
+
+If you are already in `~/Companion/backend`:
+
+```bash
+git pull origin main && docker compose -p companion-prod -f docker-compose.prod.yml up --build -d && docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
+```
+
+### Verify
+
+```bash
+curl -s http://localhost:8001/health
+curl -s http://localhost:8001/health/db
+docker compose -p companion-prod -f docker-compose.prod.yml ps
+docker compose -p companion-prod -f docker-compose.prod.yml logs --tail=30 api
+docker compose -p companion-prod -f docker-compose.prod.yml logs --tail=30 worker
+```
+
+### Server troubleshooting
+
+**Worker: `ModuleNotFoundError: No module named 'app'`** — Add to the worker service in `docker-compose.prod.yml`:
+
+```yaml
+environment:
+  PYTHONPATH: /app
+```
+
+Then rebuild the worker: `docker compose -p companion-prod -f docker-compose.prod.yml up -d --build worker`.
+
+**API: `Child process died` on a small VPS** — Use one Uvicorn worker in `docker-compose.prod.yml`:
+
+```yaml
+command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+```
+
+**Do not wipe production data** — Avoid `docker compose ... down -v` unless you intend to delete the database volume.
+
 ## Database migrations (automatic)
 
 ### Dev startup
