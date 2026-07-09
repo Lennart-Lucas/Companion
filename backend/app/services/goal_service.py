@@ -91,8 +91,7 @@ async def create_goal(
     if data.milestones:
         await goal_milestone_service.add_milestones(session, goal, data.milestones)
 
-    await session.refresh(goal, attribute_names=["schedule", "milestones"])
-    return goal
+    return await _load_goal(session, goal.id, user.id)
 
 
 async def list_goals(
@@ -125,7 +124,6 @@ async def update_goal(
     await apply_entity_schedule_update(session, user, goal, data)
     if goal.schedule_id:
         await assert_schedule_recurring(session, user, goal.schedule_id)
-        await session.refresh(goal, attribute_names=["schedule"])
     else:
         goal.schedule = None
 
@@ -142,8 +140,7 @@ async def update_goal(
     _validate_date_range(goal.start_date, goal.end_date)
 
     await session.flush()
-    await session.refresh(goal, attribute_names=["schedule", "milestones"])
-    return goal
+    return await _load_goal(session, goal_id, user.id)
 
 
 async def delete_goal(session: AsyncSession, user: User, goal_id: int) -> None:

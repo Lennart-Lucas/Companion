@@ -102,11 +102,14 @@ The **worker** service should set `PYTHONPATH=/app` so startup migrations can im
 
 ### Update after `git pull`
 
+Production servers should track **`origin/main` exactly** (no local commits). Use fetch + reset instead of `git pull` so divergent history on the host does not block deploys:
+
 From the repository root:
 
 ```bash
 cd ~/Companion
-git pull origin main
+git fetch origin
+git reset --hard origin/main
 cd backend
 docker compose -p companion-prod -f docker-compose.prod.yml up --build -d
 docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
@@ -115,14 +118,16 @@ docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upg
 **One-liner** (from `~`):
 
 ```bash
-cd ~/Companion && git pull origin main && cd backend && docker compose -p companion-prod -f docker-compose.prod.yml up --build -d && docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
+cd ~/Companion && git fetch origin && git reset --hard origin/main && cd backend && docker compose -p companion-prod -f docker-compose.prod.yml up --build -d && docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
 ```
 
 If you are already in `~/Companion/backend`:
 
 ```bash
-git pull origin main && docker compose -p companion-prod -f docker-compose.prod.yml up --build -d && docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
+cd ~/Companion && git fetch origin && git reset --hard origin/main && cd backend && docker compose -p companion-prod -f docker-compose.prod.yml up --build -d && docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
 ```
+
+To see what would be discarded before resetting: `git log --oneline origin/main..HEAD` (commits only on the server).
 
 ### Verify
 
@@ -152,6 +157,41 @@ command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
 **Do not wipe production data** — Avoid `docker compose ... down -v` unless you intend to delete the database volume.
+
+**Alembic: `Can't locate revision identified by '018_quota_check_in'`** — The database was migrated from the old `productivity` branch, but `main` only has migrations through `017_tracker_timer_started`. Point Alembic at `main`'s head, then verify:
+
+```bash
+cd ~/Companion/backend
+docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic stamp 017_tracker_timer_started
+docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
+```
+
+If `stamp` fails, set the version directly in Postgres:
+
+```bash
+docker compose -p companion-prod -f docker-compose.prod.yml exec db \
+  psql -U companion -d companion \
+  -c "UPDATE alembic_version SET version_num = '017_tracker_timer_started';"
+```
+
+Then run `alembic upgrade head` again. Extra columns from the old `018` migration (if applied) are harmless on `main`; the app does not use them.
+
+**Goal save returns 500 / Internal server error** — Check the API error body (after redeploy it includes the real message) and logs:
+
+```bash
+docker compose -p companion-prod -f docker-compose.prod.yml logs --tail=80 api
+```
+
+Verify goal schema exists:
+
+```bash
+docker compose -p companion-prod -f docker-compose.prod.yml exec db \
+  psql -U companion -d companion -c "\d goal_milestones"
+docker compose -p companion-prod -f docker-compose.prod.yml exec db \
+  psql -U companion -d companion -c "\d goals"
+```
+
+If `goal_milestones` is missing, pull latest `main` and run `alembic upgrade head` (migration `018_goal_schema_repair` creates it when absent).
 
 ## Database migrations (automatic)
 
