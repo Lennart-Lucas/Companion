@@ -1,3 +1,4 @@
+import 'package:frontend/features/productivity/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/tracker_check_in.dart';
@@ -57,6 +58,20 @@ class TimelineTrackerCheckInRow extends TimelineRow {
 
   final Tracker tracker;
   final TrackerCheckIn checkIn;
+  final bool isFirstInDay;
+  final bool isLastInDay;
+}
+
+class TimelineGoalCheckInRow extends TimelineRow {
+  TimelineGoalCheckInRow({
+    required this.goal,
+    required this.checkIn,
+    required this.isFirstInDay,
+    required this.isLastInDay,
+  });
+
+  final Goal goal;
+  final GoalCheckIn checkIn;
   final bool isFirstInDay;
   final bool isLastInDay;
 }

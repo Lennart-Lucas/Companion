@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from app.models.goal import GoalDirection, GoalType
 from app.scheduling.rrule_codec import is_recurring
 from app.schemas.goal_milestone import MilestoneCreate, MilestoneResponse
+from app.services.goal_milestone_validation import validate_milestones
 from app.schemas.productivity_common import (
     ProductivityListResponse,
     validate_color_optional,
@@ -60,6 +61,8 @@ class GoalCreate(BaseModel):
             raise ValueError("goal schedule must be recurring")
         if self.end_date is not None and self.end_date <= self.start_date:
             raise ValueError("end_date must be after start_date")
+        if self.milestones:
+            validate_milestones(self.target, self.direction, self.milestones)
         return self
 
 

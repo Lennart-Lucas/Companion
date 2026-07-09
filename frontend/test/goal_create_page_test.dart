@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/pages/goal_create_page.dart';
+import 'package:frontend/features/productivity/forms/goal_form_config.dart';
 
 void main() {
   testWidgets('GoalCreatePage shows create goal form', (
@@ -26,7 +26,16 @@ void main() {
         ],
         child: MaterialApp(
           theme: theHubTheme,
-          home: const GoalCreatePage(),
+          home: Scaffold(
+            appBar: AppBar(title: const Text('New goal')),
+            body: AnvilForm(
+              config: buildGoalFormConfig(
+                app.recordBloc,
+                apiClient: app.apiClient,
+              ),
+              submitLabel: 'Create goal',
+            ),
+          ),
         ),
       ),
     );
@@ -36,6 +45,7 @@ void main() {
     expect(find.text('Create goal'), findsOneWidget);
     expect(find.text('Details'), findsOneWidget);
     expect(find.text('Target'), findsOneWidget);
+    expect(find.text('Milestones'), findsOneWidget);
     expect(find.text('Schedule'), findsOneWidget);
 
     app.dispose();

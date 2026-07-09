@@ -19,6 +19,7 @@ bool timelineItemIsCompleted(
     TrackerTimelineItem(:final tracker, :final checkIn) =>
       classifyTrackerCheckIn(tracker, checkIn, now: reference) ==
           TrackerCheckInOutcome.succeeded,
+    GoalTimelineItem(:final checkIn) => checkIn.logged,
     EventTimelineItem() => false,
   };
 }

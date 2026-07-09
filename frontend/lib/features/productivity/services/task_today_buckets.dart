@@ -1,3 +1,4 @@
+import 'package:frontend/features/productivity/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/timeline_item.dart';
@@ -129,6 +130,7 @@ TaskTodayBucketCounts computeTaskTodayBucketCounts(
   Iterable<TaskListEntry> entries,
   DateTime today, {
   Iterable<TrackerTimelineItem> trackerItems = const [],
+  Iterable<GoalTimelineItem> goalItems = const [],
   DateTime? now,
 }) {
   var todo = 0;
@@ -167,6 +169,15 @@ TaskTodayBucketCounts computeTaskTodayBucketCounts(
       today,
       now: referenceNow,
     )) {
+      todo++;
+    }
+  }
+
+  for (final item in goalItems) {
+    if (goalCheckInCompletedToday(item.checkIn, today)) {
+      completed++;
+    }
+    if (goalCheckInMatchesTodoBucket(item.checkIn, today)) {
       todo++;
     }
   }
@@ -263,6 +274,42 @@ List<TrackerTimelineItem> trackerItemsForTodayBucket(
         now: referenceNow,
       ))
         item,
+  ];
+}
+
+bool goalCheckInIsOnToday(GoalCheckIn checkIn, DateTime today) {
+  return normalizeTaskListCalendarDay(checkIn.checkInAt.toLocal()) ==
+      normalizeTaskListCalendarDay(today);
+}
+
+bool goalCheckInCompletedToday(GoalCheckIn checkIn, DateTime today) {
+  return goalCheckInIsOnToday(checkIn, today) && checkIn.logged;
+}
+
+bool goalCheckInMatchesTodoBucket(GoalCheckIn checkIn, DateTime today) {
+  return goalCheckInIsOnToday(checkIn, today) && !checkIn.logged;
+}
+
+bool matchesGoalTodayBucket(
+  GoalCheckIn checkIn,
+  TaskTodayBucket bucket,
+  DateTime today,
+) {
+  return switch (bucket) {
+    TaskTodayBucket.todo => goalCheckInMatchesTodoBucket(checkIn, today),
+    TaskTodayBucket.completed => goalCheckInCompletedToday(checkIn, today),
+    TaskTodayBucket.overdue || TaskTodayBucket.unplanned => false,
+  };
+}
+
+List<GoalTimelineItem> goalItemsForTodayBucket(
+  Iterable<GoalTimelineItem> items,
+  TaskTodayBucket bucket,
+  DateTime today,
+) {
+  return [
+    for (final item in items)
+      if (matchesGoalTodayBucket(item.checkIn, bucket, today)) item,
   ];
 }
 

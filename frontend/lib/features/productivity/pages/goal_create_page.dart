@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/forms/goal_form_config.dart';
 
@@ -32,7 +33,10 @@ class GoalCreatePage extends StatelessWidget {
         opacity: 0.32,
         baseSize: 260,
         child: AnvilForm(
-          config: buildGoalFormConfig(recordBloc),
+          config: buildGoalFormConfig(
+            recordBloc,
+            apiClient: CompanionAnvilApp.instance.apiClient,
+          ),
           submitLabel: 'Create goal',
           onCancel: () => Navigator.of(context).pop(),
           onSubmitSuccess: (_) async {

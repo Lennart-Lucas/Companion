@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/features/productivity/forms/task_planned_deadline_fields.dart';
+import 'package:frontend/features/productivity/models/goal_milestone.dart';
 import 'package:frontend/features/productivity/models/task_schedule.dart';
 import 'package:frontend/features/productivity/models/task_subtask.dart';
 
@@ -60,8 +61,10 @@ class Goal extends ProductivityRecord {
   final num target;
   final String unit;
   final String direction;
-  final int milestoneCount;
+  final List<GoalMilestone> milestones;
   final Map<String, dynamic>? scheduleCreate;
+
+  int get milestoneCount => milestones.length;
 
   Goal({
     required this.id,
@@ -76,7 +79,7 @@ class Goal extends ProductivityRecord {
     required this.target,
     required this.unit,
     this.direction = GoalDirection.increasing,
-    this.milestoneCount = 0,
+    this.milestones = const [],
     this.scheduleCreate,
   });
 
@@ -118,10 +121,8 @@ class Goal extends ProductivityRecord {
     return 0;
   }
 
-  static int _milestoneCountFromJson(dynamic value) {
-    if (value is List) return value.length;
-    return 0;
-  }
+  static List<GoalMilestone> _milestonesFromJson(dynamic value) =>
+      GoalMilestoneFormValues.templatesFromJson(value);
 
   factory Goal.fromJson(Map<String, dynamic> json) {
     final data = ProductivityRecord.unwrapJson(json);
@@ -139,7 +140,7 @@ class Goal extends ProductivityRecord {
       target: _targetFromJson(data['target']),
       unit: data['unit'] as String? ?? '',
       direction: data['direction'] as String? ?? GoalDirection.increasing,
-      milestoneCount: _milestoneCountFromJson(data['milestones']),
+      milestones: _milestonesFromJson(data['milestones']),
     );
   }
 
@@ -166,6 +167,10 @@ class Goal extends ProductivityRecord {
       TaskScheduleFormKeys.repeatEnabled: true,
     });
 
+    final milestonesPayload = GoalMilestoneFormValues.toApiPayload(
+      values[GoalMilestoneFormKeys.milestones],
+    );
+
     return Goal(
       id: resolvedId,
       name: name,
@@ -179,6 +184,14 @@ class Goal extends ProductivityRecord {
       target: _targetFromFormValue(values['target']),
       unit: (values['unit'] as String? ?? '').trim(),
       direction: values['direction'] as String? ?? GoalDirection.increasing,
+      milestones: [
+        for (final row in milestonesPayload)
+          GoalMilestone(
+            value: row['value'] as num,
+            name: row['name'] as String?,
+            sortOrder: row['sort_order'] as int,
+          ),
+      ],
       scheduleCreate: schedule.toScheduleCreateJson(preferAnchorField: true),
     );
   }
@@ -193,6 +206,8 @@ class Goal extends ProductivityRecord {
         'target': target,
         'unit': unit,
         'direction': direction,
+        GoalMilestoneFormKeys.milestones:
+            GoalMilestoneFormValues.templatesToFormEntries(milestones),
         TaskScheduleFormKeys.anchor:
             DateTime(startDate.year, startDate.month, startDate.day),
         if (scheduleId != null) 'existing_schedule_id': scheduleId,
@@ -230,6 +245,12 @@ class Goal extends ProductivityRecord {
     }
     if (scheduleCreate != null) {
       map['schedule'] = scheduleCreate;
+    }
+    if (_isTempId && milestones.isNotEmpty) {
+      map['milestones'] = [
+        for (var i = 0; i < milestones.length; i++)
+          milestones[i].toApiJson(i),
+      ];
     }
     return map;
   }

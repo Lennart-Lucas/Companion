@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/features/productivity/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/timeline_item.dart';
@@ -145,6 +146,45 @@ void main() {
       final filtered = filterVisibleTimelineItems(items, listToday: now);
 
       expect(filtered.length, 2);
+    });
+
+    test('hides logged goal check-ins for today', () {
+      final goal = Goal(
+        id: 'g1',
+        name: 'Books',
+        goalType: GoalType.count,
+        target: 12,
+        unit: 'books',
+        direction: GoalDirection.increasing,
+        startDate: DateTime(2026, 1, 1),
+      );
+      final logged = GoalCheckIn(
+        id: 1,
+        checkInAt: DateTime(2026, 6, 10, 8),
+        goalType: GoalType.count,
+        logged: true,
+        countValue: 2,
+      );
+      final pending = GoalCheckIn(
+        id: 2,
+        checkInAt: DateTime(2026, 6, 10, 18),
+        goalType: GoalType.count,
+        logged: false,
+      );
+
+      final items = <TimelineSortableItem>[
+        GoalTimelineItem(goal: goal, checkIn: logged),
+        GoalTimelineItem(goal: goal, checkIn: pending),
+      ];
+
+      final filtered = filterVisibleTimelineItems(
+        items,
+        listToday: DateTime(2026, 6, 10),
+      );
+
+      expect(filtered.length, 1);
+      expect(filtered.single, isA<GoalTimelineItem>());
+      expect((filtered.single as GoalTimelineItem).checkIn.id, 2);
     });
   });
 }

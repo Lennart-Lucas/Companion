@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/pages/goal_create_page.dart';
+import 'package:frontend/features/productivity/pages/goal_detail_page.dart';
 import 'package:frontend/features/productivity/pages/goal_edit_page.dart';
+import 'package:frontend/features/productivity/services/goal_list_actions.dart';
 import 'package:frontend/features/productivity/widgets/goal_list_tile.dart';
 import 'package:frontend/features/productivity/widgets/productivity_list_page.dart';
 
@@ -15,6 +18,10 @@ class GoalsPage extends StatefulWidget {
 class _GoalsPageState extends State<GoalsPage> {
   int _refreshNonce = 0;
 
+  late final GoalListActions _actions = GoalListActions(
+    CompanionAnvilApp.instance.apiClient,
+  );
+
   void _refreshList() {
     if (!mounted) return;
     setState(() => _refreshNonce++);
@@ -27,6 +34,19 @@ class _GoalsPageState extends State<GoalsPage> {
       ),
     );
     _refreshList();
+  }
+
+  void _openDetail(BuildContext context, Goal goal) {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => GoalDetailPage(
+              goalId: goal.id,
+              goal: goal,
+            ),
+          ),
+        )
+        .then((_) => _refreshList());
   }
 
   void _openEdit(BuildContext context, Goal goal) {
@@ -56,13 +76,20 @@ class _GoalsPageState extends State<GoalsPage> {
         recordType: 'goals',
         emptyStateHint: 'Tap + to add a goal',
         refreshNonce: _refreshNonce,
+        showDividers: false,
+        wrapLayout: true,
         itemBuilder: (context, record, index, itemCount) {
           if (record is! Goal) {
             return const SizedBox.shrink();
           }
           return GoalListTile(
             goal: record,
-            onTap: () => _openEdit(context, record),
+            actions: _actions,
+            inGrid: true,
+            onTap: () => _openDetail(context, record),
+            onLongPress: () => _openEdit(context, record),
+            onEdit: () => _openEdit(context, record),
+            onDeleted: _refreshList,
           );
         },
       ),

@@ -4,8 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
+import 'package:frontend/features/productivity/forms/goal_form_config.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/pages/goal_edit_page.dart';
 
 void main() {
   testWidgets('GoalEditPage shows edit goal form', (
@@ -27,14 +27,22 @@ void main() {
         ],
         child: MaterialApp(
           theme: theHubTheme,
-          home: GoalEditPage(
-            goalId: '7',
-            goal: Goal(
-              id: '7',
-              name: 'Read 12 books',
-              startDate: DateTime.utc(2026, 1, 1),
-              target: 12,
-              unit: 'books',
+          home: Scaffold(
+            appBar: AppBar(title: const Text('Edit goal')),
+            body: AnvilForm(
+              config: buildGoalFormConfig(
+                app.recordBloc,
+                apiClient: app.apiClient,
+                recordId: '7',
+                preloadedGoal: Goal(
+                  id: '7',
+                  name: 'Read 12 books',
+                  startDate: DateTime.utc(2026, 1, 1),
+                  target: 12,
+                  unit: 'books',
+                ),
+              ),
+              submitLabel: 'Save goal',
             ),
           ),
         ),

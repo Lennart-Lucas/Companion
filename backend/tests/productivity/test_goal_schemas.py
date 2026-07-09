@@ -106,6 +106,32 @@ class TestGoalCreateValidation:
         )
         assert len(goal.milestones) == 1
 
+    def test_rejects_milestone_at_target(self):
+        with pytest.raises(ValidationError):
+            GoalCreate(
+                name="Books",
+                schedule=_WEEKLY,
+                start_date=datetime(2026, 1, 1, tzinfo=ZoneInfo("UTC")),
+                goal_type=GoalType.count,
+                target=Decimal("12"),
+                unit="books",
+                direction=GoalDirection.increasing,
+                milestones=[MilestoneCreate(value=Decimal("12"), sort_order=0)],
+            )
+
+    def test_rejects_decreasing_milestone_below_target(self):
+        with pytest.raises(ValidationError):
+            GoalCreate(
+                name="Screen time",
+                schedule=_WEEKLY,
+                start_date=datetime(2026, 1, 1, tzinfo=ZoneInfo("UTC")),
+                goal_type=GoalType.count,
+                target=Decimal("2"),
+                unit="hours",
+                direction=GoalDirection.decreasing,
+                milestones=[MilestoneCreate(value=Decimal("1"), sort_order=0)],
+            )
+
 
 class TestGoalCheckInUpdate:
     def test_requires_exactly_one_field(self):

@@ -2,6 +2,7 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
 import 'package:frontend/features/productivity/forms/goal_field_option_tile.dart';
+import 'package:frontend/features/productivity/forms/goal_milestones_field.dart';
 import 'package:frontend/features/productivity/forms/goal_schedule_fields.dart';
 import 'package:frontend/features/productivity/forms/task_schedule_fields.dart';
 import 'package:frontend/features/productivity/widgets/transparent_form_panel.dart';
@@ -148,6 +149,7 @@ class GoalFormFields extends StatelessWidget {
                 ),
               ],
             ),
+            const GoalMilestonesField(),
             GoalScheduleFields(fieldDecoration: fieldDecoration),
           ],
         ),

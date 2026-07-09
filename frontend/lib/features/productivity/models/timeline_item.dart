@@ -1,3 +1,4 @@
+import 'package:frontend/features/productivity/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/tracker_check_in.dart';
@@ -78,4 +79,25 @@ class TrackerTimelineItem extends TimelineSortableItem {
 
   @override
   String get listKey => 'tracker:${tracker.id}:${checkIn.id}';
+}
+
+/// Goal check-in moment in the overview timeline.
+class GoalTimelineItem extends TimelineSortableItem {
+  const GoalTimelineItem({
+    required this.goal,
+    required this.checkIn,
+  });
+
+  final Goal goal;
+  final GoalCheckIn checkIn;
+
+  @override
+  DateTime? get localDay =>
+      normalizeTaskListCalendarDay(checkIn.checkInAt.toLocal());
+
+  @override
+  DateTime? get sortAt => checkIn.checkInAt;
+
+  @override
+  String get listKey => 'goal:${goal.id}:${checkIn.id}';
 }

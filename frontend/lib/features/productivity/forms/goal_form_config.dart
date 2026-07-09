@@ -2,6 +2,7 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/forms/goal_form_fields.dart';
 import 'package:frontend/features/productivity/forms/goal_record_submit_handler.dart';
+import 'package:frontend/features/productivity/models/goal_milestone.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/task_schedule.dart';
 
@@ -45,6 +46,7 @@ String? _validateEndDate(Map<String, dynamic> values) {
 /// [AnvilFormConfig] for creating or editing a goal.
 AnvilFormConfig buildGoalFormConfig(
   RecordBloc recordBloc, {
+  required ApiClientService apiClient,
   RecordId? recordId,
   Goal? preloadedGoal,
 }) {
@@ -71,6 +73,8 @@ AnvilFormConfig buildGoalFormConfig(
         : {
             'goal_type': GoalType.count,
             'direction': GoalDirection.increasing,
+            GoalMilestoneFormKeys.milestones:
+                GoalMilestoneFormValues.emptyFormEntries(),
             ...TaskScheduleFormValues.defaultCreateValues(),
             TaskScheduleFormKeys.scheduleMode: TaskScheduleMode.repeating,
             TaskScheduleFormKeys.repeatEnabled: true,
@@ -96,9 +100,14 @@ AnvilFormConfig buildGoalFormConfig(
         fieldKey: TaskScheduleFormKeys.repeatType,
         validate: TaskScheduleFormValues.validateRequired,
       ),
+      AnvilFormValidationRule(
+        fieldKey: GoalMilestoneFormKeys.milestones,
+        validate: GoalMilestoneValidation.validateFormValues,
+      ),
     ],
     submitHandler: GoalRecordSubmitHandler(
       recordBloc: recordBloc,
+      apiClient: apiClient,
       recordId: recordId,
       preloadedGoal: preloadedGoal,
     ),

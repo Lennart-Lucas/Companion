@@ -110,6 +110,12 @@ TimelineRow _itemToRow(
         isFirstInDay: isFirstInDay,
         isLastInDay: isLastInDay,
       ),
+    GoalTimelineItem(:final goal, :final checkIn) => TimelineGoalCheckInRow(
+        goal: goal,
+        checkIn: checkIn,
+        isFirstInDay: isFirstInDay,
+        isLastInDay: isLastInDay,
+      ),
   };
 }
 

@@ -12,6 +12,25 @@ from app.schemas.goal_milestone import (
     MilestoneUpdate,
     MilestonesReplace,
 )
+from app.services.goal_milestone_validation import validate_milestones
+
+
+def _milestone_create_from_row(milestone: GoalMilestone) -> MilestoneCreate:
+    return MilestoneCreate(
+        value=milestone.value,
+        name=milestone.name,
+        sort_order=milestone.sort_order,
+    )
+
+
+def _validate_for_goal(goal: Goal, milestones: list[MilestoneCreate]) -> None:
+    try:
+        validate_milestones(goal.target, goal.direction, milestones)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
 
 
 async def _load_goal_with_milestones(
@@ -45,6 +64,7 @@ async def replace_milestones(
     data: MilestonesReplace,
 ) -> list[GoalMilestone]:
     goal = await _load_goal_with_milestones(session, goal_id, user.id)
+    _validate_for_goal(goal, data.milestones)
 
     for row in list(goal.milestones):
         await session.delete(row)
@@ -69,6 +89,11 @@ async def add_milestones(
     goal: Goal,
     items: list[MilestoneCreate],
 ) -> None:
+    if items:
+        combined = [
+            _milestone_create_from_row(milestone) for milestone in goal.milestones
+        ] + list(items)
+        _validate_for_goal(goal, combined)
     base_order = len(goal.milestones)
     for idx, item in enumerate(items):
         milestone = GoalMilestone(
@@ -88,6 +113,10 @@ async def add_milestone(
     data: MilestoneCreate,
 ) -> GoalMilestone:
     goal = await _load_goal_with_milestones(session, goal_id, user.id)
+    combined = [
+        _milestone_create_from_row(milestone) for milestone in goal.milestones
+    ] + [data]
+    _validate_for_goal(goal, combined)
     milestone = GoalMilestone(
         goal_id=goal.id,
         value=data.value,
@@ -134,6 +163,12 @@ async def update_milestone(
     for key, value in updates.items():
         setattr(milestone, key, value)
     await session.flush()
+
+    goal = await _load_goal_with_milestones(session, goal_id, user.id)
+    _validate_for_goal(
+        goal,
+        [_milestone_create_from_row(row) for row in goal.milestones],
+    )
     return milestone
 
 
