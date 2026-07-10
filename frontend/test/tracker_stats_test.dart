@@ -195,6 +195,14 @@ void main() {
     expect(
       classifyTrackerCheckIn(
         quitTracker,
+        _checkIn(id: 8, at: todayMorning, countValue: 2),
+        now: now,
+      ),
+      TrackerCheckInOutcome.pending,
+    );
+    expect(
+      classifyTrackerCheckIn(
+        quitTracker,
         _checkIn(
           id: 7,
           at: now.subtract(const Duration(days: 1)),
@@ -204,6 +212,145 @@ void main() {
       ),
       TrackerCheckInOutcome.succeeded,
     );
+  });
+
+  test('quit count at target today stays pending until day ends', () {
+    final quitTracker = Tracker(
+      id: 'quit',
+      name: 'Sugar',
+      startDate: DateTime.utc(2026, 1, 1),
+      checkInType: TrackerCheckInType.count,
+      target: 3,
+      unit: 'snacks',
+      habitDirection: TrackerHabitDirection.quit,
+    );
+    final todayMorning = DateTime(now.year, now.month, now.day, 8);
+
+    expect(
+      classifyTrackerCheckIn(
+        quitTracker,
+        _checkIn(id: 1, at: todayMorning, countValue: 3),
+        now: now,
+      ),
+      TrackerCheckInOutcome.pending,
+    );
+  });
+
+  test('quit duration exceeds limit with running timer on today', () {
+    final quitTracker = Tracker(
+      id: 'quit-dur',
+      name: 'Screen time',
+      startDate: DateTime.utc(2026, 1, 1),
+      checkInType: TrackerCheckInType.duration,
+      target: 1800,
+      habitDirection: TrackerHabitDirection.quit,
+    );
+    final todayMorning = DateTime(now.year, now.month, now.day, 8);
+    final timerStarted = now.subtract(const Duration(seconds: 2000));
+
+    expect(
+      classifyTrackerCheckIn(
+        quitTracker,
+        TrackerCheckIn(
+          id: 1,
+          checkInAt: todayMorning,
+          checkInType: TrackerCheckInType.duration,
+          logged: true,
+          skipped: false,
+          valueSeconds: 0,
+          timerStartedAt: timerStarted,
+        ),
+        now: now,
+      ),
+      TrackerCheckInOutcome.missed,
+    );
+  });
+
+  test('quit task check-in on today', () {
+    final quitTracker = Tracker(
+      id: 'quit-task',
+      name: 'No smoking',
+      startDate: DateTime.utc(2026, 1, 1),
+      checkInType: TrackerCheckInType.task,
+      habitDirection: TrackerHabitDirection.quit,
+    );
+    final todayMorning = DateTime(now.year, now.month, now.day, 8);
+
+    expect(
+      classifyTrackerCheckIn(
+        quitTracker,
+        TrackerCheckIn(
+          id: 1,
+          checkInAt: todayMorning,
+          checkInType: TrackerCheckInType.task,
+          logged: true,
+          skipped: false,
+          completed: true,
+        ),
+        now: now,
+      ),
+      TrackerCheckInOutcome.missed,
+    );
+    expect(
+      classifyTrackerCheckIn(
+        quitTracker,
+        TrackerCheckIn(
+          id: 2,
+          checkInAt: todayMorning,
+          checkInType: TrackerCheckInType.task,
+          logged: true,
+          skipped: false,
+          completed: false,
+        ),
+        now: now,
+      ),
+      TrackerCheckInOutcome.pending,
+    );
+    expect(
+      classifyTrackerCheckIn(
+        quitTracker,
+        TrackerCheckIn(
+          id: 3,
+          checkInAt: now.subtract(const Duration(days: 1)),
+          checkInType: TrackerCheckInType.task,
+          logged: true,
+          skipped: false,
+          completed: false,
+        ),
+        now: now,
+      ),
+      TrackerCheckInOutcome.succeeded,
+    );
+  });
+
+  test('quit day outcome prefers missed when limit exceeded later same day', () {
+    final quitTracker = Tracker(
+      id: 'quit',
+      name: 'Sugar',
+      startDate: DateTime.utc(2026, 1, 1),
+      checkInType: TrackerCheckInType.count,
+      target: 3,
+      unit: 'snacks',
+      habitDirection: TrackerHabitDirection.quit,
+    );
+    final day = normalizeTaskListCalendarDay(now.subtract(const Duration(days: 1)));
+    final stats = computeTrackerStats(
+      quitTracker,
+      [
+        _checkIn(
+          id: 1,
+          at: day.add(const Duration(hours: 8)),
+          countValue: 2,
+        ),
+        _checkIn(
+          id: 2,
+          at: day.add(const Duration(hours: 20)),
+          countValue: 4,
+        ),
+      ],
+      now: now,
+    );
+    expect(stats.dayOutcomes[day], TrackerDayOutcome.missed);
   });
 
   test('duration check-in on today stays pending until target reached', () {

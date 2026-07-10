@@ -103,6 +103,56 @@ class _EvaluatedCheckIn {
   final TrackerCheckInOutcome outcome;
 }
 
+/// Whether a quit tracker has exceeded its daily limit (count, duration, or task).
+bool quitTrackerLimitExceeded(
+  Tracker tracker,
+  TrackerCheckIn checkIn, {
+  DateTime? now,
+}) {
+  if (tracker.habitDirection != TrackerHabitDirection.quit) return false;
+
+  switch (tracker.checkInType) {
+    case TrackerCheckInType.count:
+      final target = tracker.target;
+      final value = checkIn.countValue;
+      return target != null && value != null && value > target;
+    case TrackerCheckInType.duration:
+      final target = tracker.target?.toInt();
+      if (target == null) return false;
+      final elapsed = trackerCheckInElapsedSeconds(
+        checkIn,
+        now ?? DateTime.now(),
+      );
+      return elapsed > target;
+    case TrackerCheckInType.task:
+      return checkIn.completed == true;
+    default:
+      return false;
+  }
+}
+
+TrackerCheckInOutcome _classifyQuitTrackerCheckIn(
+  Tracker tracker,
+  TrackerCheckIn checkIn, {
+  required DateTime checkInDay,
+  required DateTime today,
+  required DateTime now,
+}) {
+  if (quitTrackerLimitExceeded(tracker, checkIn, now: now)) {
+    return TrackerCheckInOutcome.missed;
+  }
+  if (checkInDay == today) {
+    return TrackerCheckInOutcome.pending;
+  }
+  if (!checkIn.logged) {
+    return TrackerCheckInOutcome.missed;
+  }
+  if (isTrackerTargetReached(tracker, checkIn)) {
+    return TrackerCheckInOutcome.succeeded;
+  }
+  return TrackerCheckInOutcome.missed;
+}
+
 TrackerCheckInOutcome classifyTrackerCheckIn(
   Tracker tracker,
   TrackerCheckIn checkIn, {
@@ -118,6 +168,16 @@ TrackerCheckInOutcome classifyTrackerCheckIn(
     return TrackerCheckInOutcome.skipped;
   }
 
+  if (tracker.habitDirection == TrackerHabitDirection.quit) {
+    return _classifyQuitTrackerCheckIn(
+      tracker,
+      checkIn,
+      checkInDay: checkInDay,
+      today: today,
+      now: now,
+    );
+  }
+
   if (tracker.checkInType == TrackerCheckInType.task && checkInDay == today) {
     if (checkIn.logged && isTrackerTargetReached(tracker, checkIn)) {
       return TrackerCheckInOutcome.succeeded;
@@ -125,28 +185,8 @@ TrackerCheckInOutcome classifyTrackerCheckIn(
     return TrackerCheckInOutcome.pending;
   }
 
-  if (tracker.checkInType == TrackerCheckInType.count) {
-    if (tracker.habitDirection == TrackerHabitDirection.quit &&
-        checkIn.countValue != null &&
-        tracker.target != null &&
-        checkIn.countValue! > tracker.target!) {
-      return TrackerCheckInOutcome.missed;
-    }
-    if (checkInDay == today) {
-      if (checkIn.logged && isTrackerTargetReached(tracker, checkIn)) {
-        return TrackerCheckInOutcome.succeeded;
-      }
-      return TrackerCheckInOutcome.pending;
-    }
-  }
-
-  if (tracker.checkInType == TrackerCheckInType.duration) {
-    if (tracker.habitDirection == TrackerHabitDirection.quit &&
-        checkIn.valueSeconds != null &&
-        tracker.target != null &&
-        checkIn.valueSeconds! > tracker.target!.toInt()) {
-      return TrackerCheckInOutcome.missed;
-    }
+  if (tracker.checkInType == TrackerCheckInType.count ||
+      tracker.checkInType == TrackerCheckInType.duration) {
     if (checkInDay == today) {
       if (checkIn.logged && isTrackerTargetReached(tracker, checkIn)) {
         return TrackerCheckInOutcome.succeeded;
@@ -248,7 +288,7 @@ TrackerStats computeTrackerStats(
   final thisWeekPercent =
       weekDenominator == 0 ? 0.0 : weekSucceeded / weekDenominator;
 
-  final dayOutcomes = _rollupDayOutcomes(evaluated);
+  final dayOutcomes = _rollupDayOutcomes(tracker, evaluated);
   final weeklyTrend = _weeklyTrend(past, reference);
   final habitStrength = computeHabitStrength(
     dayOutcomes: dayOutcomes,
@@ -413,8 +453,10 @@ double computeHabitStrength({
 }
 
 Map<DateTime, TrackerDayOutcome> _rollupDayOutcomes(
+  Tracker tracker,
   List<_EvaluatedCheckIn> evaluated,
 ) {
+  final quit = tracker.habitDirection == TrackerHabitDirection.quit;
   final byDay = <DateTime, List<TrackerCheckInOutcome>>{};
   for (final item in evaluated) {
     final key = normalizeTaskListCalendarDay(item.checkIn.checkInAt.toLocal());
@@ -426,10 +468,14 @@ Map<DateTime, TrackerDayOutcome> _rollupDayOutcomes(
     final outcomes = entry.value;
     if (outcomes.every((o) => o == TrackerCheckInOutcome.pending)) {
       result[entry.key] = TrackerDayOutcome.pending;
-    } else if (outcomes.contains(TrackerCheckInOutcome.succeeded)) {
+    } else if (quit && outcomes.contains(TrackerCheckInOutcome.missed)) {
+      result[entry.key] = TrackerDayOutcome.missed;
+    } else if (!quit && outcomes.contains(TrackerCheckInOutcome.succeeded)) {
       result[entry.key] = TrackerDayOutcome.succeeded;
     } else if (outcomes.contains(TrackerCheckInOutcome.missed)) {
       result[entry.key] = TrackerDayOutcome.missed;
+    } else if (outcomes.contains(TrackerCheckInOutcome.succeeded)) {
+      result[entry.key] = TrackerDayOutcome.succeeded;
     } else {
       result[entry.key] = TrackerDayOutcome.skipped;
     }

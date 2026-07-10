@@ -231,5 +231,95 @@ void main() {
         isEmpty,
       );
     });
+
+    test('quit within-limit today is in To Do only', () {
+      final quitTracker = Tracker(
+        id: 'quit',
+        name: 'Sugar',
+        startDate: DateTime(2026, 1, 1),
+        checkInType: TrackerCheckInType.count,
+        target: 3,
+        unit: 'snacks',
+        habitDirection: TrackerHabitDirection.quit,
+      );
+      final withinLimit = TrackerTimelineItem(
+        tracker: quitTracker,
+        checkIn: TrackerCheckIn(
+          id: 1,
+          checkInAt: DateTime(2026, 7, 6, 8),
+          checkInType: TrackerCheckInType.count,
+          logged: true,
+          skipped: false,
+          countValue: 2,
+        ),
+      );
+      final referenceNow = DateTime(2026, 7, 6, 12);
+
+      expect(
+        matchesTrackerTodayBucket(
+          quitTracker,
+          withinLimit.checkIn,
+          TaskTodayBucket.todo,
+          today,
+          now: referenceNow,
+        ),
+        isTrue,
+      );
+      expect(
+        matchesTrackerTodayBucket(
+          quitTracker,
+          withinLimit.checkIn,
+          TaskTodayBucket.completed,
+          today,
+          now: referenceNow,
+        ),
+        isFalse,
+      );
+    });
+
+    test('quit over-limit today is not in To Do or Completed', () {
+      final quitTracker = Tracker(
+        id: 'quit',
+        name: 'Sugar',
+        startDate: DateTime(2026, 1, 1),
+        checkInType: TrackerCheckInType.count,
+        target: 3,
+        unit: 'snacks',
+        habitDirection: TrackerHabitDirection.quit,
+      );
+      final overLimit = TrackerTimelineItem(
+        tracker: quitTracker,
+        checkIn: TrackerCheckIn(
+          id: 1,
+          checkInAt: DateTime(2026, 7, 6, 8),
+          checkInType: TrackerCheckInType.count,
+          logged: true,
+          skipped: false,
+          countValue: 5,
+        ),
+      );
+      final referenceNow = DateTime(2026, 7, 6, 12);
+
+      expect(
+        matchesTrackerTodayBucket(
+          quitTracker,
+          overLimit.checkIn,
+          TaskTodayBucket.todo,
+          today,
+          now: referenceNow,
+        ),
+        isFalse,
+      );
+      expect(
+        matchesTrackerTodayBucket(
+          quitTracker,
+          overLimit.checkIn,
+          TaskTodayBucket.completed,
+          today,
+          now: referenceNow,
+        ),
+        isFalse,
+      );
+    });
   });
 }

@@ -18,15 +18,25 @@ List<TrackerStatItem> buildTrackerStatItems({
     TrackerStatItem('Best streak', '${stats.bestStreak} days'),
     TrackerStatItem('Total check-ins', '${stats.totalCheckIns}'),
     TrackerStatItem('Succeeded', '${stats.succeeded}'),
-    TrackerStatItem('Missed', '${stats.missed}'),
+    TrackerStatItem(
+      tracker.habitDirection == TrackerHabitDirection.quit
+          ? 'Exceeded'
+          : 'Missed',
+      '${stats.missed}',
+    ),
     TrackerStatItem('Skipped', '${stats.skipped}'),
   ];
+
+  final quit = tracker.habitDirection == TrackerHabitDirection.quit;
 
   if (tracker.checkInType == TrackerCheckInType.count) {
     final unit = stats.unitLabel ?? 'units';
     items.addAll([
       TrackerStatItem('Done $unit', _formatNum(stats.doneUnits)),
-      TrackerStatItem('Missed $unit', _formatNum(stats.missedUnits)),
+      TrackerStatItem(
+        quit ? 'Exceeded $unit' : 'Missed $unit',
+        _formatNum(stats.missedUnits),
+      ),
     ]);
   } else if (tracker.checkInType == TrackerCheckInType.duration) {
     final weekTarget = stats.doneMinutes + stats.missedMinutes;
@@ -43,7 +53,10 @@ List<TrackerStatItem> buildTrackerStatItems({
           '${_formatNum(stats.doneMinutes / stats.succeeded)} min',
         ),
       TrackerStatItem('Done minutes', _formatNum(stats.doneMinutes)),
-      TrackerStatItem('Missed minutes', _formatNum(stats.missedMinutes)),
+      TrackerStatItem(
+        quit ? 'Exceeded minutes' : 'Missed minutes',
+        _formatNum(stats.missedMinutes),
+      ),
     ]);
   }
 

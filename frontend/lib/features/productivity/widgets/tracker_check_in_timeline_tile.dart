@@ -16,13 +16,25 @@ import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 import 'package:frontend/features/productivity/widgets/tracker_display.dart';
 import 'package:frontend/features/productivity/widgets/tracker_list_tile.dart';
 
-String trackerCheckInOutcomeLabel(TrackerCheckInOutcome outcome) =>
-    switch (outcome) {
-      TrackerCheckInOutcome.pending => 'Pending',
-      TrackerCheckInOutcome.succeeded => 'Done',
-      TrackerCheckInOutcome.missed => 'Missed',
-      TrackerCheckInOutcome.skipped => 'Skipped',
-    };
+String trackerCheckInOutcomeLabel(
+  TrackerCheckInOutcome outcome, {
+  Tracker? tracker,
+  TrackerCheckIn? checkIn,
+  DateTime? now,
+}) {
+  if (tracker != null &&
+      checkIn != null &&
+      outcome == TrackerCheckInOutcome.missed &&
+      quitTrackerLimitExceeded(tracker, checkIn, now: now)) {
+    return 'Exceeded';
+  }
+  return switch (outcome) {
+    TrackerCheckInOutcome.pending => 'Pending',
+    TrackerCheckInOutcome.succeeded => 'Done',
+    TrackerCheckInOutcome.missed => 'Missed',
+    TrackerCheckInOutcome.skipped => 'Skipped',
+  };
+}
 
 Color trackerCheckInOutcomeColor(
   TrackerCheckInOutcome outcome,
@@ -189,6 +201,24 @@ Widget _outlineCircleDash({
       ],
     ),
   );
+}
+
+String? trackerCountProgressChipLabel(
+  Tracker tracker,
+  TrackerCheckIn checkIn,
+) {
+  if (tracker.checkInType != TrackerCheckInType.count) return null;
+  if (checkIn.skipped) return null;
+
+  final targetSummary = trackerTargetSummary(tracker);
+  final value = checkIn.countValue;
+  if (value == null || value <= 0) {
+    return targetSummary ?? trackerCheckInTypeLabel(tracker.checkInType);
+  }
+  if (targetSummary != null) {
+    return '$value / $targetSummary';
+  }
+  return value.toString();
 }
 
 String? trackerDurationProgressChipLabel(
@@ -502,6 +532,7 @@ class _TrackerCheckInTimelineTileState extends State<TrackerCheckInTimelineTile>
       checkIn,
       now: now,
     );
+    final countProgressLabel = trackerCountProgressChipLabel(tracker, checkIn);
     final tileOpacity = _busy ? 0.6 : 1.0;
     final nodeColor = tracker.checkInType == TrackerCheckInType.duration
         ? durationTrackerTimelineNodeColor(
@@ -609,6 +640,9 @@ class _TrackerCheckInTimelineTileState extends State<TrackerCheckInTimelineTile>
                                       TaskMetaChip(
                                         label: trackerCheckInOutcomeLabel(
                                           outcome,
+                                          tracker: tracker,
+                                          checkIn: checkIn,
+                                          now: now,
                                         ),
                                         tintColor: outcomeColor,
                                         leading: Icon(
@@ -621,6 +655,24 @@ class _TrackerCheckInTimelineTileState extends State<TrackerCheckInTimelineTile>
                                           TrackerCheckInType.duration)
                                         TaskMetaChip(
                                           label: durationProgressLabel ??
+                                              trackerTypeTargetChipLabel(
+                                                tracker,
+                                              ),
+                                          neutral: true,
+                                          leading: Icon(
+                                            trackerCheckInTypeIcon(
+                                              tracker.checkInType,
+                                            ),
+                                            size: 14,
+                                            color: scheme.onSurface.withValues(
+                                              alpha: 0.85,
+                                            ),
+                                          ),
+                                        )
+                                      else if (tracker.checkInType ==
+                                          TrackerCheckInType.count)
+                                        TaskMetaChip(
+                                          label: countProgressLabel ??
                                               trackerTypeTargetChipLabel(
                                                 tracker,
                                               ),

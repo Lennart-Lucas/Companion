@@ -186,5 +186,37 @@ void main() {
       expect(filtered.single, isA<GoalTimelineItem>());
       expect((filtered.single as GoalTimelineItem).checkIn.id, 2);
     });
+
+    test('keeps quit over-limit tracker check-ins visible for today', () {
+      final quitTracker = Tracker(
+        id: 'quit',
+        name: 'Sugar',
+        startDate: DateTime(2026, 1, 1),
+        checkInType: TrackerCheckInType.count,
+        target: 3,
+        unit: 'snacks',
+        habitDirection: TrackerHabitDirection.quit,
+      );
+      final overLimit = TrackerCheckIn(
+        id: 1,
+        checkInAt: DateTime(2026, 6, 10, 8),
+        checkInType: TrackerCheckInType.count,
+        logged: true,
+        skipped: false,
+        countValue: 5,
+      );
+
+      final items = <TimelineSortableItem>[
+        TrackerTimelineItem(tracker: quitTracker, checkIn: overLimit),
+      ];
+
+      final filtered = filterVisibleTimelineItems(
+        items,
+        listToday: DateTime(2026, 6, 10),
+      );
+
+      expect(filtered.length, 1);
+      expect(filtered.single, isA<TrackerTimelineItem>());
+    });
   });
 }
