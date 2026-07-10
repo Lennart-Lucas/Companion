@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.media_title import MediaTitle
 from app.models.user import User
 from app.schemas.imdb import ImdbTitleDetailResponse
-from app.schemas.media_title import MediaTitleCreate
+from app.schemas.media_title import MediaTitleCreate, MediaTitleUpdate
 from app.services.imdb_api_client import imdb_api_client, normalize_imdb_id
 from app.services.productivity_helpers import (
     apply_list_filters,
@@ -70,6 +70,23 @@ async def get_media_title(
     session: AsyncSession, user: User, media_title_id: int
 ) -> MediaTitle:
     return await _load_media_title(session, media_title_id, user.id)
+
+
+async def update_media_title(
+    session: AsyncSession,
+    user: User,
+    media_title_id: int,
+    data: MediaTitleUpdate,
+) -> MediaTitle:
+    media_title = await _load_media_title(session, media_title_id, user.id)
+    updates = data.model_dump(exclude_unset=True)
+    if not updates:
+        return media_title
+    for field, value in updates.items():
+        setattr(media_title, field, value)
+    await session.flush()
+    await session.refresh(media_title)
+    return media_title
 
 
 async def create_media_title(

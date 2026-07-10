@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import json
 import logging
 import re
-import time
-from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
 import httpx
 from fastapi import HTTPException, status
 
-from app.schemas.imdb import ImdbTitleDetailResponse, ImdbTitleSummary
+from app.schemas.imdb import ImdbEpisodeSummary, ImdbTitleDetailResponse, ImdbTitleSummary
 
 logger = logging.getLogger(__name__)
 
@@ -23,33 +20,6 @@ IMDB_HTTP_HEADERS = {
     "User-Agent": "Companion/1.0",
     "Accept": "application/json",
 }
-DEBUG_LOG_PATHS = (
-    Path(__file__).resolve().parents[3] / "debug-0107d2.log",
-    Path("/tmp/debug-0107d2.log"),
-)
-
-
-def _agent_debug_log(
-    hypothesis_id: str, location: str, message: str, data: dict[str, Any]
-) -> None:
-    # region agent log
-    payload = {
-        "sessionId": "0107d2",
-        "hypothesisId": hypothesis_id,
-        "location": location,
-        "message": message,
-        "data": data,
-        "timestamp": int(time.time() * 1000),
-    }
-    line = json.dumps(payload) + "\n"
-    for log_path in DEBUG_LOG_PATHS:
-        try:
-            with log_path.open("a", encoding="utf-8") as log_file:
-                log_file.write(line)
-            break
-        except OSError:
-            continue
-    # endregion
 
 
 def normalize_imdb_id(value: str) -> str:
@@ -265,6 +235,61 @@ def _titles_from_search_payload(payload: Any) -> list[dict[str, Any]]:
     return []
 
 
+def _episode_from_payload(payload: dict[str, Any]) -> ImdbEpisodeSummary | None:
+    imdb_id = _imdb_id_from_payload(payload)
+    title = _title_name_from_payload(payload)
+    season_raw = payload.get("season")
+    episode_raw = payload.get("episodeNumber")
+    if imdb_id is None or title is None:
+        return None
+    try:
+        season_number = int(season_raw)
+        episode_number = int(episode_raw)
+    except (TypeError, ValueError):
+        return None
+    if season_number < 1 or episode_number < 1:
+        return None
+
+    release_date = payload.get("releaseDate")
+    release_year = release_month = release_day = None
+    if isinstance(release_date, dict):
+        release_year = release_date.get("year")
+        release_month = release_date.get("month")
+        release_day = release_date.get("day")
+        if not isinstance(release_year, int):
+            release_year = None
+        if not isinstance(release_month, int):
+            release_month = None
+        if not isinstance(release_day, int):
+            release_day = None
+
+    rating_block = payload.get("rating")
+    rating = None
+    if isinstance(rating_block, dict):
+        raw_rating = rating_block.get("aggregateRating")
+        if raw_rating is None:
+            raw_rating = rating_block.get("rating")
+        if raw_rating is not None:
+            rating = float(raw_rating)
+
+    runtime_seconds = payload.get("runtimeSeconds")
+    runtime_minutes = None
+    if isinstance(runtime_seconds, int) and runtime_seconds > 0:
+        runtime_minutes = max(1, runtime_seconds // 60)
+
+    return ImdbEpisodeSummary(
+        imdb_id=imdb_id,
+        title=title,
+        season_number=season_number,
+        episode_number=episode_number,
+        runtime_minutes=runtime_minutes,
+        release_year=release_year,
+        release_month=release_month,
+        release_day=release_day,
+        rating=rating,
+    )
+
+
 class ImdbApiClient:
     def __init__(self, base_url: str = IMDB_API_BASE_URL) -> None:
         self._base_url = base_url.rstrip("/")
@@ -278,26 +303,9 @@ class ImdbApiClient:
 
         capped_limit = min(max(limit, 1), 50)
         params = {"query": trimmed, "limit": capped_limit}
-        _agent_debug_log(
-            "A",
-            "imdb_api_client.py:search_titles",
-            "search_start",
-            {"base_url": self._base_url, "query": trimmed, "limit": capped_limit},
-        )
 
         suggestion_results = await self._search_via_suggestion(
             trimmed, limit=capped_limit
-        )
-        _agent_debug_log(
-            "C",
-            "imdb_api_client.py:search_titles",
-            "suggestion_primary_result",
-            {
-                "result_count": len(suggestion_results),
-                "first_imdb_id": (
-                    suggestion_results[0].imdb_id if suggestion_results else None
-                ),
-            },
         )
         if suggestion_results:
             logger.info(
@@ -314,20 +322,8 @@ class ImdbApiClient:
             summaries = self._summaries_from_entries(
                 _titles_from_search_payload(payload), capped_limit
             )
-            _agent_debug_log(
-                "B",
-                "imdb_api_client.py:search_titles",
-                "api_search_fallback_result",
-                {"result_count": len(summaries)},
-            )
         except HTTPException as exc:
             primary_error = str(exc.detail)
-            _agent_debug_log(
-                "B",
-                "imdb_api_client.py:search_titles",
-                "api_search_fallback_failed",
-                {"status_code": exc.status_code, "detail": primary_error},
-            )
 
         logger.info(
             "imdb search via api fallback query=%r results=%s error=%s",
@@ -362,21 +358,8 @@ class ImdbApiClient:
             ) as client:
                 response = await client.get(url)
         except httpx.RequestError as exc:
-            _agent_debug_log(
-                "F",
-                "imdb_api_client.py:_search_via_suggestion",
-                "suggestion_request_error",
-                {"url": url, "error": str(exc)},
-            )
             logger.warning("imdb suggestion request failed for %r: %s", query, exc)
             return []
-
-        _agent_debug_log(
-            "F",
-            "imdb_api_client.py:_search_via_suggestion",
-            "suggestion_response",
-            {"url": url, "status_code": response.status_code},
-        )
 
         if response.status_code >= 400:
             logger.warning(
@@ -442,41 +425,47 @@ class ImdbApiClient:
             detail = detail.model_copy(update={"imdb_id": normalized})
         return detail
 
+    async def list_episodes(
+        self,
+        imdb_id: str,
+        *,
+        page_size: int = 50,
+        page_token: str | None = None,
+    ) -> tuple[list[ImdbEpisodeSummary], str | None]:
+        normalized = normalize_imdb_id(imdb_id)
+        params: dict[str, Any] = {"pageSize": min(max(page_size, 1), 50)}
+        if page_token:
+            params["pageToken"] = page_token
+        payload = await self._get(f"/titles/{normalized}/episodes", params=params)
+        entries: list[dict[str, Any]] = []
+        next_token: str | None = None
+        if isinstance(payload, dict):
+            raw_entries = payload.get("episodes")
+            if isinstance(raw_entries, list):
+                entries = [entry for entry in raw_entries if isinstance(entry, dict)]
+            token = payload.get("nextPageToken")
+            if isinstance(token, str) and token.strip():
+                next_token = token.strip()
+
+        episodes: list[ImdbEpisodeSummary] = []
+        for entry in entries:
+            episode = _episode_from_payload(entry)
+            if episode is not None:
+                episodes.append(episode)
+        return episodes, next_token
+
     async def _get(self, path: str, *, params: dict[str, Any] | None = None) -> Any:
         url = f"{self._base_url}{path}"
-        _agent_debug_log(
-            "A",
-            "imdb_api_client.py:_get",
-            "request_start",
-            {"url": url, "params": params or {}},
-        )
         try:
             async with httpx.AsyncClient(
                 timeout=REQUEST_TIMEOUT, headers=IMDB_HTTP_HEADERS
             ) as client:
                 response = await client.get(url, params=params)
         except httpx.RequestError as exc:
-            _agent_debug_log(
-                "D",
-                "imdb_api_client.py:_get",
-                "request_error",
-                {"url": url, "error": str(exc)},
-            )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"IMDb API request failed: {exc}",
             ) from exc
-
-        _agent_debug_log(
-            "A",
-            "imdb_api_client.py:_get",
-            "response_received",
-            {
-                "url": url,
-                "status_code": response.status_code,
-                "content_type": response.headers.get("content-type"),
-            },
-        )
 
         if response.status_code == status.HTTP_404_NOT_FOUND:
             raise HTTPException(

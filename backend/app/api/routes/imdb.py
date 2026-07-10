@@ -4,6 +4,7 @@ import logging
 from app.dependencies import get_current_active_user
 from app.models.user import User
 from app.schemas.imdb import (
+    ImdbEpisodeListResponse,
     ImdbTitleDetailResponse,
     ImdbTitleSearchResponse,
 )
@@ -39,3 +40,20 @@ async def get_imdb_title(
     _ = user
     normalized = normalize_imdb_id(imdb_id)
     return await imdb_api_client.get_title(normalized)
+
+
+@router.get("/titles/{imdb_id}/episodes", response_model=ImdbEpisodeListResponse)
+async def list_imdb_episodes(
+    imdb_id: str,
+    page_size: int = Query(default=50, ge=1, le=50),
+    page_token: str | None = Query(default=None),
+    user: User = Depends(get_current_active_user),
+) -> ImdbEpisodeListResponse:
+    _ = user
+    normalized = normalize_imdb_id(imdb_id)
+    items, next_page_token = await imdb_api_client.list_episodes(
+        normalized,
+        page_size=page_size,
+        page_token=page_token,
+    )
+    return ImdbEpisodeListResponse(items=items, next_page_token=next_page_token)

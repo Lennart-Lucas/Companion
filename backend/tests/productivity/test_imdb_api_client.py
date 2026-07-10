@@ -8,6 +8,7 @@ from app.services.imdb_api_client import (
     ImdbApiClient,
     _cast_from_payload,
     _detail_from_payload,
+    _episode_from_payload,
     _genres_from_payload,
     _summary_from_payload,
     imdb_page_url,
@@ -89,6 +90,24 @@ class TestImdbPayloadMapping:
             }
         )
         assert len(cast) == 12
+
+    def test_episode_from_payload(self):
+        episode = _episode_from_payload(
+            {
+                "id": "tt1008582",
+                "title": "Strange Love",
+                "season": "1",
+                "episodeNumber": 1,
+                "runtimeSeconds": 3480,
+                "releaseDate": {"year": 2008, "month": 9, "day": 7},
+                "rating": {"aggregateRating": 7.8},
+            }
+        )
+        assert episode is not None
+        assert episode.imdb_id == "tt1008582"
+        assert episode.season_number == 1
+        assert episode.episode_number == 1
+        assert episode.runtime_minutes == 58
 
 
 class TestImdbApiClient:

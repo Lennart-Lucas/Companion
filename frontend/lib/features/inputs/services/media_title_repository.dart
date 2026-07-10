@@ -37,6 +37,35 @@ class MediaTitleRepository {
     _ensureSuccess(response, 'Add media title');
     return MediaTitle.fromJson(response.bodyAsMap);
   }
+
+  Future<MediaTitle> updateMediaTitle(
+    String mediaTitleId, {
+    String? watchStatus,
+    double? userRating,
+    String? notes,
+    bool clearUserRating = false,
+    bool clearNotes = false,
+  }) async {
+    final body = <String, dynamic>{};
+    if (watchStatus != null) body['watch_status'] = watchStatus;
+    if (clearUserRating) {
+      body['user_rating'] = null;
+    } else if (userRating != null) {
+      body['user_rating'] = userRating;
+    }
+    if (clearNotes) {
+      body['notes'] = null;
+    } else if (notes != null) {
+      body['notes'] = notes;
+    }
+
+    final response = await _api.patch(
+      '/media-titles/$mediaTitleId',
+      body: body,
+    );
+    _ensureSuccess(response, 'Update media title');
+    return MediaTitle.fromJson(response.bodyAsMap);
+  }
 }
 
 class MediaTitleAlreadyExistsException implements Exception {

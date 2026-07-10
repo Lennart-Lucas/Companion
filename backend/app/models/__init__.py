@@ -11,6 +11,7 @@ from app.models.goal_check_in import GoalCheckIn
 from app.models.goal_milestone import GoalMilestone
 from app.models.identity_key import IdentityKey
 from app.models.media_title import MediaTitle
+from app.models.media_watch_entry import MediaWatchEntry
 from app.models.onetime_prekey import OneTimePreKey
 from app.models.project import Project, ProjectStatus
 from app.models.refresh_token import RefreshToken
@@ -40,6 +41,7 @@ __all__ = [
     "GoalMilestone",
     "GoalType",
     "MediaTitle",
+    "MediaWatchEntry",
     "IdentityKey",
     "OneTimePreKey",
     "Project",

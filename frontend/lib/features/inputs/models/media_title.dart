@@ -1,6 +1,22 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 
+abstract final class MediaWatchStatus {
+  static const planToWatch = 'plan_to_watch';
+  static const watching = 'watching';
+  static const completed = 'completed';
+  static const onHold = 'on_hold';
+  static const dropped = 'dropped';
+
+  static const all = [
+    planToWatch,
+    watching,
+    completed,
+    onHold,
+    dropped,
+  ];
+}
+
 class MediaTitle extends ProductivityRecord {
   @override
   final RecordId id;
@@ -20,6 +36,9 @@ class MediaTitle extends ProductivityRecord {
   final List<String> genres;
   final int? runtimeMinutes;
   final List<MediaTitleCastMember> cast;
+  final String watchStatus;
+  final double? userRating;
+  final String? notes;
 
   MediaTitle({
     required this.id,
@@ -35,21 +54,28 @@ class MediaTitle extends ProductivityRecord {
     this.genres = const [],
     this.runtimeMinutes,
     this.cast = const [],
+    this.watchStatus = MediaWatchStatus.planToWatch,
+    this.userRating,
+    this.notes,
   });
 
-  static int? _intFromJson(dynamic value) {
+  static int? intFromJson(dynamic value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
     if (value is String) return int.tryParse(value);
     return null;
   }
 
-  static double? _doubleFromJson(dynamic value) {
+  static double? doubleFromJson(dynamic value) {
     if (value is double) return value;
     if (value is num) return value.toDouble();
     if (value is String) return double.tryParse(value);
     return null;
   }
+
+  static int? _intFromJson(dynamic value) => intFromJson(value);
+
+  static double? _doubleFromJson(dynamic value) => doubleFromJson(value);
 
   static List<String> _genresFromJson(dynamic value) {
     if (value is! List) return const [];
@@ -93,6 +119,37 @@ class MediaTitle extends ProductivityRecord {
       genres: _genresFromJson(data['genres']),
       runtimeMinutes: _intFromJson(data['runtime_minutes']),
       cast: _castFromJson(data['cast']),
+      watchStatus:
+          data['watch_status'] as String? ?? MediaWatchStatus.planToWatch,
+      userRating: _doubleFromJson(data['user_rating']),
+      notes: data['notes'] as String?,
+    );
+  }
+
+  MediaTitle copyWith({
+    String? watchStatus,
+    double? userRating,
+    String? notes,
+    bool clearUserRating = false,
+    bool clearNotes = false,
+  }) {
+    return MediaTitle(
+      id: id,
+      name: name,
+      imdbId: imdbId,
+      mediaType: mediaType,
+      year: year,
+      description: description,
+      posterUrl: posterUrl,
+      imdbUrl: imdbUrl,
+      rating: rating,
+      voteCount: voteCount,
+      genres: genres,
+      runtimeMinutes: runtimeMinutes,
+      cast: cast,
+      watchStatus: watchStatus ?? this.watchStatus,
+      userRating: clearUserRating ? null : (userRating ?? this.userRating),
+      notes: clearNotes ? null : (notes ?? this.notes),
     );
   }
 
@@ -119,6 +176,9 @@ class MediaTitle extends ProductivityRecord {
               if (member.character != null) 'character': member.character,
             },
         ],
+      'watch_status': watchStatus,
+      if (userRating != null) 'user_rating': userRating,
+      if (notes != null) 'notes': notes,
     };
   }
 }
@@ -235,5 +295,30 @@ String mediaTypeLabel(String? mediaType) {
             RegExp(r'\b[a-z]'),
             (match) => match.group(0)!.toUpperCase(),
           );
+  }
+}
+
+bool isTvMediaType(String? mediaType) {
+  if (mediaType == null || mediaType.trim().isEmpty) return false;
+  final normalized = mediaType.trim().toLowerCase().replaceAll('_', '');
+  return normalized == 'tvseries' ||
+      normalized == 'tvminiseries' ||
+      normalized == 'tvspecial';
+}
+
+String watchStatusLabel(String status) {
+  switch (status) {
+    case MediaWatchStatus.planToWatch:
+      return 'Plan to watch';
+    case MediaWatchStatus.watching:
+      return 'Watching';
+    case MediaWatchStatus.completed:
+      return 'Completed';
+    case MediaWatchStatus.onHold:
+      return 'On hold';
+    case MediaWatchStatus.dropped:
+      return 'Dropped';
+    default:
+      return status.replaceAll('_', ' ');
   }
 }
