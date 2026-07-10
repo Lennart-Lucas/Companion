@@ -158,6 +158,28 @@ command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 
 **Do not wipe production data** — Avoid `docker compose ... down -v` unless you intend to delete the database volume.
 
+**Alembic / API startup: `SettingsError: error parsing value for field "cors_origins"`** — `.env.prod` has `CORS_ORIGINS=` with no value. Docker injects an empty string; older images treat that field as JSON and fail before migrations run.
+
+Fix on the server (either is enough):
+
+```bash
+# Option A: remove the empty line (recommended)
+nano ~/Companion/backend/.env.prod   # delete the CORS_ORIGINS= line, or comment it out
+
+# Option B: set a valid value (comma-separated on current main)
+CORS_ORIGINS=https://your-frontend.example.com
+```
+
+Then rebuild and migrate:
+
+```bash
+cd ~/Companion/backend
+docker compose -p companion-prod -f docker-compose.prod.yml up --build -d
+docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
+```
+
+On `main`, `CORS_ORIGINS` is a comma-separated string (not JSON). An empty value is allowed after rebuild; leaving the variable unset uses the default dev origins.
+
 **Alembic: `Can't locate revision identified by '018_quota_check_in'`** — The database was migrated from the old `productivity` branch, but `main` only has migrations through `017_tracker_timer_started`. Point Alembic at `main`'s head, then verify:
 
 ```bash
