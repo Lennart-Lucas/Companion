@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 from pathlib import Path
@@ -12,30 +13,42 @@ from fastapi import HTTPException, status
 
 from app.schemas.imdb import ImdbTitleDetailResponse, ImdbTitleSummary
 
+logger = logging.getLogger(__name__)
+
 IMDB_API_BASE_URL = "https://api.imdbapi.dev"
 IMDB_SUGGESTION_BASE_URL = "https://v3.sg.media-imdb.com/suggestion/x"
 IMDB_ID_PATTERN = re.compile(r"^tt\d{7,}$", re.IGNORECASE)
 REQUEST_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
-DEBUG_LOG_PATH = Path(__file__).resolve().parents[3] / "debug-0107d2.log"
+IMDB_HTTP_HEADERS = {
+    "User-Agent": "Companion/1.0",
+    "Accept": "application/json",
+}
+DEBUG_LOG_PATHS = (
+    Path(__file__).resolve().parents[3] / "debug-0107d2.log",
+    Path("/tmp/debug-0107d2.log"),
+)
 
 
 def _agent_debug_log(
     hypothesis_id: str, location: str, message: str, data: dict[str, Any]
 ) -> None:
     # region agent log
-    try:
-        payload = {
-            "sessionId": "0107d2",
-            "hypothesisId": hypothesis_id,
-            "location": location,
-            "message": message,
-            "data": data,
-            "timestamp": int(time.time() * 1000),
-        }
-        with DEBUG_LOG_PATH.open("a", encoding="utf-8") as log_file:
-            log_file.write(json.dumps(payload) + "\n")
-    except OSError:
-        pass
+    payload = {
+        "sessionId": "0107d2",
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": int(time.time() * 1000),
+    }
+    line = json.dumps(payload) + "\n"
+    for log_path in DEBUG_LOG_PATHS:
+        try:
+            with log_path.open("a", encoding="utf-8") as log_file:
+                log_file.write(line)
+            break
+        except OSError:
+            continue
     # endregion
 
 
@@ -272,6 +285,28 @@ class ImdbApiClient:
             {"base_url": self._base_url, "query": trimmed, "limit": capped_limit},
         )
 
+        suggestion_results = await self._search_via_suggestion(
+            trimmed, limit=capped_limit
+        )
+        _agent_debug_log(
+            "C",
+            "imdb_api_client.py:search_titles",
+            "suggestion_primary_result",
+            {
+                "result_count": len(suggestion_results),
+                "first_imdb_id": (
+                    suggestion_results[0].imdb_id if suggestion_results else None
+                ),
+            },
+        )
+        if suggestion_results:
+            logger.info(
+                "imdb search via suggestion query=%r results=%s",
+                trimmed,
+                len(suggestion_results),
+            )
+            return suggestion_results
+
         summaries: list[ImdbTitleSummary] = []
         primary_error: str | None = None
         try:
@@ -282,7 +317,7 @@ class ImdbApiClient:
             _agent_debug_log(
                 "B",
                 "imdb_api_client.py:search_titles",
-                "primary_search_result",
+                "api_search_fallback_result",
                 {"result_count": len(summaries)},
             )
         except HTTPException as exc:
@@ -290,25 +325,17 @@ class ImdbApiClient:
             _agent_debug_log(
                 "B",
                 "imdb_api_client.py:search_titles",
-                "primary_search_failed",
+                "api_search_fallback_failed",
                 {"status_code": exc.status_code, "detail": primary_error},
             )
 
-        if summaries:
-            return summaries
-
-        fallback = await self._search_via_suggestion(trimmed, limit=capped_limit)
-        _agent_debug_log(
-            "C",
-            "imdb_api_client.py:search_titles",
-            "suggestion_fallback_result",
-            {
-                "result_count": len(fallback),
-                "primary_error": primary_error,
-                "first_imdb_id": fallback[0].imdb_id if fallback else None,
-            },
+        logger.info(
+            "imdb search via api fallback query=%r results=%s error=%s",
+            trimmed,
+            len(summaries),
+            primary_error,
         )
-        return fallback
+        return summaries
 
     def _summaries_from_entries(
         self, entries: list[dict[str, Any]], limit: int
@@ -330,15 +357,31 @@ class ImdbApiClient:
     ) -> list[ImdbTitleSummary]:
         url = f"{IMDB_SUGGESTION_BASE_URL}/{quote(query.strip().lower())}.json"
         try:
-            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+            async with httpx.AsyncClient(
+                timeout=REQUEST_TIMEOUT, headers=IMDB_HTTP_HEADERS
+            ) as client:
                 response = await client.get(url)
         except httpx.RequestError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"IMDb suggestion request failed: {exc}",
-            ) from exc
+            _agent_debug_log(
+                "F",
+                "imdb_api_client.py:_search_via_suggestion",
+                "suggestion_request_error",
+                {"url": url, "error": str(exc)},
+            )
+            logger.warning("imdb suggestion request failed for %r: %s", query, exc)
+            return []
+
+        _agent_debug_log(
+            "F",
+            "imdb_api_client.py:_search_via_suggestion",
+            "suggestion_response",
+            {"url": url, "status_code": response.status_code},
+        )
 
         if response.status_code >= 400:
+            logger.warning(
+                "imdb suggestion HTTP %s for %r", response.status_code, query
+            )
             return []
 
         try:
@@ -408,7 +451,9 @@ class ImdbApiClient:
             {"url": url, "params": params or {}},
         )
         try:
-            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+            async with httpx.AsyncClient(
+                timeout=REQUEST_TIMEOUT, headers=IMDB_HTTP_HEADERS
+            ) as client:
                 response = await client.get(url, params=params)
         except httpx.RequestError as exc:
             _agent_debug_log(

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query
+import logging
 
 from app.dependencies import get_current_active_user
 from app.models.user import User
@@ -9,6 +10,7 @@ from app.schemas.imdb import (
 from app.services.imdb_api_client import imdb_api_client, normalize_imdb_id
 
 router = APIRouter(prefix="/imdb", tags=["imdb"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/search", response_model=ImdbTitleSearchResponse)
@@ -19,6 +21,13 @@ async def search_imdb_titles(
 ) -> ImdbTitleSearchResponse:
     _ = user
     items = await imdb_api_client.search_titles(query, limit=limit)
+    logger.info(
+        "imdb_search_route query=%r limit=%s result_count=%s first_id=%s",
+        query,
+        limit,
+        len(items),
+        items[0].imdb_id if items else None,
+    )
     return ImdbTitleSearchResponse(items=items)
 
 

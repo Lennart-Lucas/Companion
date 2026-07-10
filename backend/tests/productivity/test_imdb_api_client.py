@@ -1,8 +1,8 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi import HTTPException
 
+from app.schemas.imdb import ImdbTitleSummary
 from app.services.imdb_api_client import (
     IMDB_API_BASE_URL,
     ImdbApiClient,
@@ -96,35 +96,45 @@ class TestImdbApiClient:
         assert IMDB_API_BASE_URL == "https://api.imdbapi.dev"
 
     @pytest.mark.asyncio
-    async def test_search_falls_back_to_suggestion_when_primary_search_fails(self):
+    async def test_search_prefers_suggestion_results(self):
         client = ImdbApiClient()
-        suggestion_payload = {
-            "d": [
+        expected = [
+            ImdbTitleSummary(
+                imdb_id="tt0844441",
+                name="True Blood",
+                media_type="tvSeries",
+                year=2008,
+                poster_url="https://example.com/true-blood.jpg",
+            )
+        ]
+
+        with patch.object(
+            client, "_search_via_suggestion", AsyncMock(return_value=expected)
+        ):
+            with patch.object(client, "_get", AsyncMock()) as mock_get:
+                results = await client.search_titles("true blood")
+
+        assert results == expected
+        mock_get.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_search_falls_back_to_api_when_suggestion_empty(self):
+        client = ImdbApiClient()
+        api_payload = {
+            "titles": [
                 {
                     "id": "tt0844441",
-                    "l": "True Blood",
-                    "y": 2008,
-                    "qid": "tvSeries",
-                    "i": {"imageUrl": "https://example.com/true-blood.jpg"},
+                    "primaryTitle": "True Blood",
+                    "type": "tvSeries",
+                    "startYear": 2008,
                 }
             ]
         }
 
-        with patch.object(
-            client, "_get", AsyncMock(side_effect=HTTPException(status_code=502, detail="rate limited"))
-        ):
-            with patch("app.services.imdb_api_client.httpx.AsyncClient") as mock_client_cls:
-                mock_response = MagicMock()
-                mock_response.status_code = 200
-                mock_response.json.return_value = suggestion_payload
-                mock_client = AsyncMock()
-                mock_client.__aenter__.return_value = mock_client
-                mock_client.get = AsyncMock(return_value=mock_response)
-                mock_client_cls.return_value = mock_client
-
+        with patch.object(client, "_search_via_suggestion", AsyncMock(return_value=[])):
+            with patch.object(client, "_get", AsyncMock(return_value=api_payload)):
                 results = await client.search_titles("true blood")
 
         assert len(results) == 1
         assert results[0].imdb_id == "tt0844441"
         assert results[0].name == "True Blood"
-        assert results[0].year == 2008
