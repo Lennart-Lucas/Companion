@@ -68,7 +68,10 @@ class MediaTitleRepository {
   }
 
   Future<MediaTitle> refreshFromImdb(String mediaTitleId) async {
-    final response = await _api.post('/media-titles/$mediaTitleId/refresh');
+    final response = await _api.post(
+      '/media-titles/$mediaTitleId/refresh',
+      body: const {},
+    );
     _ensureSuccess(response, 'Re-import from IMDb');
     return MediaTitle.fromJson(response.bodyAsMap);
   }
