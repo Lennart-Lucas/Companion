@@ -188,6 +188,26 @@ DATABASE_URL_SYNC=postgresql+psycopg2://companion:companion@db:5432/companion
 
 Use host `db`, not `localhost`. Pull latest `main`, rebuild (`docker compose … up --build -d`), then migrate. Recent images auto-detect Docker and rewrite mistaken `localhost:5432` to `db:5432` for in-container commands.
 
+**`password authentication failed for user "companion"`** — The app reached Postgres, but the password in `.env.prod` does not match the existing `postgres_data_prod` volume. Postgres only applies `POSTGRES_PASSWORD` on first volume init; changing `.env.prod` later does not update the stored password.
+
+Align credentials (pick one):
+
+```bash
+# Option A: reset DB user password to match .env.prod (keeps data)
+# Replace NEW_PASSWORD with the password in your DATABASE_URL lines.
+docker compose -p companion-prod -f docker-compose.prod.yml exec db \
+  psql -U companion -d companion \
+  -c "ALTER USER companion WITH PASSWORD 'NEW_PASSWORD';"
+```
+
+```bash
+# Option B: update .env.prod to match the password used when the volume was created
+nano ~/Companion/backend/.env.prod
+docker compose -p companion-prod -f docker-compose.prod.yml up -d
+```
+
+Then rerun `alembic upgrade head`. If you use a custom password with special characters (`@`, `#`, `%`, etc.), URL-encode it in `DATABASE_URL` / `DATABASE_URL_SYNC`.
+
 **Alembic: `Can't locate revision identified by '018_quota_check_in'`** — The database was migrated from the old `productivity` branch, but `main` only has migrations through `017_tracker_timer_started`. Point Alembic at `main`'s head, then verify:
 
 ```bash

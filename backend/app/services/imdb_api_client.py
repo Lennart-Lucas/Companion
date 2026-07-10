@@ -1,16 +1,42 @@
 from __future__ import annotations
 
+import json
 import re
+import time
+from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from fastapi import HTTPException, status
 
 from app.schemas.imdb import ImdbTitleDetailResponse, ImdbTitleSummary
 
-IMDB_API_BASE_URL = "https://imdbapi.dev"
+IMDB_API_BASE_URL = "https://api.imdbapi.dev"
+IMDB_SUGGESTION_BASE_URL = "https://v3.sg.media-imdb.com/suggestion/x"
 IMDB_ID_PATTERN = re.compile(r"^tt\d{7,}$", re.IGNORECASE)
 REQUEST_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
+DEBUG_LOG_PATH = Path(__file__).resolve().parents[3] / "debug-0107d2.log"
+
+
+def _agent_debug_log(
+    hypothesis_id: str, location: str, message: str, data: dict[str, Any]
+) -> None:
+    # region agent log
+    try:
+        payload = {
+            "sessionId": "0107d2",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data,
+            "timestamp": int(time.time() * 1000),
+        }
+        with DEBUG_LOG_PATH.open("a", encoding="utf-8") as log_file:
+            log_file.write(json.dumps(payload) + "\n")
+    except OSError:
+        pass
+    # endregion
 
 
 def normalize_imdb_id(value: str) -> str:
@@ -237,16 +263,125 @@ class ImdbApiClient:
         if not trimmed:
             return []
 
-        params = {"query": trimmed, "limit": min(max(limit, 1), 50)}
-        payload = await self._get("/search/titles", params=params)
+        capped_limit = min(max(limit, 1), 50)
+        params = {"query": trimmed, "limit": capped_limit}
+        _agent_debug_log(
+            "A",
+            "imdb_api_client.py:search_titles",
+            "search_start",
+            {"base_url": self._base_url, "query": trimmed, "limit": capped_limit},
+        )
+
+        summaries: list[ImdbTitleSummary] = []
+        primary_error: str | None = None
+        try:
+            payload = await self._get("/search/titles", params=params)
+            summaries = self._summaries_from_entries(
+                _titles_from_search_payload(payload), capped_limit
+            )
+            _agent_debug_log(
+                "B",
+                "imdb_api_client.py:search_titles",
+                "primary_search_result",
+                {"result_count": len(summaries)},
+            )
+        except HTTPException as exc:
+            primary_error = str(exc.detail)
+            _agent_debug_log(
+                "B",
+                "imdb_api_client.py:search_titles",
+                "primary_search_failed",
+                {"status_code": exc.status_code, "detail": primary_error},
+            )
+
+        if summaries:
+            return summaries
+
+        fallback = await self._search_via_suggestion(trimmed, limit=capped_limit)
+        _agent_debug_log(
+            "C",
+            "imdb_api_client.py:search_titles",
+            "suggestion_fallback_result",
+            {
+                "result_count": len(fallback),
+                "primary_error": primary_error,
+                "first_imdb_id": fallback[0].imdb_id if fallback else None,
+            },
+        )
+        return fallback
+
+    def _summaries_from_entries(
+        self, entries: list[dict[str, Any]], limit: int
+    ) -> list[ImdbTitleSummary]:
         summaries: list[ImdbTitleSummary] = []
         seen: set[str] = set()
-        for entry in _titles_from_search_payload(payload):
+        for entry in entries:
             summary = _summary_from_payload(entry)
             if summary is None or summary.imdb_id in seen:
                 continue
             seen.add(summary.imdb_id)
             summaries.append(summary)
+            if len(summaries) >= limit:
+                break
+        return summaries
+
+    async def _search_via_suggestion(
+        self, query: str, *, limit: int
+    ) -> list[ImdbTitleSummary]:
+        url = f"{IMDB_SUGGESTION_BASE_URL}/{quote(query.strip().lower())}.json"
+        try:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+                response = await client.get(url)
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"IMDb suggestion request failed: {exc}",
+            ) from exc
+
+        if response.status_code >= 400:
+            return []
+
+        try:
+            payload = response.json()
+        except ValueError:
+            return []
+
+        entries = payload.get("d") if isinstance(payload, dict) else None
+        if not isinstance(entries, list):
+            return []
+
+        summaries: list[ImdbTitleSummary] = []
+        seen: set[str] = set()
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            imdb_id = entry.get("id")
+            name = entry.get("l")
+            if not isinstance(imdb_id, str) or not isinstance(name, str):
+                continue
+            normalized_id = imdb_id.strip().lower()
+            if not IMDB_ID_PATTERN.match(normalized_id) or normalized_id in seen:
+                continue
+            seen.add(normalized_id)
+            image = entry.get("i")
+            poster_url = None
+            if isinstance(image, dict):
+                raw_poster = image.get("imageUrl")
+                if isinstance(raw_poster, str) and raw_poster.strip():
+                    poster_url = raw_poster.strip()
+            year = entry.get("y")
+            media_type = entry.get("qid") or entry.get("q")
+            summaries.append(
+                ImdbTitleSummary(
+                    imdb_id=normalized_id,
+                    name=name.strip(),
+                    media_type=media_type if isinstance(media_type, str) else None,
+                    year=year if isinstance(year, int) else None,
+                    poster_url=poster_url,
+                )
+            )
+            if len(summaries) >= limit:
+                break
         return summaries
 
     async def get_title(self, imdb_id: str) -> ImdbTitleDetailResponse:
@@ -266,14 +401,37 @@ class ImdbApiClient:
 
     async def _get(self, path: str, *, params: dict[str, Any] | None = None) -> Any:
         url = f"{self._base_url}{path}"
+        _agent_debug_log(
+            "A",
+            "imdb_api_client.py:_get",
+            "request_start",
+            {"url": url, "params": params or {}},
+        )
         try:
             async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
                 response = await client.get(url, params=params)
         except httpx.RequestError as exc:
+            _agent_debug_log(
+                "D",
+                "imdb_api_client.py:_get",
+                "request_error",
+                {"url": url, "error": str(exc)},
+            )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"IMDb API request failed: {exc}",
             ) from exc
+
+        _agent_debug_log(
+            "A",
+            "imdb_api_client.py:_get",
+            "response_received",
+            {
+                "url": url,
+                "status_code": response.status_code,
+                "content_type": response.headers.get("content-type"),
+            },
+        )
 
         if response.status_code == status.HTTP_404_NOT_FOUND:
             raise HTTPException(

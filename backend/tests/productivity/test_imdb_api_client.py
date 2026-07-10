@@ -1,4 +1,11 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi import HTTPException
+
 from app.services.imdb_api_client import (
+    IMDB_API_BASE_URL,
+    ImdbApiClient,
     _cast_from_payload,
     _detail_from_payload,
     _genres_from_payload,
@@ -82,3 +89,42 @@ class TestImdbPayloadMapping:
             }
         )
         assert len(cast) == 12
+
+
+class TestImdbApiClient:
+    def test_default_base_url_uses_api_subdomain(self):
+        assert IMDB_API_BASE_URL == "https://api.imdbapi.dev"
+
+    @pytest.mark.asyncio
+    async def test_search_falls_back_to_suggestion_when_primary_search_fails(self):
+        client = ImdbApiClient()
+        suggestion_payload = {
+            "d": [
+                {
+                    "id": "tt0844441",
+                    "l": "True Blood",
+                    "y": 2008,
+                    "qid": "tvSeries",
+                    "i": {"imageUrl": "https://example.com/true-blood.jpg"},
+                }
+            ]
+        }
+
+        with patch.object(
+            client, "_get", AsyncMock(side_effect=HTTPException(status_code=502, detail="rate limited"))
+        ):
+            with patch("app.services.imdb_api_client.httpx.AsyncClient") as mock_client_cls:
+                mock_response = MagicMock()
+                mock_response.status_code = 200
+                mock_response.json.return_value = suggestion_payload
+                mock_client = AsyncMock()
+                mock_client.__aenter__.return_value = mock_client
+                mock_client.get = AsyncMock(return_value=mock_response)
+                mock_client_cls.return_value = mock_client
+
+                results = await client.search_titles("true blood")
+
+        assert len(results) == 1
+        assert results[0].imdb_id == "tt0844441"
+        assert results[0].name == "True Blood"
+        assert results[0].year == 2008
