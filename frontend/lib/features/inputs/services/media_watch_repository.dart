@@ -54,6 +54,10 @@ class HttpMediaWatchRepository implements MediaWatchRepository {
   @override
   Future<List<MediaWatchEntry>> fetchWatchEntries(String mediaTitleId) async {
     final response = await _api.get('/media-titles/$mediaTitleId/watch-entries');
+    if (response.statusCode == 404) {
+      // Older API builds without watch tracking — treat as empty log.
+      return const [];
+    }
     _ensureSuccess(response, 'Fetch watch entries');
     final body = response.bodyAsMap;
     final items = body['items'];

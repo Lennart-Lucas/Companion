@@ -36,6 +36,10 @@ class MediaEpisodesApi {
       final response = await _api.get(
         '/imdb/titles/$normalized/episodes?page_size=100$tokenQuery',
       );
+      if (response.statusCode == 404) {
+        // Episodes proxy not deployed yet.
+        break;
+      }
       _ensureSuccess(response, 'Fetch episodes');
       final body = response.bodyAsMap;
       final items = body['items'];

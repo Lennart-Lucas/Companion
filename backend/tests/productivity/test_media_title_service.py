@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -40,6 +41,9 @@ async def test_create_media_title_persists_imdb_payload():
     ), patch(
         "app.services.media_title_service._find_by_imdb_id",
         new=AsyncMock(return_value=None),
+    ), patch(
+        "app.services.media_title_service._find_deleted_by_imdb_id",
+        new=AsyncMock(return_value=None),
     ):
         created = await media_title_service.create_media_title(
             session,
@@ -80,3 +84,45 @@ async def test_create_media_title_rejects_duplicate_imdb_id():
 
     assert exc_info.value.status_code == 409
     session.add.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_create_media_title_restores_soft_deleted_title():
+    session = AsyncMock()
+    session.flush = AsyncMock()
+    session.refresh = AsyncMock()
+    user = SimpleNamespace(id=1)
+    deleted = MediaTitle(
+        id=7,
+        user_id=1,
+        imdb_id="tt1375666",
+        name="Old Inception",
+        imdb_url="https://www.imdb.com/title/tt1375666/",
+        deleted_at=datetime.now(UTC),
+    )
+    cleared = AsyncMock()
+
+    with patch(
+        "app.services.media_title_service.imdb_api_client.get_title",
+        new=AsyncMock(return_value=_sample_detail()),
+    ), patch(
+        "app.services.media_title_service._find_by_imdb_id",
+        new=AsyncMock(return_value=None),
+    ), patch(
+        "app.services.media_title_service._find_deleted_by_imdb_id",
+        new=AsyncMock(return_value=deleted),
+    ), patch(
+        "app.services.media_title_service._clear_watch_entries",
+        new=cleared,
+    ):
+        restored = await media_title_service.create_media_title(
+            session,
+            user,
+            MediaTitleCreate(imdb_id="tt1375666"),
+        )
+
+    assert restored is deleted
+    assert restored.deleted_at is None
+    assert restored.name == "Inception"
+    session.add.assert_not_called()
+    cleared.assert_awaited_once()

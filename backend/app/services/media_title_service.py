@@ -2,7 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.media_title import MediaTitle
+from app.models.media_title import WATCH_STATUS_PLAN_TO_WATCH, MediaTitle
+from app.models.media_watch_entry import MediaWatchEntry
 from app.models.user import User
 from app.schemas.imdb import ImdbTitleDetailResponse
 from app.schemas.media_title import MediaTitleCreate, MediaTitleUpdate
@@ -44,6 +45,50 @@ async def _find_by_imdb_id(
         )
     )
     return result.scalar_one_or_none()
+
+
+async def _find_deleted_by_imdb_id(
+    session: AsyncSession, user_id: int, imdb_id: str
+) -> MediaTitle | None:
+    result = await session.execute(
+        select(MediaTitle).where(
+            MediaTitle.user_id == user_id,
+            MediaTitle.imdb_id == imdb_id,
+            MediaTitle.deleted_at.is_not(None),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+def _apply_detail_to_media_title(
+    media_title: MediaTitle, detail: ImdbTitleDetailResponse
+) -> None:
+    media_title.name = detail.name
+    media_title.media_type = detail.media_type
+    media_title.year = detail.year
+    media_title.description = detail.description
+    media_title.poster_url = detail.poster_url
+    media_title.imdb_url = detail.imdb_url
+    media_title.rating = detail.rating
+    media_title.vote_count = detail.vote_count
+    media_title.genres = detail.genres or None
+    media_title.runtime_minutes = detail.runtime_minutes
+    media_title.cast = detail.cast or None
+    media_title.deleted_at = None
+    media_title.watch_status = WATCH_STATUS_PLAN_TO_WATCH
+    media_title.user_rating = None
+    media_title.notes = None
+
+
+async def _clear_watch_entries(session: AsyncSession, media_title_id: int) -> None:
+    result = await session.execute(
+        select(MediaWatchEntry).where(
+            MediaWatchEntry.media_title_id == media_title_id,
+            MediaWatchEntry.deleted_at.is_(None),
+        )
+    )
+    for entry in result.scalars().all():
+        await soft_delete(entry)
 
 
 def _detail_to_media_title(
@@ -101,6 +146,15 @@ async def create_media_title(
         )
 
     detail = await imdb_api_client.get_title(imdb_id)
+
+    deleted = await _find_deleted_by_imdb_id(session, user.id, imdb_id)
+    if deleted is not None:
+        _apply_detail_to_media_title(deleted, detail)
+        await _clear_watch_entries(session, deleted.id)
+        await session.flush()
+        await session.refresh(deleted)
+        return deleted
+
     media_title = _detail_to_media_title(user.id, detail)
     session.add(media_title)
     await session.flush()
