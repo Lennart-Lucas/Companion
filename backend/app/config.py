@@ -69,8 +69,20 @@ class Settings(BaseSettings):
         return None
 
 
+def _running_in_docker() -> bool:
+    if os.environ.get("IN_DOCKER") == "1":
+        return True
+    return os.path.exists("/.dockerenv")
+
+
 def _database_url_for_host(url: str) -> str:
-    if os.environ.get("IN_DOCKER") != "1" and "@db:" in url:
+    if _running_in_docker():
+        return (
+            url.replace("@localhost:5432", "@db:5432").replace(
+                "@127.0.0.1:5432", "@db:5432"
+            )
+        )
+    if "@db:" in url:
         return url.replace("@db:", "@localhost:")
     return url
 
