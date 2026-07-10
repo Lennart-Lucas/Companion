@@ -72,6 +72,18 @@ async def update_media_title(
     return MediaTitleResponse.model_validate(media_title)
 
 
+@router.post("/{media_title_id}/refresh", response_model=MediaTitleResponse)
+async def refresh_media_title(
+    media_title_id: int,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_active_user),
+) -> MediaTitleResponse:
+    media_title = await media_title_service.refresh_media_title_from_imdb(
+        session, user, media_title_id
+    )
+    return MediaTitleResponse.model_validate(media_title)
+
+
 @router.get(
     "/{media_title_id}/watch-entries",
     response_model=MediaWatchEntryListResponse,

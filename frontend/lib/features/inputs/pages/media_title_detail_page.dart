@@ -47,8 +47,10 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
 
   bool _deleting = false;
   bool _logging = false;
+  bool _refreshing = false;
   bool _loadingWatchData = false;
   String? _watchDataError;
+  String? _episodeLoadError;
   MediaTitle? _cachedMediaTitle;
   bool _hydrationRequested = false;
   bool _cacheBootstrapScheduled = false;
@@ -141,23 +143,27 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
     setState(() {
       _loadingWatchData = true;
       _watchDataError = null;
+      _episodeLoadError = null;
     });
 
     try {
       final entries =
           await _watchRepository.fetchWatchEntries(mediaTitle.id);
       List<ImdbEpisodeSummary> episodes = const [];
+      String? episodeLoadError;
       if (isTvMediaType(mediaTitle.mediaType)) {
         try {
           episodes = await _episodesApi.fetchAllEpisodes(mediaTitle.imdbId);
-        } catch (_) {
+        } catch (error) {
           episodes = const [];
+          episodeLoadError = error.toString();
         }
       }
       if (!mounted) return;
       setState(() {
         _watchEntries = entries;
         _episodes = episodes;
+        _episodeLoadError = episodeLoadError;
         _loadingWatchData = false;
       });
     } catch (error) {
@@ -180,6 +186,29 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
           ),
         );
     await _loadWatchData();
+  }
+
+  Future<void> _onReimportFromImdb() async {
+    final mediaTitle = _resolveMediaTitle(context.read<RecordBloc>().state);
+    if (mediaTitle == null || _refreshing) return;
+
+    setState(() => _refreshing = true);
+    try {
+      final updated = await _mediaTitleRepository.refreshFromImdb(mediaTitle.id);
+      await _patchMediaTitle(updated);
+      await _loadWatchData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Re-imported from IMDb')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
   }
 
   Future<void> _patchMediaTitle(MediaTitle updated) async {
@@ -405,6 +434,16 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
         showMovieLabel: !isTv,
       ),
       const SizedBox(height: 16),
+      if (_episodeLoadError != null && isTv)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            _episodeLoadError!,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ),
       MediaTitleEpisodeLog(
         episodes: _episodes,
         watchEntries: _watchEntries,
@@ -525,6 +564,7 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
                   child: FilledButton(
                     onPressed: _logging ||
                             _deleting ||
+                            _refreshing ||
                             (isTvMediaType(mediaTitle.mediaType) &&
                                 _episodes.isNotEmpty &&
                                 findNextUnwatchedEpisode(
@@ -544,8 +584,21 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
                   ),
                 ),
                 IconButton(
+                  tooltip: 'Re-import from IMDb',
+                  onPressed: _deleting || _refreshing
+                      ? null
+                      : _onReimportFromImdb,
+                  icon: _refreshing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.sync),
+                ),
+                IconButton(
                   tooltip: 'Delete',
-                  onPressed: _deleting
+                  onPressed: _deleting || _refreshing
                       ? null
                       : () => _confirmDelete(mediaTitle),
                   icon: const Icon(Icons.delete_outline),

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi import HTTPException
 
-from app.models.media_title import MediaTitle
+from app.models.media_title import WATCH_STATUS_WATCHING, MediaTitle
 from app.schemas.imdb import ImdbTitleDetailResponse
 from app.schemas.media_title import MediaTitleCreate
 from app.services import media_title_service
@@ -126,3 +126,88 @@ async def test_create_media_title_restores_soft_deleted_title():
     assert restored.name == "Inception"
     session.add.assert_not_called()
     cleared.assert_awaited_once()
+
+
+def _tv_detail() -> ImdbTitleDetailResponse:
+    return ImdbTitleDetailResponse(
+        imdb_id="tt0844441",
+        name="True Blood",
+        media_type="tvSeries",
+        year=2008,
+        description="Updated synopsis.",
+        poster_url="https://example.com/true-blood.jpg",
+        imdb_url="https://www.imdb.com/title/tt0844441/",
+        rating=7.9,
+        vote_count=250000,
+        genres=["Drama", "Fantasy"],
+        runtime_minutes=58,
+        cast=[{"name": "Anna Paquin", "character": "Sookie Stackhouse"}],
+    )
+
+
+@pytest.mark.asyncio
+async def test_refresh_media_title_updates_snapshot():
+    session = AsyncMock()
+    session.flush = AsyncMock()
+    session.refresh = AsyncMock()
+    user = SimpleNamespace(id=1)
+    media_title = MediaTitle(
+        id=3,
+        user_id=1,
+        imdb_id="tt0844441",
+        name="Old True Blood",
+        media_type="tvSeries",
+        imdb_url="https://www.imdb.com/title/tt0844441/",
+        description="Old plot",
+        rating=7.0,
+    )
+
+    with patch(
+        "app.services.media_title_service._load_media_title",
+        new=AsyncMock(return_value=media_title),
+    ), patch(
+        "app.services.media_title_service.imdb_api_client.get_title",
+        new=AsyncMock(return_value=_tv_detail()),
+    ):
+        refreshed = await media_title_service.refresh_media_title_from_imdb(
+            session, user, 3
+        )
+
+    assert refreshed.name == "True Blood"
+    assert refreshed.description == "Updated synopsis."
+    assert refreshed.rating == 7.9
+
+
+@pytest.mark.asyncio
+async def test_refresh_media_title_preserves_watch_fields():
+    session = AsyncMock()
+    session.flush = AsyncMock()
+    session.refresh = AsyncMock()
+    user = SimpleNamespace(id=1)
+    media_title = MediaTitle(
+        id=3,
+        user_id=1,
+        imdb_id="tt0844441",
+        name="True Blood",
+        media_type="tvSeries",
+        imdb_url="https://www.imdb.com/title/tt0844441/",
+        watch_status=WATCH_STATUS_WATCHING,
+        user_rating=4.5,
+        notes="Great rewatch",
+    )
+
+    with patch(
+        "app.services.media_title_service._load_media_title",
+        new=AsyncMock(return_value=media_title),
+    ), patch(
+        "app.services.media_title_service.imdb_api_client.get_title",
+        new=AsyncMock(return_value=_tv_detail()),
+    ):
+        refreshed = await media_title_service.refresh_media_title_from_imdb(
+            session, user, 3
+        )
+
+    assert refreshed.watch_status == WATCH_STATUS_WATCHING
+    assert float(refreshed.user_rating) == 4.5
+    assert refreshed.notes == "Great rewatch"
+    assert refreshed.name == "True Blood"

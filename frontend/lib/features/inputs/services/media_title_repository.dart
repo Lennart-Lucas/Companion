@@ -66,6 +66,12 @@ class MediaTitleRepository {
     _ensureSuccess(response, 'Update media title');
     return MediaTitle.fromJson(response.bodyAsMap);
   }
+
+  Future<MediaTitle> refreshFromImdb(String mediaTitleId) async {
+    final response = await _api.post('/media-titles/$mediaTitleId/refresh');
+    _ensureSuccess(response, 'Re-import from IMDb');
+    return MediaTitle.fromJson(response.bodyAsMap);
+  }
 }
 
 class MediaTitleAlreadyExistsException implements Exception {

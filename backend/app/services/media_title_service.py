@@ -60,7 +60,7 @@ async def _find_deleted_by_imdb_id(
     return result.scalar_one_or_none()
 
 
-def _apply_detail_to_media_title(
+def _apply_imdb_snapshot(
     media_title: MediaTitle, detail: ImdbTitleDetailResponse
 ) -> None:
     media_title.name = detail.name
@@ -74,6 +74,12 @@ def _apply_detail_to_media_title(
     media_title.genres = detail.genres or None
     media_title.runtime_minutes = detail.runtime_minutes
     media_title.cast = detail.cast or None
+
+
+def _apply_detail_to_media_title(
+    media_title: MediaTitle, detail: ImdbTitleDetailResponse
+) -> None:
+    _apply_imdb_snapshot(media_title, detail)
     media_title.deleted_at = None
     media_title.watch_status = WATCH_STATUS_PLAN_TO_WATCH
     media_title.user_rating = None
@@ -129,6 +135,17 @@ async def update_media_title(
         return media_title
     for field, value in updates.items():
         setattr(media_title, field, value)
+    await session.flush()
+    await session.refresh(media_title)
+    return media_title
+
+
+async def refresh_media_title_from_imdb(
+    session: AsyncSession, user: User, media_title_id: int
+) -> MediaTitle:
+    media_title = await _load_media_title(session, media_title_id, user.id)
+    detail = await imdb_api_client.get_title(media_title.imdb_id)
+    _apply_imdb_snapshot(media_title, detail)
     await session.flush()
     await session.refresh(media_title)
     return media_title
