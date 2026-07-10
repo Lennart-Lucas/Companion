@@ -43,3 +43,17 @@ class ImdbEpisodeSummary(BaseModel):
 class ImdbEpisodeListResponse(BaseModel):
     items: list[ImdbEpisodeSummary]
     next_page_token: str | None = None
+
+
+class ImdbFilmographyEntry(BaseModel):
+    imdb_id: str
+    name: str
+    media_type: str | None = None
+    year: int | None = None
+    poster_url: str | None = None
+    category: str | None = None
+
+
+class ImdbFilmographyListResponse(BaseModel):
+    items: list[ImdbFilmographyEntry]
+    next_page_token: str | None = None

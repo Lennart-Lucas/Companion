@@ -11,9 +11,8 @@ import 'package:frontend/features/inputs/services/media_watch_progress.dart';
 import 'package:frontend/features/inputs/services/media_watch_repository.dart';
 import 'package:frontend/features/inputs/services/media_title_list_actions.dart';
 import 'package:frontend/features/inputs/widgets/media_title_detail_sidebar.dart';
-import 'package:frontend/features/inputs/widgets/media_title_episode_log.dart';
 import 'package:frontend/features/inputs/widgets/media_title_notes_panel.dart';
-import 'package:frontend/features/inputs/widgets/media_title_season_progress.dart';
+import 'package:frontend/features/inputs/widgets/media_title_season_episodes_panel.dart';
 import 'package:frontend/features/productivity/forms/companion_layout.dart';
 import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
 import 'package:frontend/features/productivity/widgets/tracker_display.dart';
@@ -316,17 +315,64 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
     }
   }
 
-  Future<void> _onDeleteEntry(MediaWatchEntry entry) async {
+  Future<void> _onToggleEpisode(
+    ImdbEpisodeSummary episode,
+    bool markWatched,
+  ) async {
     final mediaTitle = _resolveMediaTitle(context.read<RecordBloc>().state);
-    if (mediaTitle == null) return;
+    if (mediaTitle == null || _logging) return;
+
+    setState(() => _logging = true);
     try {
-      await _watchRepository.deleteWatchEntry(mediaTitle.id, entry.id);
+      if (markWatched) {
+        await _watchRepository.logEpisode(
+          mediaTitle.id,
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          episodeImdbId: episode.imdbId.isEmpty ? null : episode.imdbId,
+          episodeTitle: episode.title,
+        );
+      } else {
+        final entry = _watchEntries.firstWhere(
+          (e) =>
+              e.seasonNumber == episode.seasonNumber &&
+              e.episodeNumber == episode.episodeNumber,
+        );
+        await _watchRepository.deleteWatchEntry(mediaTitle.id, entry.id);
+      }
       await _loadWatchData();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error.toString())),
       );
+    } finally {
+      if (mounted) setState(() => _logging = false);
+    }
+  }
+
+  Future<void> _onToggleMovie(bool markWatched) async {
+    final mediaTitle = _resolveMediaTitle(context.read<RecordBloc>().state);
+    if (mediaTitle == null || _logging) return;
+
+    setState(() => _logging = true);
+    try {
+      if (markWatched) {
+        await _watchRepository.markMovieWatched(mediaTitle.id);
+      } else {
+        final entry = _watchEntries.firstWhere(
+          (e) => e.seasonNumber == null && e.episodeNumber == null,
+        );
+        await _watchRepository.deleteWatchEntry(mediaTitle.id, entry.id);
+      }
+      await _loadWatchData();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _logging = false);
     }
   }
 
@@ -397,12 +443,6 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
     final nextEpisode = isTv
         ? findNextUnwatchedEpisode(_episodes, _watchEntries)
         : null;
-    final seasonProgress = isTv
-        ? computeSeasonProgress(_episodes, _watchEntries)
-        : [
-            if (movieWatchProgress(_watchEntries) != null)
-              movieWatchProgress(_watchEntries)!,
-          ];
 
     return [
       if (mediaTitle.description?.trim().isNotEmpty == true)
@@ -429,11 +469,6 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
         ),
       if (mediaTitle.description?.trim().isNotEmpty == true)
         const SizedBox(height: 16),
-      MediaTitleSeasonProgress(
-        seasons: seasonProgress,
-        showMovieLabel: !isTv,
-      ),
-      const SizedBox(height: 16),
       if (_episodeLoadError != null && isTv)
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -444,12 +479,14 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
             ),
           ),
         ),
-      MediaTitleEpisodeLog(
+      MediaTitleSeasonEpisodesPanel(
         episodes: _episodes,
         watchEntries: _watchEntries,
         nextEpisode: nextEpisode,
-        onDeleteEntry: _onDeleteEntry,
         isMovie: !isTv,
+        toggleEnabled: !_logging,
+        onToggleEpisode: isTv ? _onToggleEpisode : null,
+        onToggleMovie: isTv ? null : _onToggleMovie,
       ),
       const SizedBox(height: 16),
       TrackerRowPanel(
@@ -500,12 +537,16 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
     }
 
     final isTv = isTvMediaType(mediaTitle.mediaType);
+    final episodesSeen =
+        isTv ? countWatchedTvEpisodes(_watchEntries) : null;
     final sidebar = MediaTitleDetailSidebar(
       mediaTitle: mediaTitle,
       isTv: isTv,
       episodeCount: isTv ? _episodes.length : null,
+      episodesSeen: episodesSeen,
       onWatchStatusChanged: _onWatchStatusChanged,
       onUserRatingChanged: _onUserRatingChanged,
+      actions: _actions,
     );
 
     if (CompanionLayout.isCompact(context)) {
@@ -516,8 +557,10 @@ class _MediaTitleDetailPageState extends State<MediaTitleDetailPage> {
             mediaTitle: mediaTitle,
             isTv: isTv,
             episodeCount: isTv ? _episodes.length : null,
+            episodesSeen: episodesSeen,
             onWatchStatusChanged: _onWatchStatusChanged,
             onUserRatingChanged: _onUserRatingChanged,
+            actions: _actions,
             compact: true,
           ),
           const SizedBox(height: 16),

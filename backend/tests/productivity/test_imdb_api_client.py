@@ -9,16 +9,21 @@ from app.services.imdb_api_client import (
     _cast_from_payload,
     _detail_from_payload,
     _episode_from_payload,
+    _filmography_entry_from_payload,
     _genres_from_payload,
     _summary_from_payload,
     imdb_page_url,
     normalize_imdb_id,
+    normalize_imdb_name_id,
 )
 
 
 class TestImdbIdNormalization:
     def test_normalize_imdb_id_lowercases(self):
         assert normalize_imdb_id("TT1375666") == "tt1375666"
+
+    def test_normalize_imdb_name_id_lowercases(self):
+        assert normalize_imdb_name_id("NM0000138") == "nm0000138"
 
     def test_imdb_page_url(self):
         assert imdb_page_url("tt1375666") == "https://www.imdb.com/title/tt1375666/"
@@ -70,6 +75,49 @@ class TestImdbPayloadMapping:
         assert detail.runtime_minutes == 148
         assert detail.cast == [{"name": "Leonardo DiCaprio", "character": "Cobb"}]
         assert detail.imdb_url == imdb_page_url("tt1375666")
+
+    def test_cast_includes_imdb_name_id_when_present(self):
+        cast = _cast_from_payload(
+            {
+                "principalCast": [
+                    {
+                        "name": {
+                            "id": "nm0000138",
+                            "nameText": {"text": "Leonardo DiCaprio"},
+                        },
+                        "characters": ["Cobb"],
+                    }
+                ]
+            }
+        )
+        assert cast == [
+            {
+                "name": "Leonardo DiCaprio",
+                "character": "Cobb",
+                "imdb_name_id": "nm0000138",
+            }
+        ]
+
+    def test_filmography_entry_from_nested_title_payload(self):
+        entry = _filmography_entry_from_payload(
+            {
+                "title": {
+                    "id": "tt1375666",
+                    "titleText": {"text": "Inception"},
+                    "titleType": "movie",
+                    "releaseDate": {"year": 2010},
+                    "primaryImage": {"url": "https://example.com/inception.jpg"},
+                },
+                "category": "actor",
+            }
+        )
+        assert entry is not None
+        assert entry.imdb_id == "tt1375666"
+        assert entry.name == "Inception"
+        assert entry.media_type == "movie"
+        assert entry.year == 2010
+        assert entry.poster_url == "https://example.com/inception.jpg"
+        assert entry.category == "actor"
 
     def test_genres_from_string_list(self):
         assert _genres_from_payload({"genres": ["Drama", "Crime"]}) == [
@@ -157,3 +205,29 @@ class TestImdbApiClient:
         assert len(results) == 1
         assert results[0].imdb_id == "tt0844441"
         assert results[0].name == "True Blood"
+
+    @pytest.mark.asyncio
+    async def test_list_name_filmography_parses_entries(self):
+        client = ImdbApiClient()
+        api_payload = {
+            "filmography": [
+                {
+                    "title": {
+                        "id": "tt1375666",
+                        "titleText": {"text": "Inception"},
+                        "titleType": "movie",
+                        "releaseDate": {"year": 2010},
+                    },
+                    "category": "actor",
+                }
+            ],
+            "nextPageToken": "page-2",
+        }
+
+        with patch.object(client, "_get", AsyncMock(return_value=api_payload)):
+            items, next_token = await client.list_name_filmography("nm0000138")
+
+        assert len(items) == 1
+        assert items[0].imdb_id == "tt1375666"
+        assert items[0].name == "Inception"
+        assert next_token == "page-2"

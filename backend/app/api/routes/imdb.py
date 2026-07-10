@@ -5,10 +5,15 @@ from app.dependencies import get_current_active_user
 from app.models.user import User
 from app.schemas.imdb import (
     ImdbEpisodeListResponse,
+    ImdbFilmographyListResponse,
     ImdbTitleDetailResponse,
     ImdbTitleSearchResponse,
 )
-from app.services.imdb_api_client import imdb_api_client, normalize_imdb_id
+from app.services.imdb_api_client import (
+    imdb_api_client,
+    normalize_imdb_id,
+    normalize_imdb_name_id,
+)
 
 router = APIRouter(prefix="/imdb", tags=["imdb"])
 logger = logging.getLogger(__name__)
@@ -57,3 +62,20 @@ async def list_imdb_episodes(
         page_token=page_token,
     )
     return ImdbEpisodeListResponse(items=items, next_page_token=next_page_token)
+
+
+@router.get("/names/{name_id}/filmography", response_model=ImdbFilmographyListResponse)
+async def list_imdb_name_filmography(
+    name_id: str,
+    page_size: int = Query(default=50, ge=1, le=50),
+    page_token: str | None = Query(default=None),
+    user: User = Depends(get_current_active_user),
+) -> ImdbFilmographyListResponse:
+    _ = user
+    normalized = normalize_imdb_name_id(name_id)
+    items, next_page_token = await imdb_api_client.list_name_filmography(
+        normalized,
+        page_size=page_size,
+        page_token=page_token,
+    )
+    return ImdbFilmographyListResponse(items=items, next_page_token=next_page_token)

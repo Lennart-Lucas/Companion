@@ -8,18 +8,42 @@ from urllib.parse import quote
 import httpx
 from fastapi import HTTPException, status
 
-from app.schemas.imdb import ImdbEpisodeSummary, ImdbTitleDetailResponse, ImdbTitleSummary
+from app.schemas.imdb import (
+    ImdbEpisodeSummary,
+    ImdbFilmographyEntry,
+    ImdbTitleDetailResponse,
+    ImdbTitleSummary,
+)
 
 logger = logging.getLogger(__name__)
 
 IMDB_API_BASE_URL = "https://api.imdbapi.dev"
 IMDB_SUGGESTION_BASE_URL = "https://v3.sg.media-imdb.com/suggestion/x"
 IMDB_ID_PATTERN = re.compile(r"^tt\d{7,}$", re.IGNORECASE)
+IMDB_NAME_ID_PATTERN = re.compile(r"^nm\d{7,}$", re.IGNORECASE)
 REQUEST_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
 IMDB_HTTP_HEADERS = {
     "User-Agent": "Companion/1.0",
     "Accept": "application/json",
 }
+
+
+def normalize_imdb_name_id(value: str) -> str:
+    normalized = value.strip().lower()
+    if not IMDB_NAME_ID_PATTERN.match(normalized):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="imdb_name_id must match nm followed by at least 7 digits",
+        )
+    return normalized
+
+
+def _imdb_name_id_from_payload(payload: dict[str, Any]) -> str | None:
+    for key in ("id", "nameId", "personId", "imdb_name_id"):
+        value = payload.get(key)
+        if isinstance(value, str) and IMDB_NAME_ID_PATTERN.match(value.strip()):
+            return value.strip().lower()
+    return None
 
 
 def normalize_imdb_id(value: str) -> str:
@@ -180,7 +204,12 @@ def _cast_from_payload(payload: dict[str, Any]) -> list[dict]:
             first = characters[0]
             character = first if isinstance(first, str) else _text_value(first)
         if actor_name:
-            cast.append({"name": actor_name, "character": character})
+            cast_entry: dict[str, Any] = {"name": actor_name, "character": character}
+            if isinstance(name_block, dict):
+                imdb_name_id = _imdb_name_id_from_payload(name_block)
+                if imdb_name_id is not None:
+                    cast_entry["imdb_name_id"] = imdb_name_id
+            cast.append(cast_entry)
     return cast
 
 
@@ -287,6 +316,45 @@ def _episode_from_payload(payload: dict[str, Any]) -> ImdbEpisodeSummary | None:
         release_month=release_month,
         release_day=release_day,
         rating=rating,
+    )
+
+
+def _filmography_entry_from_payload(
+    payload: dict[str, Any],
+) -> ImdbFilmographyEntry | None:
+    title_block = payload.get("title")
+    if isinstance(title_block, dict):
+        imdb_id = _imdb_id_from_payload(title_block)
+        name = _title_name_from_payload(title_block)
+        media_type = _media_type_from_payload(title_block)
+        year = _year_from_payload(title_block)
+        poster_url = _image_url(title_block.get("primaryImage"))
+    else:
+        imdb_id = _imdb_id_from_payload(payload)
+        for key in ("titleId", "title_id"):
+            value = payload.get(key)
+            if isinstance(value, str) and IMDB_ID_PATTERN.match(value.strip()):
+                imdb_id = value.strip().lower()
+                break
+        name = _text_value(payload.get("name")) or _title_name_from_payload(payload)
+        media_type = _media_type_from_payload(payload)
+        year = _year_from_payload(payload)
+        poster_url = _image_url(payload.get("primaryImage"))
+
+    if imdb_id is None or name is None:
+        return None
+
+    category = payload.get("category")
+    if category is not None and not isinstance(category, str):
+        category = str(category)
+
+    return ImdbFilmographyEntry(
+        imdb_id=imdb_id,
+        name=name,
+        media_type=media_type,
+        year=year,
+        poster_url=poster_url,
+        category=category,
     )
 
 
@@ -453,6 +521,37 @@ class ImdbApiClient:
             if episode is not None:
                 episodes.append(episode)
         return episodes, next_token
+
+    async def list_name_filmography(
+        self,
+        name_id: str,
+        *,
+        page_size: int = 50,
+        page_token: str | None = None,
+    ) -> tuple[list[ImdbFilmographyEntry], str | None]:
+        normalized = normalize_imdb_name_id(name_id)
+        params: dict[str, Any] = {"pageSize": min(max(page_size, 1), 50)}
+        if page_token:
+            params["pageToken"] = page_token
+        payload = await self._get(f"/names/{normalized}/filmography", params=params)
+        entries: list[dict[str, Any]] = []
+        next_token: str | None = None
+        if isinstance(payload, dict):
+            for key in ("filmography", "credits", "items"):
+                raw_entries = payload.get(key)
+                if isinstance(raw_entries, list):
+                    entries = [entry for entry in raw_entries if isinstance(entry, dict)]
+                    break
+            token = payload.get("nextPageToken")
+            if isinstance(token, str) and token.strip():
+                next_token = token.strip()
+
+        filmography: list[ImdbFilmographyEntry] = []
+        for entry in entries:
+            parsed = _filmography_entry_from_payload(entry)
+            if parsed is not None:
+                filmography.append(parsed)
+        return filmography, next_token
 
     async def _get(self, path: str, *, params: dict[str, Any] | None = None) -> Any:
         url = f"{self._base_url}{path}"

@@ -99,6 +99,27 @@ List<MediaSeasonProgress> computeSeasonProgress(
   ];
 }
 
+Map<int, List<ImdbEpisodeSummary>> groupEpisodesBySeason(
+  List<ImdbEpisodeSummary> episodes,
+) {
+  final grouped = <int, List<ImdbEpisodeSummary>>{};
+  for (final episode in episodes) {
+    grouped.putIfAbsent(episode.seasonNumber, () => []).add(episode);
+  }
+  for (final seasonEpisodes in grouped.values) {
+    seasonEpisodes.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+  }
+  return grouped;
+}
+
+int countWatchedTvEpisodes(List<MediaWatchEntry> watchEntries) {
+  return watchEntries
+      .where(
+        (entry) => entry.seasonNumber != null && entry.episodeNumber != null,
+      )
+      .length;
+}
+
 ImdbEpisodeSummary? findNextUnwatchedEpisode(
   List<ImdbEpisodeSummary> episodes,
   List<MediaWatchEntry> watchEntries,

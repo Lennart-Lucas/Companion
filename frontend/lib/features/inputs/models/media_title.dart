@@ -97,6 +97,7 @@ class MediaTitle extends ProductivityRecord {
         MediaTitleCastMember(
           name: actorName.trim(),
           character: (map['character'] as String?)?.trim(),
+          imdbNameId: (map['imdb_name_id'] as String?)?.trim(),
         ),
       );
     }
@@ -174,6 +175,7 @@ class MediaTitle extends ProductivityRecord {
             {
               'name': member.name,
               if (member.character != null) 'character': member.character,
+              if (member.imdbNameId != null) 'imdb_name_id': member.imdbNameId,
             },
         ],
       'watch_status': watchStatus,
@@ -187,10 +189,12 @@ class MediaTitleCastMember {
   const MediaTitleCastMember({
     required this.name,
     this.character,
+    this.imdbNameId,
   });
 
   final String name;
   final String? character;
+  final String? imdbNameId;
 }
 
 class ImdbTitleSummary {
