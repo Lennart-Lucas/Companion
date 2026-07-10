@@ -21,6 +21,8 @@ services:
       - "8000:8000"
     env_file:
       - .env.dev
+    environment:
+      IN_DOCKER: "1"
     depends_on:
       db:
         condition: service_healthy
@@ -34,6 +36,8 @@ services:
     build: .
     env_file:
       - .env.dev
+    environment:
+      IN_DOCKER: "1"
     depends_on:
       db:
         condition: service_healthy

@@ -180,6 +180,8 @@ docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upg
 
 On `main`, `CORS_ORIGINS` is a comma-separated string (not JSON). An empty value is allowed after rebuild; leaving the variable unset uses the default dev origins.
 
+**Alembic: `connection to server at "localhost" … Connection refused`** — Alembic is running inside the API container but connecting to `localhost` instead of the `db` service. Ensure `DATABASE_URL_SYNC` in `.env.prod` uses host `db` (see `.env.prod.example`), then recreate containers so `IN_DOCKER=1` is set (`docker compose … up --build -d`). Do not use `localhost` in `.env.prod` for Docker deployments.
+
 **Alembic: `Can't locate revision identified by '018_quota_check_in'`** — The database was migrated from the old `productivity` branch, but `main` only has migrations through `017_tracker_timer_started`. Point Alembic at `main`'s head, then verify:
 
 ```bash
