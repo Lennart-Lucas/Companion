@@ -134,6 +134,11 @@ To see what would be discarded before resetting: `git log --oneline origin/main.
 ```bash
 curl -s http://localhost:8001/health
 curl -s http://localhost:8001/health/db
+```
+
+`/health` should include `"imdb_api_base":"https://api.imdbapi.dev"`. If that field is missing or shows `https://imdbapi.dev`, the API image is stale — run `up --build` again (use `build --no-cache api worker` if layers stay cached).
+
+```bash
 docker compose -p companion-prod -f docker-compose.prod.yml ps
 docker compose -p companion-prod -f docker-compose.prod.yml logs --tail=30 api
 docker compose -p companion-prod -f docker-compose.prod.yml logs --tail=30 worker
@@ -149,6 +154,18 @@ environment:
 ```
 
 Then rebuild the worker: `docker compose -p companion-prod -f docker-compose.prod.yml up -d --build worker`.
+
+**IMDb search / ID lookup: `Title not found on IMDb` (HTTP 404)** — The running API image still uses the old IMDb host (`https://imdbapi.dev`, which returns HTML 404). Pull latest `main`, rebuild without cache, and confirm deploy:
+
+```bash
+cd ~/Companion && git fetch origin && git reset --hard origin/main
+cd backend
+docker compose -p companion-prod -f docker-compose.prod.yml build --no-cache api worker
+docker compose -p companion-prod -f docker-compose.prod.yml up -d
+curl -s http://localhost:8001/health
+```
+
+Expected: `{"status":"ok","imdb_api_base":"https://api.imdbapi.dev"}`. Then search `true blood` or ID `tt0844441` should work.
 
 **API: `Child process died` on a small VPS** — Use one Uvicorn worker in `docker-compose.prod.yml`:
 
