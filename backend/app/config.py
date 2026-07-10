@@ -1,9 +1,8 @@
 import os
 from functools import lru_cache
-from typing import Annotated
 
-from pydantic import field_validator
-from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -30,10 +29,8 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
     password_min_length: int = 8
 
-    cors_origins: Annotated[list[str], NoDecode] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
-    ]
+    # Comma-separated in env (CORS_ORIGINS). Parsed via [cors_origin_list].
+    cors_origins: str = "http://localhost:3000,http://localhost:8000"
     # In development, allow any localhost port (Flutter web uses random ports).
     cors_allow_origin_regex: str | None = None
 
@@ -48,16 +45,16 @@ class Settings(BaseSettings):
     job_lock_timeout_seconds: int = 300
     job_schema_wait_timeout_seconds: int = 120
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, value: str | list[str] | None) -> list[str]:
-        if value is None:
+    @computed_field
+    @property
+    def cors_origin_list(self) -> list[str]:
+        if not self.cors_origins.strip():
             return []
-        if isinstance(value, str):
-            if not value.strip():
-                return []
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
-        return value
+        return [
+            origin.strip()
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
+        ]
 
     @property
     def is_production(self) -> bool:
