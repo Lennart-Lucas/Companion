@@ -93,7 +93,7 @@ Deploy on a Linux host with Docker using `docker-compose.prod.yml` (compose proj
 
 ```bash
 cd ~/Companion/backend
-cp .env.prod.example .env.prod   # once: set JWT_SECRET, CORS_ORIGINS, etc.
+cp .env.prod.example .env.prod
 docker compose -p companion-prod -f docker-compose.prod.yml up --build -d
 docker compose -p companion-prod -f docker-compose.prod.yml exec api alembic upgrade head
 ```

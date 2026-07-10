@@ -1,8 +1,9 @@
 import os
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -29,7 +30,10 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
     password_min_length: int = 8
 
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    cors_origins: Annotated[list[str], NoDecode] = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+    ]
     # In development, allow any localhost port (Flutter web uses random ports).
     cors_allow_origin_regex: str | None = None
 
@@ -46,8 +50,12 @@ class Settings(BaseSettings):
 
     @field_validator("cors_origins", mode="before")
     @classmethod
-    def parse_cors_origins(cls, value: str | list[str]) -> list[str]:
+    def parse_cors_origins(cls, value: str | list[str] | None) -> list[str]:
+        if value is None:
+            return []
         if isinstance(value, str):
+            if not value.strip():
+                return []
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
 
