@@ -10,6 +10,14 @@ void main() {
         const Color(0xFFE68A49),
       );
       expect(
+        AppThemeId.themeFor(AppThemeId.hubII).colorScheme.primary,
+        const Color(0xFFF58A27),
+      );
+      expect(
+        AppThemeId.themeFor(AppThemeId.hubII).scaffoldBackgroundColor,
+        const Color(0xFF0E0E0E),
+      );
+      expect(
         AppThemeId.themeFor(AppThemeId.abyss).colorScheme.primary,
         const Color(0xFF4FC3F7),
       );
@@ -46,8 +54,12 @@ void main() {
         const Color(0xFF0D1A14),
       );
       expect(
-        AppThemeId.previewColorsFor(AppThemeId.nebula).surface,
-        const Color(0xFF1E1630),
+        AppThemeId.previewColorsFor(AppThemeId.hubII).primary,
+        const Color(0xFFF58A27),
+      );
+      expect(
+        AppThemeId.previewColorsFor(AppThemeId.hubII).background,
+        const Color(0xFF0E0E0E),
       );
     });
   });

@@ -6,7 +6,9 @@ import 'package:frontend/features/productivity/forms/tracker_form_config.dart';
 
 /// Full-screen single-page form to create a tracker.
 class TrackerCreatePage extends StatelessWidget {
-  const TrackerCreatePage({super.key});
+  const TrackerCreatePage({super.key, this.goalId});
+
+  final RecordId? goalId;
 
   static const _trackersQuery = RecordQuery(recordType: 'trackers', limit: 50);
 
@@ -32,7 +34,12 @@ class TrackerCreatePage extends StatelessWidget {
         opacity: 0.32,
         baseSize: 260,
         child: AnvilForm(
-          config: buildTrackerFormConfig(recordBloc),
+          config: buildTrackerFormConfig(
+            recordBloc,
+            createOverrides: {
+              if (goalId != null) 'goal_id': goalId,
+            },
+          ),
           submitLabel: 'Create tracker',
           onCancel: () => Navigator.of(context).pop(),
           onSubmitSuccess: (_) async {

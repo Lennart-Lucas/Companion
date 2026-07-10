@@ -79,6 +79,7 @@ AnvilFormConfig buildTrackerFormConfig(
   RecordBloc recordBloc, {
   RecordId? recordId,
   Tracker? preloadedTracker,
+  Map<String, dynamic> createOverrides = const {},
 }) {
   final isEdit = recordId != null;
 
@@ -106,6 +107,7 @@ AnvilFormConfig buildTrackerFormConfig(
             ...TaskScheduleFormValues.defaultCreateValues(),
             TaskScheduleFormKeys.scheduleMode: TaskScheduleMode.repeating,
             TaskScheduleFormKeys.repeatEnabled: true,
+            ...createOverrides,
           },
     validationRules: [
       AnvilFormValidationRule(

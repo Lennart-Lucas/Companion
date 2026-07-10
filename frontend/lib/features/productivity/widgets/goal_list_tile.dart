@@ -233,12 +233,12 @@ class _GoalListTileBodyState extends State<_GoalListTileBody> {
         TaskMetaChip(
           label:
               '${goal.milestoneCount} milestone${goal.milestoneCount == 1 ? '' : 's'}',
-          tintColor: scheme.secondary,
+          tintColor: goalMilestoneChipColor,
           bordered: false,
           leading: Icon(
             Icons.flag_outlined,
             size: 14,
-            color: scheme.secondary,
+            color: goalMilestoneChipColor,
           ),
         ),
       );

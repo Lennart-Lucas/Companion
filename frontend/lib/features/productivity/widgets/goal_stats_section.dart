@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
+import 'package:frontend/features/productivity/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/services/goal_stats.dart';
-import 'package:frontend/features/productivity/widgets/goal_logged_trend_chart.dart';
+import 'package:frontend/features/productivity/widgets/goal_value_over_time_section.dart';
 import 'package:frontend/features/productivity/widgets/goal_month_logged_calendar.dart';
+import 'package:frontend/features/productivity/widgets/goal_related_records_section.dart';
 import 'package:frontend/features/productivity/widgets/goal_stat_items.dart';
 import 'package:frontend/features/productivity/widgets/goal_stats_highlight_row.dart';
 import 'package:frontend/features/productivity/widgets/tracker_display.dart';
@@ -13,6 +15,7 @@ class GoalStatsSection extends StatelessWidget {
     super.key,
     required this.goal,
     required this.stats,
+    required this.checkIns,
     required this.listToday,
     required this.displayedMonth,
     required this.onPreviousMonth,
@@ -25,6 +28,7 @@ class GoalStatsSection extends StatelessWidget {
 
   final Goal goal;
   final GoalStats stats;
+  final List<GoalCheckIn> checkIns;
   final DateTime listToday;
   final DateTime displayedMonth;
   final VoidCallback onPreviousMonth;
@@ -60,11 +64,11 @@ class GoalStatsSection extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
-        GoalLoggedTrendChart(
-          weeklyRates: stats.weeklyLoggedRates,
-          weeklyHasData: stats.weeklyHasData,
+        GoalValueOverTimeSection(
+          goal: goal,
+          stats: stats,
+          checkIns: checkIns,
           listToday: listToday,
-          goalStartDate: goal.startDate,
         ),
         const SizedBox(height: 16),
         GoalMonthLoggedCalendar(
@@ -78,6 +82,12 @@ class GoalStatsSection extends StatelessWidget {
           goalStartDate: goal.startDate,
           goalEndDate: goal.endDate,
         ),
+        const SizedBox(height: 16),
+        GoalRelatedRecordsSection(
+          goal: goal,
+          listToday: listToday,
+        ),
+        const SizedBox(height: 24),
       ],
     );
   }

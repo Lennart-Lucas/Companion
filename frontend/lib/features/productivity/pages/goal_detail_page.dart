@@ -465,6 +465,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
     final statsSection = GoalStatsSection(
       goal: goal,
       stats: stats,
+      checkIns: _checkIns,
       listToday: _listToday,
       displayedMonth: _displayedMonth,
       onPreviousMonth: _showPreviousMonth,
@@ -496,6 +497,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
         GoalDetailSidebar(
           goal: goal,
           stats: stats,
+          listToday: _listToday,
         ),
         VerticalDivider(
           width: 1,

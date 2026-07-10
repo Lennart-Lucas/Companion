@@ -89,12 +89,13 @@ class GoalStatsHighlightRow extends StatelessWidget {
   Widget build(BuildContext context) {
 
     final sidebarStyle = _resolvedLayout == GoalStatsHighlightLayout.vertical;
+    final accentColor = productivityPrimaryAccent(context);
 
     final cards = _useSidebarMetrics
 
-        ? _sidebarCards(goal!, stats, sidebarStyle)
+        ? _sidebarCards(goal!, stats, sidebarStyle, accentColor)
 
-        : _defaultCards(stats, sidebarStyle);
+        : _defaultCards(stats, sidebarStyle, accentColor);
 
 
 
@@ -154,23 +155,22 @@ class GoalStatsHighlightRow extends StatelessWidget {
 
     bool sidebarStyle,
 
+    Color accentColor,
+
   ) {
 
     final progressPercent = stats.progressPercent.round();
 
     final consistencyPercent = (stats.consistency * 100).round();
 
-    final currentTargetLabel = formatGoalCurrentTarget(goal, stats);
-
     final progressFraction =
         (stats.progressPercent / 100).clamp(0.0, 1.0);
 
-    final currentTargetFraction = computeCurrentTargetRingFraction(
+    final etaLabel = formatGoalEtaShort(stats.etaWeeks);
+    final etaRingFraction = computeGoalEtaRingFraction(
       goal,
-      stats.currentValue,
+      stats.etaWeeks,
     );
-
-
 
     return [
 
@@ -178,7 +178,7 @@ class GoalStatsHighlightRow extends StatelessWidget {
 
         ringFraction: progressFraction,
 
-        ringColor: companionPrimaryOrange,
+        ringColor: accentColor,
 
         ringCenterText: '$progressPercent%',
 
@@ -192,13 +192,13 @@ class GoalStatsHighlightRow extends StatelessWidget {
 
       _GoalHighlightCard(
 
-        ringFraction: currentTargetFraction,
+        ringFraction: etaRingFraction,
 
-        ringColor: companionSuccessColor,
+        ringColor: accentColor,
 
-        valueText: currentTargetLabel,
+        valueText: etaLabel,
 
-        label: 'Current / target',
+        label: 'ETA at current pace',
 
         sidebarStyle: sidebarStyle,
 
@@ -228,7 +228,11 @@ class GoalStatsHighlightRow extends StatelessWidget {
 
 
 
-  List<Widget> _defaultCards(GoalStats stats, bool sidebarStyle) {
+  List<Widget> _defaultCards(
+    GoalStats stats,
+    bool sidebarStyle,
+    Color accentColor,
+  ) {
 
     final progressPercent = stats.progressPercent.round();
 
@@ -280,7 +284,7 @@ class GoalStatsHighlightRow extends StatelessWidget {
 
         ringFraction: stats.consistency.clamp(0.0, 1.0),
 
-        ringColor: trackerStrengthMidColor,
+        ringColor: accentColor,
 
         ringCenterText: '$consistencyPercent%',
 

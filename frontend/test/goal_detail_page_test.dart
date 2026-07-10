@@ -104,7 +104,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Read 12 books'), findsWidgets);
-    expect(find.text('8-week trend'), findsOneWidget);
+    expect(find.text('Books over time'), findsOneWidget);
+    expect(find.text('Projects'), findsOneWidget);
+    expect(find.text('Trackers'), findsOneWidget);
 
     app.dispose();
   });

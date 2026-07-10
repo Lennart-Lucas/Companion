@@ -6,7 +6,9 @@ import 'package:frontend/features/productivity/forms/project_form_config.dart';
 
 /// Full-screen single-page form to create a project.
 class ProjectCreatePage extends StatelessWidget {
-  const ProjectCreatePage({super.key});
+  const ProjectCreatePage({super.key, this.goalId});
+
+  final RecordId? goalId;
 
   static const _projectsQuery = RecordQuery(recordType: 'projects', limit: 50);
 
@@ -33,7 +35,12 @@ class ProjectCreatePage extends StatelessWidget {
         opacity: 0.32,
         baseSize: 260,
         child: AnvilForm(
-          config: buildProjectFormConfig(recordBloc),
+          config: buildProjectFormConfig(
+            recordBloc,
+            createOverrides: {
+              if (goalId != null) 'goal_id': goalId,
+            },
+          ),
           submitLabel: 'Create project',
           onCancel: () => Navigator.of(context).pop(),
           onSubmitSuccess: (_) async {

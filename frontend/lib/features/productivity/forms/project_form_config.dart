@@ -9,6 +9,7 @@ AnvilFormConfig buildProjectFormConfig(
   RecordBloc recordBloc, {
   RecordId? recordId,
   Project? preloadedProject,
+  Map<String, dynamic> createOverrides = const {},
 }) {
   final isEdit = recordId != null;
   return AnvilFormConfig(
@@ -29,8 +30,9 @@ AnvilFormConfig buildProjectFormConfig(
     },
     initialValues: isEdit
         ? const {}
-        : const {
+        : {
             'status': 'planning',
+            ...createOverrides,
           },
     validationRules: [
       AnvilFormValidationRule(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/features/productivity/widgets/project_display.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 import 'package:frontend/features/productivity/widgets/tracker_display.dart';
@@ -132,7 +133,7 @@ class TrackerSuccessTrendChart extends StatelessWidget {
                             painter: _TrendAreaChartPainter(
                               rates: _rates,
                               hasData: _hasData,
-                              lineColor: trackerStrengthMidColor,
+                              lineColor: productivityPrimaryAccent(context),
                               gridColor: scheme.onSurface.withValues(alpha: 0.1),
                             ),
                           ),

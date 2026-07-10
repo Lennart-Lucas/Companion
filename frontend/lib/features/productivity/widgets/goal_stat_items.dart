@@ -101,23 +101,14 @@ List<GoalStatItem> buildGoalSidebarStatItems({
 }) {
 
   return [
-
     GoalStatItem('Total check-ins', '${stats.loggedCount}'),
-
     GoalStatItem('Velocity', formatGoalVelocity(goal, stats.velocityPerWeek)),
-
-    GoalStatItem(
-
-      'Pace',
-
-      formatGoalPace(stats.pace),
-
-      valueColor: goalPaceColor(stats.pace),
-
-    ),
-
     GoalStatItem('ETA', formatGoalEta(stats.etaWeeks)),
-
+    GoalStatItem(
+      'Pace',
+      formatGoalPace(stats.pace),
+      valueColor: goalPaceColor(stats.pace),
+    ),
   ];
 
 }
@@ -125,43 +116,32 @@ List<GoalStatItem> buildGoalSidebarStatItems({
 
 
 String formatGoalCurrentTarget(Goal goal, GoalStats stats) {
-
+  final start = stats.startValue;
   final current = stats.currentValue;
-
   final target = goal.target;
 
-  final currentLabel =
-
-      current == null ? '—' : _formatNum(current);
-
+  final startLabel = start == null ? '—' : _formatNum(start);
+  final currentLabel = current == null ? '—' : _formatNum(current);
   final targetLabel = _formatNum(target);
 
-
-
   if (goal.goalType == GoalType.count) {
-
     final unit = goal.unit.trim();
-
     if (unit.isNotEmpty) {
-
+      if (start != null && goal.direction == GoalDirection.decreasing) {
+        return '$startLabel → $currentLabel / $targetLabel $unit';
+      }
       return '$currentLabel / $targetLabel $unit';
-
     }
-
   } else if (goal.goalType == GoalType.pulse) {
-
+    if (start != null) {
+      return '$startLabel → $currentLabel / $targetLabel';
+    }
     return '$currentLabel / $targetLabel';
-
   } else if (goal.goalType == GoalType.task) {
-
     return '$currentLabel / $targetLabel';
-
   }
 
-
-
   return '$currentLabel / $targetLabel';
-
 }
 
 
@@ -231,15 +211,18 @@ Color? goalPaceColor(GoalPace pace) => switch (pace) {
 
 
 String formatGoalEta(int? etaWeeks) {
-
   if (etaWeeks == null) return '—';
-
   if (etaWeeks <= 0) return 'Reached';
-
   if (etaWeeks == 1) return '~1 week';
-
   return '~$etaWeeks weeks';
+}
 
+/// Compact ETA label for sidebar highlight cards (e.g. `~9 wks`).
+String formatGoalEtaShort(int? etaWeeks) {
+  if (etaWeeks == null) return '—';
+  if (etaWeeks <= 0) return 'Reached';
+  if (etaWeeks == 1) return '~1 wk';
+  return '~$etaWeeks wks';
 }
 
 

@@ -3,6 +3,7 @@ import 'package:frontend/features/productivity/forms/companion_form_styles.dart'
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/services/goal_stats.dart';
 import 'package:frontend/features/productivity/widgets/goal_display.dart';
+import 'package:frontend/features/productivity/widgets/goal_health_overview_section.dart';
 import 'package:frontend/features/productivity/widgets/goal_sidebar_stats_list.dart';
 import 'package:frontend/features/productivity/widgets/goal_stats_highlight_row.dart';
 import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
@@ -13,12 +14,14 @@ class GoalDetailSidebar extends StatelessWidget {
     super.key,
     required this.goal,
     required this.stats,
+    required this.listToday,
   });
 
   static const width = 380.0;
 
   final Goal goal;
   final GoalStats stats;
+  final DateTime listToday;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +46,12 @@ class GoalDetailSidebar extends StatelessWidget {
             GoalSidebarStatsList(
               goal: goal,
               stats: stats,
+            ),
+            const SizedBox(height: 20),
+            GoalHealthOverviewSection(
+              goal: goal,
+              stats: stats,
+              listToday: listToday,
             ),
           ],
         ),
@@ -110,11 +119,11 @@ class GoalDetailHeader extends StatelessWidget {
                 TaskMetaChip(
                   label:
                       '${goal.milestoneCount} milestone${goal.milestoneCount == 1 ? '' : 's'}',
-                  tintColor: scheme.secondary,
+                  tintColor: goalMilestoneChipColor,
                   leading: Icon(
                     Icons.flag_outlined,
                     size: 14,
-                    color: scheme.secondary,
+                    color: goalMilestoneChipColor,
                   ),
                 ),
               if (dateLabel != null)

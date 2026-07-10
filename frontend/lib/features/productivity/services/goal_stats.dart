@@ -1,4 +1,5 @@
 import 'package:frontend/features/productivity/models/goal_check_in.dart';
+import 'package:frontend/features/productivity/models/goal_milestone.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/widgets/task_display.dart';
 
@@ -41,6 +42,7 @@ class GoalStats {
     required this.completedPeriods,
     required this.unitLabel,
     this.currentValue,
+    this.startValue,
     this.velocityPerWeek,
     this.pace = GoalPace.unknown,
     this.etaWeeks,
@@ -62,6 +64,7 @@ class GoalStats {
   final int completedPeriods;
   final String? unitLabel;
   final num? currentValue;
+  final num? startValue;
   final num? velocityPerWeek;
   final GoalPace pace;
   final int? etaWeeks;
@@ -153,6 +156,24 @@ double computeGoalProgress(Goal goal, List<GoalCheckIn> checkIns) {
   }
 }
 
+/// Baseline value at the start of the goal journey (for current-vs-target progress).
+num? computeGoalStartValue(Goal goal, List<GoalCheckIn> checkIns) {
+  switch (goal.goalType) {
+    case GoalType.count:
+      if (goal.direction == GoalDirection.increasing) {
+        return 0;
+      }
+      return _earliestLoggedCountValue(checkIns);
+    case GoalType.task:
+      return 0;
+    case GoalType.pulse:
+      final timeline = goalCheckInValueTimeline(goal, checkIns);
+      return timeline.isEmpty ? null : timeline.first.value;
+    default:
+      return null;
+  }
+}
+
 /// Latest measurable value for display (current vs target).
 num? computeGoalCurrentValue(Goal goal, List<GoalCheckIn> checkIns) {
   switch (goal.goalType) {
@@ -209,7 +230,7 @@ num? _earliestLoggedCountValue(List<GoalCheckIn> checkIns) {
 
 /// Weekly rate of change from the two most recent logged value snapshots.
 num? computeGoalVelocityPerWeek(Goal goal, List<GoalCheckIn> checkIns) {
-  final timeline = _goalValueTimeline(goal, checkIns);
+  final timeline = goalCheckInValueTimeline(goal, checkIns);
   if (timeline.length < 2) return null;
 
   final previous = timeline[timeline.length - 2];
@@ -270,18 +291,52 @@ int? computeGoalEtaWeeks(
   return (remaining / velocityPerWeek.abs()).ceil();
 }
 
-/// Ring fill for the current-vs-target highlight card.
-double computeCurrentTargetRingFraction(Goal goal, num? currentValue) {
-  if (currentValue == null || goal.target <= 0) return 0;
+/// Ring fill for ETA highlight: elapsed time ÷ (elapsed + remaining ETA).
+double computeGoalEtaRingFraction(
+  Goal goal,
+  int? etaWeeks, {
+  DateTime? now,
+}) {
+  if (etaWeeks == null) return 0;
+  if (etaWeeks <= 0) return 1;
 
-  if (goal.direction == GoalDirection.increasing) {
-    return (currentValue / goal.target).clamp(0.0, 1.0).toDouble();
-  }
-  if (currentValue <= goal.target) return 1.0;
-  return (goal.target / currentValue).clamp(0.0, 1.0).toDouble();
+  final reference = now ?? DateTime.now();
+  final elapsedDays = reference.difference(goal.startDate).inDays;
+  if (elapsedDays <= 0) return 0;
+
+  final elapsedWeeks = elapsedDays / 7.0;
+  final totalWeeks = elapsedWeeks + etaWeeks;
+  if (totalWeeks <= 0) return 0;
+  return (elapsedWeeks / totalWeeks).clamp(0.0, 1.0).toDouble();
 }
 
-List<({DateTime at, num value})> _goalValueTimeline(
+/// Ring fill for the current-vs-target highlight card (start → target).
+double computeCurrentTargetRingFraction(
+  Goal goal, {
+  num? startValue,
+  num? currentValue,
+}) {
+  if (currentValue == null || goal.target <= 0) return 0;
+
+  final target = goal.target;
+  final start = startValue ?? 0;
+
+  if (goal.goalType == GoalType.count &&
+      goal.direction == GoalDirection.decreasing) {
+    final span = start - target;
+    if (span <= 0) return currentValue <= target ? 1.0 : 0;
+    return ((start - currentValue) / span).clamp(0.0, 1.0).toDouble();
+  }
+
+  final span = target - start;
+  if (span <= 0) return currentValue >= target ? 1.0 : 0;
+  return ((currentValue - start) / span).clamp(0.0, 1.0).toDouble();
+}
+
+typedef GoalValuePoint = ({DateTime at, num value});
+
+/// Logged check-in values over time (cumulative for increasing count / task goals).
+List<GoalValuePoint> goalCheckInValueTimeline(
   Goal goal,
   List<GoalCheckIn> checkIns,
 ) {
@@ -325,6 +380,184 @@ List<({DateTime at, num value})> _goalValueTimeline(
   }
 }
 
+/// Time window for the goal value chart.
+enum GoalValueChartRange {
+  days7,
+  days30,
+  days90,
+  all,
+}
+
+extension GoalValueChartRangeLabels on GoalValueChartRange {
+  String get label => switch (this) {
+        GoalValueChartRange.days7 => '7d',
+        GoalValueChartRange.days30 => '30d',
+        GoalValueChartRange.days90 => '90d',
+        GoalValueChartRange.all => 'All',
+      };
+
+  Duration? get duration => switch (this) {
+        GoalValueChartRange.days7 => const Duration(days: 7),
+        GoalValueChartRange.days30 => const Duration(days: 30),
+        GoalValueChartRange.days90 => const Duration(days: 90),
+        GoalValueChartRange.all => null,
+      };
+}
+
+List<GoalValuePoint> filterGoalValueTimeline(
+  List<GoalValuePoint> timeline,
+  GoalValueChartRange range,
+  DateTime listToday,
+) {
+  if (range == GoalValueChartRange.all || timeline.isEmpty) {
+    return timeline;
+  }
+  final duration = range.duration;
+  if (duration == null) return timeline;
+
+  final cutoff = normalizeTaskListCalendarDay(listToday).subtract(duration);
+  return [
+    for (final point in timeline)
+      if (!normalizeTaskListCalendarDay(point.at).isBefore(cutoff)) point,
+  ];
+}
+
+String goalValueOverTimeTitle(Goal goal) => switch (goal.goalType) {
+      GoalType.pulse => 'Score over time',
+      GoalType.task => 'Completion over time',
+      GoalType.count => _countValueOverTimeTitle(goal),
+      _ => 'Progress over time',
+    };
+
+String _countValueOverTimeTitle(Goal goal) {
+  final unit = goal.unit.trim();
+  if (unit.isEmpty) return 'Value over time';
+  if (unit.length == 1) {
+    return '${unit.toUpperCase()} over time';
+  }
+  return '${unit[0].toUpperCase()}${unit.substring(1)} over time';
+}
+
+String formatGoalChartValue(num value, Goal goal) {
+  final unit = goal.unit.trim();
+  final rounded = value.roundToDouble();
+  final text = rounded == value
+      ? value.toInt().toString()
+      : value.toStringAsFixed(1);
+  if (unit.isEmpty) return text;
+  return '$text $unit';
+}
+
+String goalValueOverTimeSubtitle(Goal goal, GoalStats stats) {
+  final start = stats.startValue;
+  final target = goal.target;
+  if (start == null) {
+    return '${formatGoalChartValue(target, goal)} target';
+  }
+  return '${formatGoalChartValue(start, goal)} start → '
+      '${formatGoalChartValue(target, goal)} target';
+}
+
+/// Position on the start→target progress bar (0 = start, 1 = target).
+double goalValueProgressFraction(
+  Goal goal, {
+  required num startValue,
+  required num value,
+}) {
+  final target = goal.target;
+  if (goal.goalType == GoalType.count &&
+      goal.direction == GoalDirection.decreasing) {
+    final span = startValue - target;
+    if (span <= 0) return value <= target ? 1.0 : 0;
+    return ((startValue - value) / span).clamp(0.0, 1.0).toDouble();
+  }
+
+  final span = target - startValue;
+  if (span <= 0) return value >= target ? 1.0 : 0;
+  return ((value - startValue) / span).clamp(0.0, 1.0).toDouble();
+}
+
+class GoalProgressBarMarker {
+  const GoalProgressBarMarker({
+    required this.fraction,
+    required this.value,
+    this.suffix,
+  });
+
+  final double fraction;
+  final num value;
+  final String? suffix;
+}
+
+List<GoalProgressBarMarker> buildGoalProgressBarMarkers(
+  Goal goal,
+  GoalStats stats,
+) {
+  if (goal.target <= 0) return const [];
+
+  final start = stats.startValue;
+  if (start == null && goal.goalType != GoalType.count) return const [];
+  if (start == null &&
+      goal.goalType == GoalType.count &&
+      goal.direction == GoalDirection.decreasing) {
+    return const [];
+  }
+
+  final resolvedStart = start ?? 0;
+  final target = goal.target;
+  final current = stats.currentValue;
+
+  bool matchesValue(num a, num b) => (a - b).abs() < 0.0001;
+
+  final markers = <GoalProgressBarMarker>[];
+
+  void addMarker(num value, String? suffix) {
+    markers.add(
+      GoalProgressBarMarker(
+        fraction: goalValueProgressFraction(
+          goal,
+          startValue: resolvedStart,
+          value: value,
+        ),
+        value: value,
+        suffix: suffix,
+      ),
+    );
+  }
+
+  addMarker(resolvedStart, null);
+
+  final milestones = List<GoalMilestone>.from(goal.milestones)
+    ..sort((a, b) {
+      if (goal.direction == GoalDirection.decreasing) {
+        return b.value.compareTo(a.value);
+      }
+      return a.value.compareTo(b.value);
+    });
+
+  for (final milestone in milestones) {
+    if (matchesValue(milestone.value, resolvedStart) ||
+        matchesValue(milestone.value, target)) {
+      continue;
+    }
+    if (current != null && matchesValue(milestone.value, current)) {
+      continue;
+    }
+    addMarker(milestone.value, null);
+  }
+
+  if (current != null &&
+      !matchesValue(current, resolvedStart) &&
+      !matchesValue(current, target)) {
+    addMarker(current, 'now');
+  }
+
+  addMarker(target, null);
+
+  markers.sort((a, b) => a.fraction.compareTo(b.fraction));
+  return markers;
+}
+
 GoalStats computeGoalStats(
   Goal goal,
   List<GoalCheckIn> checkIns, {
@@ -346,6 +579,7 @@ GoalStats computeGoalStats(
       consistencyScheduled: consistency.scheduled,
       unitLabel: goal.goalType == GoalType.count ? goal.unit.trim() : null,
       currentValue: computeGoalCurrentValue(goal, checkIns),
+      startValue: computeGoalStartValue(goal, checkIns),
       pace: computeGoalPace(goal, progressPercent, now: reference),
     );
   }
@@ -412,6 +646,7 @@ GoalStats computeGoalStats(
     completedPeriods: completedPeriods,
     unitLabel: goal.goalType == GoalType.count ? goal.unit.trim() : null,
     currentValue: computeGoalCurrentValue(goal, checkIns),
+    startValue: computeGoalStartValue(goal, checkIns),
     velocityPerWeek: computeGoalVelocityPerWeek(goal, checkIns),
     pace: computeGoalPace(
       goal,
@@ -434,6 +669,7 @@ extension on GoalStats {
     int? consistencyScheduled,
     String? unitLabel,
     num? currentValue,
+    num? startValue,
     GoalPace? pace,
   }) {
     return GoalStats(
@@ -453,6 +689,7 @@ extension on GoalStats {
       completedPeriods: completedPeriods,
       unitLabel: unitLabel ?? this.unitLabel,
       currentValue: currentValue ?? this.currentValue,
+      startValue: startValue ?? this.startValue,
       velocityPerWeek: velocityPerWeek,
       pace: pace ?? this.pace,
       etaWeeks: etaWeeks,

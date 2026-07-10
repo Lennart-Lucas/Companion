@@ -4,6 +4,8 @@ import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/widgets/project_display.dart';
 import 'package:frontend/features/productivity/widgets/tracker_display.dart';
 
+const goalMilestoneChipColor = companionMilestoneColor;
+
 String goalTypeLabel(String value) => switch (value) {
       GoalType.count => 'Count',
       GoalType.task => 'Task',
