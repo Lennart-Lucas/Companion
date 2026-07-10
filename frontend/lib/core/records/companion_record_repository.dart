@@ -7,6 +7,11 @@ class CompanionRecordRepository implements RecordRepositoryService {
 
   final ApiClientService _api;
 
+  String _apiPathForType(RecordType type) {
+    if (type == 'media_titles') return 'media-titles';
+    return type;
+  }
+
   Map<String, dynamic> _normalizeRecord(Map<String, dynamic> json) {
     final out = Map<String, dynamic>.from(json);
     if (out['id'] != null) {
@@ -32,7 +37,7 @@ class CompanionRecordRepository implements RecordRepositoryService {
     RecordType type,
     Map<String, dynamic> data,
   ) async {
-    final response = await _api.post('/$type', body: data);
+    final response = await _api.post('/${_apiPathForType(type)}', body: data);
     _ensureSuccess(response, 'Create $type');
     final body = response.bodyAsMap;
     final listQueryKey = RecordQuery(recordType: type, limit: 50).queryKey;
@@ -44,14 +49,14 @@ class CompanionRecordRepository implements RecordRepositoryService {
 
   @override
   Future<RecordMutationResponse> delete(RecordType type, RecordId id) async {
-    final response = await _api.delete('/$type/$id');
+    final response = await _api.delete('/${_apiPathForType(type)}/$id');
     _ensureSuccess(response, 'Delete $type');
     return const RecordMutationResponse(impact: RecordMutation.empty);
   }
 
   @override
   Future<RecordResponse> fetchById(RecordType type, RecordId id) async {
-    final response = await _api.get('/$type/$id');
+    final response = await _api.get('/${_apiPathForType(type)}/$id');
     _ensureSuccess(response, 'Fetch $type');
     return RecordResponse(_normalizeRecord(response.bodyAsMap));
   }
@@ -61,7 +66,7 @@ class CompanionRecordRepository implements RecordRepositoryService {
     final limit = query.limit ?? 50;
     final offset = query.offset ?? 0;
     final response = await _api.get(
-      '/${query.recordType}?limit=$limit&offset=$offset',
+      '/${_apiPathForType(query.recordType)}?limit=$limit&offset=$offset',
     );
     _ensureSuccess(response, 'Query ${query.recordType}');
     final body = response.bodyAsMap;
@@ -90,7 +95,7 @@ class CompanionRecordRepository implements RecordRepositoryService {
     RecordId id,
     Map<String, dynamic> data,
   ) async {
-    final response = await _api.patch('/$type/$id', body: data);
+    final response = await _api.patch('/${_apiPathForType(type)}/$id', body: data);
     _ensureSuccess(response, 'Update $type');
     final body = response.bodyAsMap;
     final listQueryKey = RecordQuery(recordType: type, limit: 50).queryKey;

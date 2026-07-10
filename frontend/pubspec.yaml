@@ -16,6 +16,7 @@ dependencies:
   flutter_timezone: ^4.1.0
   connectivity_plus: ^6.1.4
   timezone: ^0.10.1
+  url_launcher: ^6.3.1
   anvil_foundry:
     path: ../../anvil_foundry/Anvil-Foundry
   rrule: ^0.2.18

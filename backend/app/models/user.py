@@ -47,3 +47,6 @@ class User(Base):
     events: Mapped[list["Event"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    media_titles: Mapped[list["MediaTitle"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

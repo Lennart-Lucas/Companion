@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/features/inputs/pages/movies_tv_page.dart';
 import 'package:frontend/features/productivity/pages/events_page.dart';
 import 'package:frontend/features/productivity/pages/goals_page.dart';
 import 'package:frontend/features/productivity/pages/productivity_overview_page.dart';
@@ -61,6 +62,19 @@ class AppShell extends StatelessWidget {
               label: 'Tasks',
               iconName: 'Check Double',
               content: const TasksPage(),
+            ),
+          ],
+        ),
+        MenuGroup(
+          key: 'inputs',
+          label: 'Inputs',
+          iconName: 'Inbox',
+          children: [
+            MenuLink(
+              key: 'movies-tv',
+              label: 'Movies & TV',
+              iconName: 'Clapperboard',
+              content: const MoviesTvPage(),
             ),
           ],
         ),

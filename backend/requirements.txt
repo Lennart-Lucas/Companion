@@ -11,6 +11,7 @@ PyJWT[crypto]==2.10.1
 slowapi==0.1.9
 email-validator==2.2.0
 python-dateutil==2.9.0.post0
+httpx==0.28.1
 tzdata==2025.2
 pytest==8.3.4
 pytest-asyncio==0.25.0

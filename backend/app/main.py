@@ -18,7 +18,9 @@ from app.api.routes import (
     events,
     goals,
     health,
+    imdb,
     keys,
+    media_titles,
     messages,
     projects,
     schedules,
@@ -114,6 +116,8 @@ def create_app() -> FastAPI:
     app.include_router(messages.router, prefix=settings.api_prefix)
     app.include_router(schedules.router, prefix=settings.api_prefix)
     app.include_router(events.router, prefix=settings.api_prefix)
+    app.include_router(media_titles.router, prefix=settings.api_prefix)
+    app.include_router(imdb.router, prefix=settings.api_prefix)
     app.include_router(goals.router, prefix=settings.api_prefix)
     app.include_router(projects.router, prefix=settings.api_prefix)
     app.include_router(tasks.router, prefix=settings.api_prefix)

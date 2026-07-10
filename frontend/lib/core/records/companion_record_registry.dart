@@ -1,4 +1,5 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
+import 'package:frontend/features/inputs/models/media_title.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 import 'package:frontend/features/productivity/models/schedule_record.dart';
 
@@ -26,6 +27,7 @@ RecordRegistry buildCompanionRecordRegistry() {
   register('trackers', Tracker.fromJson);
   register('projects', Project.fromJson);
   register('tasks', Task.fromJson);
+  register('media_titles', MediaTitle.fromJson);
   registry.register(
     RecordTypeConfig(
       type: 'schedules',

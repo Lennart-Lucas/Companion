@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.event import Event
 from app.models.goal import Goal
+from app.models.media_title import MediaTitle
 from app.models.project import Project
 from app.models.schedule import Schedule
 from app.models.task import Task
@@ -13,6 +14,7 @@ from app.models.tracker import Tracker
 from app.models.user import User
 from app.schemas.event import EventResponse
 from app.schemas.goal import GoalResponse
+from app.schemas.media_title import MediaTitleResponse
 from app.schemas.project import ProjectResponse
 from app.services.schedule_service import schedule_to_response
 from app.schemas.task import TaskResponse
@@ -38,6 +40,7 @@ async def get_sync_changes(
     upserts: dict[str, list] = {
         "schedules": [],
         "events": [],
+        "media_titles": [],
         "goals": [],
         "trackers": [],
         "projects": [],
@@ -46,6 +49,7 @@ async def get_sync_changes(
     tombstones: dict[str, list[str]] = {
         "schedules": [],
         "events": [],
+        "media_titles": [],
         "goals": [],
         "trackers": [],
         "projects": [],
@@ -54,6 +58,7 @@ async def get_sync_changes(
 
     await _collect_schedules(session, user, since_utc, upserts, tombstones)
     await _collect_events(session, user, since_utc, upserts, tombstones)
+    await _collect_media_titles(session, user, since_utc, upserts, tombstones)
     await _collect_goals(session, user, since_utc, upserts, tombstones)
     await _collect_trackers(session, user, since_utc, upserts, tombstones)
     await _collect_projects(session, user, since_utc, upserts, tombstones)
@@ -96,6 +101,19 @@ async def _collect_events(session, user, since, upserts, tombstones):
         else:
             upserts["events"].append(
                 EventResponse.model_validate(event).model_dump(mode="json")
+            )
+
+
+async def _collect_media_titles(session, user, since, upserts, tombstones):
+    stmt = select(MediaTitle).where(MediaTitle.user_id == user.id)
+    stmt = apply_updated_since_filter(stmt, MediaTitle, since)
+    result = await session.execute(stmt)
+    for media_title in result.scalars().all():
+        if media_title.deleted_at is not None:
+            tombstones["media_titles"].append(str(media_title.id))
+        else:
+            upserts["media_titles"].append(
+                MediaTitleResponse.model_validate(media_title).model_dump(mode="json")
             )
 
 

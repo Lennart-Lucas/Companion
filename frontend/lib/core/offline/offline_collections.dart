@@ -17,5 +17,6 @@ abstract final class OfflineRecordTypes {
     'trackers',
     'projects',
     'tasks',
+    'media_titles',
   ];
 }

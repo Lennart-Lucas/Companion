@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/icons/companion_event_icons.dart';
+import 'package:frontend/core/icons/companion_input_icons.dart';
 import 'package:frontend/core/icons/companion_project_field_icons.dart';
 import 'package:frontend/core/icons/companion_task_field_icons.dart';
 
@@ -12,7 +13,8 @@ void setupCompanionIcons() {
         defaultInputIcons +
         companionTaskFieldIcons +
         companionProjectFieldIcons +
-        companionEventIcons,
+        companionEventIcons +
+        companionInputIcons,
   );
 
   registry.setAlias(AppIconAliases.productivity, 'Hammer');
@@ -23,4 +25,6 @@ void setupCompanionIcons() {
   registry.setAlias(AppIconAliases.project, 'Person Digging');
   registry.setAlias(AppIconAliases.task, 'Check Double');
   registry.setAlias(AppIconAliases.settings, 'Gear');
+  registry.setAlias('inputs', 'Inbox');
+  registry.setAlias('movies-tv', 'Clapperboard');
 }
