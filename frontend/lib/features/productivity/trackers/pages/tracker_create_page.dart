@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/trackers/forms/tracker_form_config.dart';
@@ -41,14 +42,14 @@ class TrackerCreatePage extends StatelessWidget {
             },
           ),
           submitLabel: 'Create tracker',
-          onCancel: () => Navigator.of(context).pop(),
+          onCancel: () => context.pop(),
           onSubmitSuccess: (_) async {
             await _refreshTrackers(context);
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Tracker created')),
             );
-            Navigator.of(context).pop();
+            context.pop();
           },
         ),
       ),

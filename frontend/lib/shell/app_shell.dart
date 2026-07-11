@@ -1,26 +1,34 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:frontend/features/inputs/pages/movies_tv_page.dart';
-import 'package:frontend/features/productivity/events/pages/events_page.dart';
-import 'package:frontend/features/productivity/goals/pages/goals_page.dart';
-import 'package:frontend/features/productivity/shared/pages/productivity_overview_page.dart';
-import 'package:frontend/features/productivity/projects/pages/projects_page.dart';
-import 'package:frontend/features/productivity/shared/pages/tasks_page.dart';
-import 'package:frontend/features/productivity/trackers/pages/trackers_page.dart';
-import 'package:frontend/features/settings/pages/settings_ui_page.dart';
+import 'package:go_router/go_router.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
+import 'package:frontend/core/routing/companion_routes.dart';
 import 'package:frontend/shell/shell_app_bar_actions.dart';
+
+const _placeholderContent = SizedBox.shrink();
 
 /// Root shell: overlay sidebar toggled from the app bar hamburger.
 class AppShell extends StatelessWidget {
-  const AppShell({super.key});
+  const AppShell({super.key, required this.navigationShell});
+
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).matchedLocation;
+    final selectedMenuKey =
+        CompanionRoutes.menuKeyForLocation(location) ?? 'overview';
+
     return CollapsibleDrawer(
       hideRailWhenClosed: true,
       showAppBar: true,
       appBarActionsListenable: ShellAppBarActions.actions,
+      shellChild: navigationShell,
+      selectedMenuKey: selectedMenuKey,
+      onMenuLinkSelected: (menuKey) {
+        CompanionNavigation.goShellMenuKey(context, menuKey);
+      },
       menuItems: [
         MenuGroup(
           key: 'productivity',
@@ -31,37 +39,37 @@ class AppShell extends StatelessWidget {
               key: 'overview',
               label: 'Overview',
               iconName: 'House',
-              content: const ProductivityOverviewPage(),
+              content: _placeholderContent,
             ),
             MenuLink(
               key: 'events',
               label: 'Events',
               iconName: 'Calendar',
-              content: const EventsPage(),
+              content: _placeholderContent,
             ),
             MenuLink(
               key: 'goals',
               label: 'Goals',
               iconName: 'Bullseye',
-              content: const GoalsPage(),
+              content: _placeholderContent,
             ),
             MenuLink(
               key: 'trackers',
               label: 'Trackers',
               iconName: 'Chart Line',
-              content: const TrackersPage(),
+              content: _placeholderContent,
             ),
             MenuLink(
               key: 'projects',
               label: 'Projects',
               iconName: 'Person Digging',
-              content: const ProjectsPage(),
+              content: _placeholderContent,
             ),
             MenuLink(
               key: 'tasks',
               label: 'Tasks',
               iconName: 'Check Double',
-              content: const TasksPage(),
+              content: _placeholderContent,
             ),
           ],
         ),
@@ -74,7 +82,7 @@ class AppShell extends StatelessWidget {
               key: 'movies-tv',
               label: 'Movies & TV',
               iconName: 'Clapperboard',
-              content: const MoviesTvPage(),
+              content: _placeholderContent,
             ),
           ],
         ),
@@ -87,7 +95,7 @@ class AppShell extends StatelessWidget {
               key: 'settings-ui',
               label: 'UI',
               iconName: 'Gear',
-              content: const SettingsUiPage(),
+              content: _placeholderContent,
             ),
           ],
         ),

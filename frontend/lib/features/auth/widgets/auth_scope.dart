@@ -2,12 +2,12 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
-import 'package:frontend/features/auth/pages/login_page.dart';
-import 'package:frontend/shell/app_shell.dart';
 
-/// Routes between login and the main app based on [AuthBloc] state.
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+/// Handles auth side-effects and loading overlay for [MaterialApp.router].
+class AuthScope extends StatelessWidget {
+  const AuthScope({super.key, required this.child});
+
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +24,7 @@ class AuthGate extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          if (state is Authenticated) {
-            return const AppShell();
-          }
-          return const LoginPage();
+          return child ?? const SizedBox.shrink();
         },
       ),
     );

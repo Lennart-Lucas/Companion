@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/features/inputs/models/media_title.dart';
 import 'package:frontend/features/inputs/services/imdb_search_api.dart';
@@ -271,7 +272,7 @@ class _AddMediaTitleSheetState extends State<AddMediaTitleSheet> {
                   ),
                   IconButton(
                     tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                     icon: const Icon(Icons.close),
                   ),
                 ],

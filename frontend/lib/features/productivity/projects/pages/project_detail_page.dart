@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
@@ -13,10 +14,7 @@ import 'package:frontend/features/productivity/projects/models/project.dart';
 import 'package:frontend/features/productivity/tasks/models/task.dart';
 
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
-import 'package:frontend/features/productivity/projects/pages/project_edit_page.dart';
-import 'package:frontend/features/productivity/tasks/pages/task_create_page.dart';
-import 'package:frontend/features/productivity/tasks/pages/task_edit_page.dart';
-import 'package:frontend/features/productivity/tasks/pages/task_today_bucket_page.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/productivity/projects/services/project_list_actions.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
@@ -299,16 +297,13 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   }
 
   Future<void> _openTodayBucket(TaskTodayBucket bucket, Project project) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => TaskTodayBucketPage(
-          bucket: bucket,
-          listToday: _listToday,
-          entries: taskEntriesForTodayBucket(_entries, bucket, _listToday),
-          taskActions: _actions,
-          linkedProject: project,
-        ),
-      ),
+    await CompanionNavigation.openTaskTodayBucket(
+      context,
+      bucket: bucket,
+      listToday: _listToday,
+      entries: taskEntriesForTodayBucket(_entries, bucket, _listToday),
+      taskActions: _actions,
+      linkedProject: project,
     );
     if (!mounted) return;
     await _expandFromBloc(context.read<RecordBloc>().state, force: true);
@@ -324,16 +319,11 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
 
   void _openEdit(Project project) {
     if (_deleting) return;
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => ProjectEditPage(
-              projectId: project.id,
-              project: project,
-            ),
-          ),
-        )
-        .then((_) async {
+    CompanionNavigation.openProjectEdit(
+      context,
+      projectId: project.id,
+      project: project,
+    ).then((_) async {
           if (!mounted) return;
           await _refreshRecords();
           if (!mounted) return;
@@ -368,7 +358,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
     try {
       await _projectActions.deleteProject(project.id);
       if (!mounted) return;
-      Navigator.of(context).pop();
+      context.pop();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -380,12 +370,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   }
 
   void _openTaskEdit(Task task) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TaskEditPage(taskId: task.id),
-          ),
-        )
+    CompanionNavigation.openTaskEdit(context, taskId: task.id)
         .then((_) async {
           if (!mounted) return;
           await _refreshRecords();
@@ -395,13 +380,10 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   }
 
   Future<void> _openCreate({DateTime? day, required Project project}) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => TaskCreatePage(
-          projectId: project.id,
-          plannedAt: day,
-        ),
-      ),
+    await CompanionNavigation.openProjectTaskCreate(
+      context,
+      projectId: project.id,
+      plannedAt: day,
     );
     if (mounted) {
       await _refreshRecords();

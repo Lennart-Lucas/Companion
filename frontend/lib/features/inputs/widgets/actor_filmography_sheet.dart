@@ -1,9 +1,10 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/features/inputs/models/media_title.dart';
-import 'package:frontend/features/inputs/pages/media_title_detail_page.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/inputs/services/imdb_person_api.dart';
 import 'package:frontend/features/inputs/services/media_title_list_actions.dart';
 import 'package:frontend/features/inputs/services/media_title_repository.dart';
@@ -128,15 +129,11 @@ class _ActorFilmographySheetState extends State<ActorFilmographySheet> {
     final existing = _libraryTitleForImdbId(bloc.state, entry.imdbId);
     if (existing != null) {
       if (!mounted) return;
-      Navigator.of(context).pop();
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => MediaTitleDetailPage(
-            mediaTitleId: existing.id,
-            mediaTitle: existing,
-            actions: _actions,
-          ),
-        ),
+      context.pop();
+      await CompanionNavigation.openMediaTitleDetail(
+        context,
+        mediaTitleId: existing.id,
+        mediaTitle: existing,
       );
       return;
     }
@@ -151,28 +148,20 @@ class _ActorFilmographySheetState extends State<ActorFilmographySheet> {
           recordId: created.id,
         ),
       );
-      Navigator.of(context).pop();
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => MediaTitleDetailPage(
-            mediaTitleId: created.id,
-            mediaTitle: created,
-            actions: _actions,
-          ),
-        ),
+      context.pop();
+      await CompanionNavigation.openMediaTitleDetail(
+        context,
+        mediaTitleId: created.id,
+        mediaTitle: created,
       );
     } on MediaTitleAlreadyExistsException {
       final retry = _libraryTitleForImdbId(bloc.state, entry.imdbId);
       if (retry != null && mounted) {
-        Navigator.of(context).pop();
-        await Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => MediaTitleDetailPage(
-              mediaTitleId: retry.id,
-              mediaTitle: retry,
-              actions: _actions,
-            ),
-          ),
+        context.pop();
+        await CompanionNavigation.openMediaTitleDetail(
+          context,
+          mediaTitleId: retry.id,
+          mediaTitle: retry,
         );
       }
     } catch (error) {
@@ -219,7 +208,7 @@ class _ActorFilmographySheetState extends State<ActorFilmographySheet> {
                 ),
               ),
               IconButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => context.pop(),
                 icon: const Icon(Icons.close),
               ),
             ],

@@ -1,6 +1,7 @@
 import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/offline/local_record_cache_service.dart';
@@ -10,7 +11,7 @@ import 'package:frontend/core/ui/companion_layout.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/goals/models/goal.dart';
 
-import 'package:frontend/features/productivity/goals/pages/goal_edit_page.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/productivity/goals/services/goal_check_in_repository.dart';
 import 'package:frontend/features/productivity/goals/services/goal_list_actions.dart';
 import 'package:frontend/features/productivity/goals/services/goal_stats.dart';
@@ -190,16 +191,11 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
 
   void _openEdit(Goal goal) {
     if (_deleting) return;
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => GoalEditPage(
-              goalId: goal.id,
-              goal: goal,
-            ),
-          ),
-        )
-        .then((_) {
+    CompanionNavigation.openGoalEdit(
+      context,
+      goalId: goal.id,
+      goal: goal,
+    ).then((_) {
           if (!mounted) return;
           context.read<RecordBloc>().add(
                 GetRecordRequested(
@@ -238,7 +234,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
     try {
       await _actions.deleteGoal(goal.id);
       if (!mounted) return;
-      Navigator.of(context).pop();
+      context.pop();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

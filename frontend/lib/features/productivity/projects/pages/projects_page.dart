@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/features/productivity/projects/models/project.dart';
-import 'package:frontend/features/productivity/projects/pages/project_create_page.dart';
-import 'package:frontend/features/productivity/projects/pages/project_detail_page.dart';
-import 'package:frontend/features/productivity/projects/pages/project_edit_page.dart';
 import 'package:frontend/features/productivity/projects/services/project_list_actions.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_list_tile.dart';
@@ -42,11 +39,6 @@ class _ProjectsPageState extends State<ProjectsPage> {
       emptyStateHint: 'Tap + to add a project',
       additionalRefreshQueries: const [projectTasksListQuery],
       onInit: _prefetchTasks,
-      createPage: const ProjectCreatePage(),
-      buildDetailPage: (project) =>
-          ProjectDetailPage(projectId: project.id, project: project),
-      buildEditPage: (project) =>
-          ProjectEditPage(projectId: project.id, project: project),
       buildTile: (context, project, onTap, onEdit, onDeleted) =>
           ProjectListTile(
         project: project,

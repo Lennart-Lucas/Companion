@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
@@ -54,14 +55,14 @@ class EventEditPage extends StatelessWidget {
             recordId: eventId,
             preloadedEvent: event,
           ),
-          onCancel: () => Navigator.of(context).pop(),
+          onCancel: () => context.pop(),
           onSubmitSuccess: (_) async {
             await _refreshEvents(context);
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Event saved')),
             );
-            Navigator.of(context).pop();
+            context.pop();
           },
         ),
       ),

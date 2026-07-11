@@ -10,12 +10,7 @@ import 'package:frontend/features/productivity/goals/models/goal.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 import 'package:frontend/features/productivity/projects/models/project.dart';
 
-import 'package:frontend/features/productivity/projects/pages/project_create_page.dart';
-import 'package:frontend/features/productivity/projects/pages/project_detail_page.dart';
-import 'package:frontend/features/productivity/projects/pages/project_edit_page.dart';
-import 'package:frontend/features/productivity/trackers/pages/tracker_create_page.dart';
-import 'package:frontend/features/productivity/trackers/pages/tracker_detail_page.dart';
-import 'package:frontend/features/productivity/trackers/pages/tracker_edit_page.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/productivity/goals/services/goal_related_records.dart';
 import 'package:frontend/features/productivity/projects/services/project_list_actions.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_list_actions.dart';
@@ -77,73 +72,45 @@ class _GoalRelatedRecordsSectionState extends State<GoalRelatedRecordsSection> {
   }
 
   Future<void> _openCreateProject() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ProjectCreatePage(goalId: widget.goal.id),
-      ),
-    );
+    await CompanionNavigation.openProjectCreate(context, goalId: widget.goal.id);
     if (mounted) await _refreshRelatedRecords();
   }
 
   Future<void> _openCreateTracker() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => TrackerCreatePage(goalId: widget.goal.id),
-      ),
-    );
+    await CompanionNavigation.openTrackerCreate(context, goalId: widget.goal.id);
     if (mounted) await _refreshRelatedRecords();
   }
 
   void _openProjectDetail(Project project) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => ProjectDetailPage(
-              projectId: project.id,
-              project: project,
-            ),
-          ),
-        )
-        .then((_) => _refreshRelatedRecords());
+    CompanionNavigation.openProjectDetail(
+      context,
+      projectId: project.id,
+      project: project,
+    ).then((_) => _refreshRelatedRecords());
   }
 
   void _openProjectEdit(Project project) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => ProjectEditPage(
-              projectId: project.id,
-              project: project,
-            ),
-          ),
-        )
-        .then((_) => _refreshRelatedRecords());
+    CompanionNavigation.openProjectEdit(
+      context,
+      projectId: project.id,
+      project: project,
+    ).then((_) => _refreshRelatedRecords());
   }
 
   void _openTrackerDetail(Tracker tracker) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TrackerDetailPage(
-              trackerId: tracker.id,
-              tracker: tracker,
-            ),
-          ),
-        )
-        .then((_) => _refreshRelatedRecords());
+    CompanionNavigation.openTrackerDetail(
+      context,
+      trackerId: tracker.id,
+      tracker: tracker,
+    ).then((_) => _refreshRelatedRecords());
   }
 
   void _openTrackerEdit(Tracker tracker) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TrackerEditPage(
-              trackerId: tracker.id,
-              tracker: tracker,
-            ),
-          ),
-        )
-        .then((_) => _refreshRelatedRecords());
+    CompanionNavigation.openTrackerEdit(
+      context,
+      trackerId: tracker.id,
+      tracker: tracker,
+    ).then((_) => _refreshRelatedRecords());
   }
 
   @override

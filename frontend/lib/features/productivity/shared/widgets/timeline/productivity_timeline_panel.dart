@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/core/ui/companion_layout.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/goals/models/goal.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
@@ -16,13 +17,6 @@ import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/shared/models/timeline_item.dart';
 import 'package:frontend/features/productivity/shared/models/timeline_row.dart';
-import 'package:frontend/features/productivity/tasks/pages/task_create_page.dart';
-import 'package:frontend/features/productivity/tasks/pages/task_edit_page.dart';
-import 'package:frontend/features/productivity/tasks/pages/task_today_bucket_page.dart';
-import 'package:frontend/features/productivity/goals/pages/goal_detail_page.dart';
-import 'package:frontend/features/productivity/goals/pages/goal_edit_page.dart';
-import 'package:frontend/features/productivity/trackers/pages/tracker_detail_page.dart';
-import 'package:frontend/features/productivity/trackers/pages/tracker_edit_page.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_display.dart';
@@ -425,27 +419,24 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
 
   Future<void> _openTodayBucket(TaskTodayBucket bucket) async {
     final referenceNow = DateTime.now();
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => TaskTodayBucketPage(
-          bucket: bucket,
-          listToday: _listToday,
-          entries: taskEntriesForTodayBucket(_taskEntries, bucket, _listToday),
-          trackerItems: trackerItemsForTodayBucket(
-            _trackerItems,
-            bucket,
-            _listToday,
-            now: referenceNow,
-          ),
-          taskActions: _actions,
-          trackerActions: _trackerItems.isEmpty ? null : _trackerActions,
-          checkInRepository: _checkInRepository,
-          onTrackerListChanged: refreshList,
-        ),
+    await CompanionNavigation.openTaskTodayBucket(
+      context,
+      bucket: bucket,
+      listToday: _listToday,
+      entries: taskEntriesForTodayBucket(_taskEntries, bucket, _listToday),
+      trackerItems: trackerItemsForTodayBucket(
+        _trackerItems,
+        bucket,
+        _listToday,
+        now: referenceNow,
       ),
+      taskActions: _actions,
+      trackerActions: _trackerItems.isEmpty ? null : _trackerActions,
+      checkInRepository: _checkInRepository,
+      onTrackerListChanged: refreshList,
     );
     if (!mounted) return;
-    await _expandFromBloc(context.read<RecordBloc>().state, force: true);
+    await refreshList();
   }
 
   void _prefetchParentRecords() {
@@ -765,63 +756,37 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
   }
 
   Future<void> _openCreate() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const TaskCreatePage(),
-      ),
-    );
+    await CompanionNavigation.openTaskCreate(context);
     await refreshList();
   }
 
   void _openEdit(Task task) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TaskEditPage(taskId: task.id),
-          ),
-        )
+    CompanionNavigation.openTaskEdit(context, taskId: task.id)
         .then((_) => refreshList());
   }
 
   void _openTrackerEdit(Tracker tracker) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TrackerEditPage(
-              trackerId: tracker.id,
-              tracker: tracker,
-            ),
-          ),
-        )
-        .then((_) => refreshList());
+    CompanionNavigation.openTrackerEdit(
+      context,
+      trackerId: tracker.id,
+      tracker: tracker,
+    ).then((_) => refreshList());
   }
 
   void _openGoalDetail(Goal goal) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => GoalDetailPage(
-              goalId: goal.id,
-              goal: goal,
-              goalActions: _goalActions,
-              checkInRepository: _goalCheckInRepository,
-            ),
-          ),
-        )
-        .then((_) => refreshList());
+    CompanionNavigation.openGoalDetail(
+      context,
+      goalId: goal.id,
+      goal: goal,
+    ).then((_) => refreshList());
   }
 
   void _openGoalEdit(Goal goal) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => GoalEditPage(
-              goalId: goal.id,
-              goal: goal,
-            ),
-          ),
-        )
-        .then((_) => refreshList());
+    CompanionNavigation.openGoalEdit(
+      context,
+      goalId: goal.id,
+      goal: goal,
+    ).then((_) => refreshList());
   }
 
   Future<void> _openGoalCheckIn(
@@ -882,18 +847,11 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
   }
 
   void _openTrackerDetail(Tracker tracker) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TrackerDetailPage(
-              trackerId: tracker.id,
-              tracker: tracker,
-              trackerActions: _trackerActions,
-              checkInRepository: _checkInRepository,
-            ),
-          ),
-        )
-        .then((_) => refreshList());
+    CompanionNavigation.openTrackerDetail(
+      context,
+      trackerId: tracker.id,
+      tracker: tracker,
+    ).then((_) => refreshList());
   }
 
   Future<void> _openTrackerCheckIn(

@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/features/auth/widgets/auth_form_scope.dart';
 
@@ -43,7 +44,7 @@ class _RegisterPageState extends State<RegisterPage> {
             child: BlocListener<AuthBloc, AuthState>(
               listener: (context, state) {
                 if (state is Authenticated) {
-                  Navigator.of(context).pop();
+                  context.pop();
                 }
               },
               child: BlocBuilder<AuthBloc, AuthState>(

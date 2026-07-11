@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/productivity/events/models/event.dart';
-
-import 'package:frontend/features/productivity/events/pages/event_create_page.dart';
-import 'package:frontend/features/productivity/events/pages/event_edit_page.dart';
 import 'package:frontend/features/productivity/events/widgets/event_list_tile.dart';
 import 'package:frontend/features/productivity/shared/widgets/record_grid_list_page.dart';
 
@@ -22,25 +20,17 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   Future<void> _openCreate() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const EventCreatePage(),
-      ),
-    );
+    await CompanionNavigation.openEventCreate(context);
     _refreshList();
   }
 
-  void _openEdit(BuildContext context, Event event) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => EventEditPage(
-              eventId: event.id,
-              event: event,
-            ),
-          ),
-        )
-        .then((_) => _refreshList());
+  Future<void> _openEdit(BuildContext context, Event event) async {
+    await CompanionNavigation.openEventEdit(
+      context,
+      eventId: event.id,
+      event: event,
+    );
+    _refreshList();
   }
 
   @override
@@ -51,7 +41,7 @@ class _EventsPageState extends State<EventsPage> {
         onPressed: _openCreate,
         child: const Icon(Icons.add),
       ),
-      body: ProductivityListPage(
+      body: RecordGridListPage(
         title: 'Events',
         iconName: 'Calendar',
         recordType: 'events',

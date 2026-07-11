@@ -2,7 +2,7 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/config/app_config.dart';
-import 'package:frontend/features/auth/pages/register_page.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/auth/widgets/auth_form_scope.dart';
 import 'package:frontend/features/auth/widgets/login_debug_panel.dart';
 
@@ -126,11 +126,8 @@ class _LoginPageState extends State<LoginPage> {
                                 onPressed: loading
                                     ? null
                                     : () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute<void>(
-                                            builder: (_) =>
-                                                const RegisterPage(),
-                                          ),
+                                        CompanionNavigation.openRegister(
+                                          context,
                                         );
                                       },
                                 child: const Text('Create an account'),

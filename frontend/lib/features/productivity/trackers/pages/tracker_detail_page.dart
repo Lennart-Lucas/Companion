@@ -1,6 +1,7 @@
 import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/offline/local_record_cache_service.dart';
@@ -10,7 +11,7 @@ import 'package:frontend/core/ui/companion_layout.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
-import 'package:frontend/features/productivity/trackers/pages/tracker_edit_page.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_check_in_repository.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_list_actions.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
@@ -191,16 +192,11 @@ class _TrackerDetailPageState extends State<TrackerDetailPage> {
 
   void _openEdit(Tracker tracker) {
     if (_deleting) return;
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TrackerEditPage(
-              trackerId: tracker.id,
-              tracker: tracker,
-            ),
-          ),
-        )
-        .then((_) {
+    CompanionNavigation.openTrackerEdit(
+      context,
+      trackerId: tracker.id,
+      tracker: tracker,
+    ).then((_) {
           if (!mounted) return;
           context.read<RecordBloc>().add(
                 GetRecordRequested(
@@ -239,7 +235,7 @@ class _TrackerDetailPageState extends State<TrackerDetailPage> {
     try {
       await _actions.deleteTracker(tracker.id);
       if (!mounted) return;
-      Navigator.of(context).pop();
+      context.pop();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

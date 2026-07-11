@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/inputs/models/media_title.dart';
-import 'package:frontend/features/inputs/pages/media_title_detail_page.dart';
 import 'package:frontend/features/inputs/services/media_title_list_actions.dart';
 import 'package:frontend/features/inputs/widgets/add_media_title_sheet.dart';
 import 'package:frontend/features/inputs/widgets/media_title_list_tile.dart';
@@ -31,21 +31,16 @@ class _MoviesTvPageState extends State<MoviesTvPage> {
     final created = await showAddMediaTitleSheet(context);
     if (!mounted || created == null) return;
     _refreshList();
-    _openDetail(context, created);
+    await _openDetail(created);
   }
 
-  void _openDetail(BuildContext context, MediaTitle mediaTitle) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => MediaTitleDetailPage(
-              mediaTitleId: mediaTitle.id,
-              mediaTitle: mediaTitle,
-              actions: _actions,
-            ),
-          ),
-        )
-        .then((_) => _refreshList());
+  Future<void> _openDetail(MediaTitle mediaTitle) async {
+    await CompanionNavigation.openMediaTitleDetail(
+      context,
+      mediaTitleId: mediaTitle.id,
+      mediaTitle: mediaTitle,
+    );
+    _refreshList();
   }
 
   @override
@@ -56,7 +51,7 @@ class _MoviesTvPageState extends State<MoviesTvPage> {
         onPressed: _openAdd,
         child: const Icon(Icons.add),
       ),
-      body: ProductivityListPage(
+      body: RecordGridListPage(
         title: 'Movies & TV',
         iconName: 'Clapperboard',
         recordType: 'media_titles',
@@ -72,7 +67,7 @@ class _MoviesTvPageState extends State<MoviesTvPage> {
             mediaTitle: record,
             actions: _actions,
             inGrid: true,
-            onTap: () => _openDetail(context, record),
+            onTap: () => _openDetail(record),
             onDeleted: _refreshList,
           );
         },

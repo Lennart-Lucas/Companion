@@ -11,9 +11,7 @@ import 'package:frontend/features/productivity/tasks/models/task.dart';
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/shared/models/timeline_item.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
-import 'package:frontend/features/productivity/tasks/pages/task_edit_page.dart';
-import 'package:frontend/features/productivity/trackers/pages/tracker_detail_page.dart';
-import 'package:frontend/features/productivity/trackers/pages/tracker_edit_page.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_display.dart';
 import 'package:frontend/features/productivity/tasks/services/task_today_buckets.dart';
@@ -150,46 +148,27 @@ class _TaskTodayBucketPageState extends State<TaskTodayBucketPage> {
   }
 
   void _openEdit(Task task) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TaskEditPage(taskId: task.id),
-          ),
-        )
-        .then((_) {
+    CompanionNavigation.openTaskEdit(context, taskId: task.id).then((_) {
           if (!mounted) return;
           setState(() {});
         });
   }
 
   void _openTrackerEdit(Tracker tracker) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TrackerEditPage(
-              trackerId: tracker.id,
-              tracker: tracker,
-            ),
-          ),
-        )
-        .then((_) => widget.onTrackerListChanged?.call());
+    CompanionNavigation.openTrackerEdit(
+      context,
+      trackerId: tracker.id,
+      tracker: tracker,
+    ).then((_) => widget.onTrackerListChanged?.call());
   }
 
   void _openTrackerDetail(Tracker tracker) {
-    final actions = widget.trackerActions;
-    if (actions == null) return;
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => TrackerDetailPage(
-              trackerId: tracker.id,
-              tracker: tracker,
-              trackerActions: actions,
-              checkInRepository: widget.checkInRepository,
-            ),
-          ),
-        )
-        .then((_) => widget.onTrackerListChanged?.call());
+    if (widget.trackerActions == null) return;
+    CompanionNavigation.openTrackerDetail(
+      context,
+      trackerId: tracker.id,
+      tracker: tracker,
+    ).then((_) => widget.onTrackerListChanged?.call());
   }
 
   Future<void> _openTrackerCheckIn(

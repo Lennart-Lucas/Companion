@@ -1,7 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:frontend/features/productivity/tasks/pages/task_create_page.dart';
+import 'package:frontend/core/routing/companion_navigation.dart';
 import 'package:frontend/features/productivity/shared/services/timeline_feed.dart';
 import 'package:frontend/features/productivity/shared/widgets/timeline/productivity_timeline_panel.dart';
 
@@ -11,11 +11,7 @@ class TasksPage extends StatelessWidget {
   final bool hideCompletedItems;
 
   Future<void> _openCreate(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const TaskCreatePage(),
-      ),
-    );
+    await CompanionNavigation.openTaskCreate(context);
     if (!context.mounted) return;
     context.read<RecordBloc>().remoteCoordinator?.refreshQueryRecords(
           TaskTimelineProvider.tasksQuery,
