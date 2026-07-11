@@ -1,9 +1,9 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/goals/models/goal.dart';
 
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 abstract class GoalCheckInRepository {
   Future<List<GoalCheckIn>> fetchCheckIns(

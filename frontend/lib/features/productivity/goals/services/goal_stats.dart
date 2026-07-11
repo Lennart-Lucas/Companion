@@ -1,8 +1,8 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/goals/models/goal_milestone.dart';
 import 'package:frontend/features/productivity/goals/models/goal.dart';
 
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 /// Outcome of a single goal check-in moment.
 enum GoalCheckInOutcome {

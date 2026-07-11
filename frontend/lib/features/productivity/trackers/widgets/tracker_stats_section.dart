@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
+import 'package:frontend/core/ui/logged_trend_chart.dart';
+import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
@@ -7,7 +9,6 @@ import 'package:frontend/features/productivity/trackers/widgets/tracker_display.
 import 'package:frontend/features/productivity/trackers/widgets/tracker_stat_items.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_month_success_calendar.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_stats_highlight_row.dart';
-import 'package:frontend/features/productivity/trackers/widgets/tracker_success_trend_chart.dart';
 
 class TrackerStatsSection extends StatelessWidget {
   const TrackerStatsSection({
@@ -61,11 +62,14 @@ class TrackerStatsSection extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
-        TrackerSuccessTrendChart(
+        LoggedTrendChart(
           weeklyRates: stats.weeklySuccessRates,
           weeklyHasData: stats.weeklyHasData,
           listToday: listToday,
-          trackerStartDate: tracker.startDate,
+          rateSubtitle: 'Weekly success rate',
+          entityStartDate: tracker.startDate,
+          formatStartDate: formatProjectDate,
+          emptyEntityLabel: 'habit',
         ),
         const SizedBox(height: 16),
         TrackerMonthSuccessCalendar(

@@ -1,3 +1,4 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 
@@ -9,7 +10,6 @@ import 'package:frontend/features/productivity/tasks/models/task.dart';
 
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_display.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 /// Shared tasks list query used for project progress on list/detail screens.
 const projectTasksListQuery = RecordQuery(recordType: 'tasks', limit: 50);

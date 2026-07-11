@@ -1,6 +1,6 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_list_month_calendar.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_list_week_strip_controller.dart';
 

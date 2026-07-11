@@ -5,30 +5,28 @@ import 'dart:async';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
-import 'package:frontend/core/records/typed_record_resolver.dart';
+import 'package:frontend/core/records/productivity_record.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/core/ui/companion_layout.dart';
-import 'package:frontend/core/records/productivity_record.dart';
+import 'package:frontend/features/productivity/shared/widgets/record_list_sync.dart';
 
-
-typedef ProductivityListItemBuilder = Widget Function(
+typedef RecordGridListItemBuilder = Widget Function(
   BuildContext context,
   ProductivityRecord record,
   int index,
   int itemCount,
 );
 
-typedef ProductivityRecordTapCallback = void Function(
+typedef RecordGridTapCallback = void Function(
   BuildContext context,
   ProductivityRecord record,
 );
 
 /// Fetches and lists productivity records for a single [recordType].
-class ProductivityListPage extends StatefulWidget {
-  const ProductivityListPage({
+class RecordGridListPage extends StatefulWidget {
+  const RecordGridListPage({
     super.key,
     required this.title,
     required this.iconName,
@@ -47,8 +45,8 @@ class ProductivityListPage extends StatefulWidget {
   final String iconName;
   final RecordType recordType;
   final String? emptyStateHint;
-  final ProductivityListItemBuilder? itemBuilder;
-  final ProductivityRecordTapCallback? onRecordTap;
+  final RecordGridListItemBuilder? itemBuilder;
+  final RecordGridTapCallback? onRecordTap;
   final bool showDividers;
 
   /// Increment from parent to re-run [QueryRecordsRequested] (e.g. after pop).
@@ -64,28 +62,22 @@ class ProductivityListPage extends StatefulWidget {
   final double tileMinWidth;
 
   @override
-  State<ProductivityListPage> createState() => _ProductivityListPageState();
+  State<RecordGridListPage> createState() => _RecordGridListPageState();
 }
 
-class _ProductivityListPageState extends State<ProductivityListPage> {
-  late final RecordQuery _query;
-  List<ProductivityRecord> _displayRecords = [];
-  int _loadedQueryVersion = -1;
-  final Map<RecordId, int> _loadedRecordVersions = {};
-  bool _bootstrapScheduled = false;
-  Future<void>? _refetchInFlight;
-  Future<void>? _captureInFlight;
+class _RecordGridListPageState extends State<RecordGridListPage> {
+  late final RecordListSync _sync =
+      RecordListSync(recordType: widget.recordType);
 
   @override
   void initState() {
     super.initState();
-    _query = RecordQuery(recordType: widget.recordType, limit: 50);
     _fetch();
     _scheduleBootstrap();
   }
 
   @override
-  void didUpdateWidget(ProductivityListPage oldWidget) {
+  void didUpdateWidget(RecordGridListPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.refreshNonce != oldWidget.refreshNonce) {
       _refetch();
@@ -93,79 +85,26 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
   }
 
   void _fetch() {
-    context.read<RecordBloc>().add(QueryRecordsRequested(_query));
+    context.read<RecordBloc>().add(QueryRecordsRequested(_sync.query));
   }
 
   void _scheduleBootstrap() {
-    if (_bootstrapScheduled) return;
-    _bootstrapScheduled = true;
+    if (_sync.bootstrapScheduled) return;
+    _sync.bootstrapScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _bootstrapScheduled = false;
+      _sync.bootstrapScheduled = false;
       if (!mounted) return;
-      await _captureDisplayRecordsAsync(context.read<RecordBloc>().state);
+      await _applyCapture(context.read<RecordBloc>().state);
     });
   }
 
-  /// Syncs display data when remounted with an already-cached query (PageView
-  /// dispose) where the version listener will not fire again.
-  void _bootstrapDisplayRecords(RecordState state) {
-    final cached = state.snapshot.queries[_query.queryKey];
-    if (cached == null) {
-      _fetch();
-      return;
-    }
-
-    if (!_shouldSyncDisplayRecords(state)) {
-      return;
-    }
-
-    _captureDisplayRecords(state);
-  }
-
-  bool _hasDisplayedRecordVersionChanged(RecordState state) {
-    for (final id in _displayRecords.map((record) => record.id)) {
-      final entry = state.snapshot.records[id];
-      if (entry == null) return true;
-      if (entry.record.recordType != widget.recordType) continue;
-      if (entry.version > (_loadedRecordVersions[id] ?? -1)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool _shouldSyncDisplayRecords(RecordState state) {
-    final cached = state.snapshot.queries[_query.queryKey];
-    if (cached == null) return false;
-    if (cached.version > _loadedQueryVersion) return true;
-    if (_displayRecords.isEmpty && cached.recordIds.isNotEmpty) return true;
-    return _hasDisplayedRecordVersionChanged(state);
-  }
-
   Future<void> _refetch() async {
-    if (_refetchInFlight != null) {
-      await _refetchInFlight;
-      return;
-    }
-    final future = _refetchImpl();
-    _refetchInFlight = future;
-    try {
-      await future;
-    } finally {
-      if (identical(_refetchInFlight, future)) {
-        _refetchInFlight = null;
-      }
-    }
-  }
-
-  Future<void> _refetchImpl() async {
     final bloc = context.read<RecordBloc>();
-    await refreshRecordQuery(bloc, _query);
+    await _sync.refetch(bloc);
     if (mounted) {
-      await _captureDisplayRecordsAsync(context.read<RecordBloc>().state);
+      await _applyCapture(bloc.state);
     }
     for (final query in widget.additionalRefreshQueries) {
-      // Tasks refresh is for progress bars only; don't block pull-to-refresh.
       unawaited(refreshRecordQuery(bloc, query));
     }
   }
@@ -174,82 +113,16 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
     await _refetch();
   }
 
-  List<ProductivityRecord> _resolveRecords(RecordState state) {
-    final cached = state.snapshot.queries[_query.queryKey];
-    if (cached == null) return const [];
-
-    return cached.recordIds
-        .map((id) => state.snapshot.records[id]?.record)
-        .where(
-          (record) =>
-              record != null && record.recordType == widget.recordType,
-        )
-        .cast<ProductivityRecord>()
-        .toList();
-  }
-
-  void _captureDisplayRecords(RecordState state) {
-    unawaited(_captureDisplayRecordsAsync(state));
-  }
-
-  Future<void> _captureDisplayRecordsAsync(RecordState state) async {
-    if (_captureInFlight != null) {
-      await _captureInFlight;
-      return;
-    }
-    final future = _captureDisplayRecordsImpl(state);
-    _captureInFlight = future;
-    try {
-      await future;
-    } finally {
-      if (identical(_captureInFlight, future)) {
-        _captureInFlight = null;
-      }
-    }
-  }
-
-  Future<void> _captureDisplayRecordsImpl(RecordState state) async {
-    final cached = state.snapshot.queries[_query.queryKey];
-    if (cached == null || !_shouldSyncDisplayRecords(state)) {
-      return;
-    }
-
-    var resolved = _resolveRecords(state);
-    if (resolved.length != cached.recordIds.length) {
-      resolved = await resolveTypedRecords<ProductivityRecord>(
-        state: state,
-        recordType: widget.recordType,
-        recordIds: cached.recordIds,
-        cache: CompanionAnvilApp.instance.localCache,
-        registry: buildCompanionRecordRegistry(),
-      );
-    }
-
-    if (resolved.length != cached.recordIds.length) {
-      if (resolved.isEmpty) {
-        await refreshRecordQuery(context.read<RecordBloc>(), _query);
-        if (!mounted) return;
-        await _captureDisplayRecordsImpl(context.read<RecordBloc>().state);
-        return;
-      }
-    }
-
-    if (!mounted) return;
+  Future<void> _applyCapture(RecordState state) async {
+    final bloc = context.read<RecordBloc>();
+    final snapshot = await _sync.applyCapture(state, bloc);
+    if (snapshot == null || !mounted) return;
     setState(() {
-      _loadedQueryVersion = cached.version;
-      _loadedRecordVersions
+      _sync.loadedQueryVersion = snapshot.loadedQueryVersion;
+      _sync.loadedRecordVersions
         ..clear()
-        ..addEntries(
-          cached.recordIds.map(
-            (id) => MapEntry(
-              id,
-              state.snapshot.records[id]?.record.recordType == widget.recordType
-                  ? state.snapshot.records[id]?.version ?? -1
-                  : _loadedRecordVersions[id] ?? -1,
-            ),
-          ),
-        );
-      _displayRecords = resolved;
+        ..addAll(snapshot.loadedRecordVersions);
+      _sync.displayRecords = snapshot.displayRecords;
     });
   }
 
@@ -332,14 +205,14 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
       icon: iconData,
       child: BlocConsumer<RecordBloc, RecordState>(
         listenWhen: (previous, current) {
-          final key = _query.queryKey;
+          final key = _sync.query.queryKey;
           final prevVersion =
               previous.snapshot.queries[key]?.version ?? -1;
           final currVersion =
               current.snapshot.queries[key]?.version ?? -1;
           if (currVersion > prevVersion) return true;
 
-          for (final id in _displayRecords.map((r) => r.id)) {
+          for (final id in _sync.displayRecords.map((r) => r.id)) {
             final prevEntry = previous.snapshot.records[id];
             final currEntry = current.snapshot.records[id];
             if (currEntry?.record.recordType != widget.recordType) {
@@ -351,9 +224,11 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
           }
           return false;
         },
-        listener: (context, state) => _captureDisplayRecords(state),
+        listener: (context, state) {
+          unawaited(_applyCapture(state));
+        },
         builder: (context, state) {
-          final key = _query.queryKey;
+          final key = _sync.query.queryKey;
           final queryError = state.snapshot.errors
               .where((e) => e.key == key)
               .map((e) => e.message)
@@ -376,15 +251,15 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
 
           final waitingForCapture =
               cached.recordIds.isNotEmpty &&
-              _displayRecords.isEmpty &&
-              _loadedQueryVersion < cached.version;
+              _sync.displayRecords.isEmpty &&
+              _sync.loadedQueryVersion < cached.version;
 
           if (waitingForCapture) {
             _scheduleBootstrap();
             return _loadingSkeleton();
           }
 
-          if (_displayRecords.isEmpty) {
+          if (_sync.displayRecords.isEmpty) {
             return AnvilEmptyState(
               title: 'No ${widget.title.toLowerCase()} yet',
               message: widget.emptyStateHint ??
@@ -405,7 +280,7 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
                         spacing: gap,
                         runSpacing: gap,
                         children: [
-                          for (var i = 0; i < _displayRecords.length; i++)
+                          for (var i = 0; i < _sync.displayRecords.length; i++)
                             SizedBox(
                               width: metrics.tileWidth,
                               child: _buildListItem(context, i),
@@ -419,7 +294,7 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
               ? ListView.separated(
                   clipBehavior: Clip.none,
                   padding: const EdgeInsets.all(16),
-                  itemCount: _displayRecords.length,
+                  itemCount: _sync.displayRecords.length,
                   separatorBuilder: (context, index) =>
                       const Divider(height: 1),
                   itemBuilder: (context, index) =>
@@ -428,7 +303,7 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
               : ListView.builder(
                   clipBehavior: Clip.none,
                   padding: const EdgeInsets.all(16),
-                  itemCount: _displayRecords.length,
+                  itemCount: _sync.displayRecords.length,
                   itemBuilder: (context, index) =>
                       _buildListItem(context, index),
                 );
@@ -443,13 +318,13 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
   }
 
   Widget _buildListItem(BuildContext context, int index) {
-    final record = _displayRecords[index];
+    final record = _sync.displayRecords[index];
     if (widget.itemBuilder != null) {
       return widget.itemBuilder!(
         context,
         record,
         index,
-        _displayRecords.length,
+        _sync.displayRecords.length,
       );
     }
     final iconData =
@@ -467,3 +342,12 @@ class _ProductivityListPageState extends State<ProductivityListPage> {
     );
   }
 }
+
+/// @deprecated Use [RecordGridListPage].
+typedef ProductivityListPage = RecordGridListPage;
+
+/// @deprecated Use [RecordGridListItemBuilder].
+typedef ProductivityListItemBuilder = RecordGridListItemBuilder;
+
+/// @deprecated Use [RecordGridTapCallback].
+typedef ProductivityRecordTapCallback = RecordGridTapCallback;

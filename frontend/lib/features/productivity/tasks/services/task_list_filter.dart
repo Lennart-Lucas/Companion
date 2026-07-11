@@ -1,7 +1,8 @@
+import 'package:frontend/core/formatting/date_formatting.dart';
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/shared/models/timeline_item.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 /// Whether [entry] is in the completed task state.
 bool taskListEntryIsCompleted(TaskListEntry entry) =>

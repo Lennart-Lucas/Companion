@@ -1,10 +1,11 @@
+import 'package:frontend/core/formatting/date_formatting.dart';
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:frontend/features/productivity/events/models/event.dart';
 import 'package:frontend/features/productivity/goals/models/goal.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 /// One sortable item in the productivity overview timeline.
 sealed class TimelineSortableItem {

@@ -1,7 +1,7 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'dart:math' show pi;
 
 import 'package:flutter/material.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 /// Single-month grid for the task list month pager.
 class TaskListMonthCalendar extends StatelessWidget {

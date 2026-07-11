@@ -1,3 +1,4 @@
+import 'package:frontend/core/formatting/date_formatting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/productivity/tasks/models/task.dart';
 
@@ -5,7 +6,6 @@ import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_display.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_grouper.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 TaskListEntry _entry({
   required String id,

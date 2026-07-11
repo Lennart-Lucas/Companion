@@ -2,6 +2,7 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
+import 'package:frontend/core/ui/confirm_delete_dialog.dart';
 import 'package:frontend/core/ui/companion_layout.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 
@@ -137,24 +138,12 @@ class _TrackerListTileBodyState extends State<_TrackerListTileBody> {
     required String message,
     required Future<void> Function() onConfirm,
   }) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDeleteDialog(
+      context,
+      title: title,
+      message: message,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     if (_busy) return;
     setState(() => _busy = true);

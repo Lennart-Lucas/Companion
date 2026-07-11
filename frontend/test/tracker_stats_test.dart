@@ -1,9 +1,9 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 Tracker _countTracker({num target = 8}) => Tracker(
       id: '1',

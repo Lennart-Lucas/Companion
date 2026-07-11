@@ -1,5 +1,5 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 void main() {
   group('formatTaskListDateHeader', () {

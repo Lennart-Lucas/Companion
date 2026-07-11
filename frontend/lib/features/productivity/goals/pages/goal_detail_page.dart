@@ -1,3 +1,4 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,7 +18,6 @@ import 'package:frontend/features/productivity/goals/widgets/goal_check_in_dialo
 import 'package:frontend/features/productivity/goals/widgets/goal_detail_sidebar.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_display.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_stats_section.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 import 'package:frontend/core/ui/companion_list_styles.dart';
 
 class GoalDetailPage extends StatefulWidget {

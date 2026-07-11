@@ -1,10 +1,10 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/features/productivity/goals/models/goal.dart';
 
 import 'package:frontend/features/productivity/goals/services/goal_stats.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 
 class GoalValueOverTimeSection extends StatefulWidget {

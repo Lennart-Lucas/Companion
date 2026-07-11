@@ -1,3 +1,4 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 
@@ -6,7 +7,6 @@ import 'package:frontend/features/productivity/shared/models/timeline_item.dart'
 import 'package:frontend/features/productivity/shared/models/timeline_row.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 /// Summary buckets shown under the Today header.
 enum TaskTodayBucket {

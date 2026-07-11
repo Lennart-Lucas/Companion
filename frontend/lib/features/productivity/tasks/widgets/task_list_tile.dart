@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
+import 'package:frontend/core/ui/confirm_delete_dialog.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_field_option_tile.dart';
 import 'package:frontend/features/productivity/goals/models/goal.dart';
 import 'package:frontend/features/productivity/projects/models/project.dart';
@@ -8,6 +9,7 @@ import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart
 import 'package:frontend/features/productivity/tasks/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_display.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
+import 'package:frontend/core/formatting/date_formatting.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 import 'package:frontend/core/ui/companion_list_styles.dart';
 
@@ -190,24 +192,12 @@ class _TaskListTileState extends State<TaskListTile> {
     required String message,
     required Future<void> Function() onConfirm,
   }) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDeleteDialog(
+      context,
+      title: title,
+      message: message,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     if (_busy) return;
     setState(() => _busy = true);

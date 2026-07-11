@@ -1,3 +1,4 @@
+import 'package:frontend/core/formatting/date_formatting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 import 'package:frontend/features/productivity/tasks/models/task.dart';
@@ -9,7 +10,6 @@ import 'package:frontend/features/productivity/shared/models/timeline_row.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_display.dart';
 import 'package:frontend/features/productivity/shared/services/timeline_grouper.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 TaskTimelineItem _taskItem({
   required String id,

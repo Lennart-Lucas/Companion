@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/core/icons/companion_project_field_icons.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
+import 'package:frontend/core/ui/confirm_delete_dialog.dart';
 import 'package:frontend/core/ui/companion_layout.dart';
 import 'package:frontend/features/productivity/projects/forms/project_field_option_tile.dart';
 import 'package:frontend/features/productivity/projects/models/project.dart';
@@ -131,24 +132,12 @@ class _ProjectListTileBodyState extends State<_ProjectListTileBody> {
     required String message,
     required Future<void> Function() onConfirm,
   }) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDeleteDialog(
+      context,
+      title: title,
+      message: message,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     if (_busy) return;
     setState(() => _busy = true);

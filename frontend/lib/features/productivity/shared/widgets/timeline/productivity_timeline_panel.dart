@@ -1,3 +1,4 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -29,7 +30,6 @@ import 'package:frontend/features/productivity/tasks/services/task_list_filter.d
 import 'package:frontend/features/productivity/shared/services/timeline_feed.dart';
 import 'package:frontend/features/productivity/shared/services/timeline_grouper.dart';
 import 'package:frontend/features/productivity/tasks/services/task_today_buckets.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 import 'package:frontend/core/ui/companion_list_styles.dart';
 import 'package:frontend/features/productivity/goals/services/goal_check_in_repository.dart';
 import 'package:frontend/features/productivity/goals/services/goal_list_actions.dart';
@@ -43,6 +43,7 @@ import 'package:frontend/features/productivity/tasks/widgets/task_list_tile.dart
 import 'package:frontend/features/productivity/tasks/widgets/task_list_week_strip.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_list_week_strip_controller.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_list_calendar_header_controls.dart';
+import 'package:frontend/features/productivity/shared/widgets/timeline/timeline_row_metrics.dart';
 import 'package:frontend/shell/shell_app_bar_actions.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_today_buckets_row.dart';
 
@@ -277,38 +278,6 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
     return null;
   }
 
-  double _rowScrollExtent(TimelineRow row) {
-    return switch (row) {
-      TimelineDateHeaderRow() =>
-        CompanionFormStyles.sectionHeaderMarginTop +
-            CompanionFormStyles.sectionHeaderMarginBottom +
-            24,
-      TimelineTodayBucketsRow() =>
-        TaskTodayBucketsRow.rowHeight +
-            CompanionFormStyles.sectionHeaderMarginBottom,
-      TimelineAddTaskRow() =>
-        CompanionFormStyles.taskTimelineNodeOuterSize +
-            CompanionFormStyles.taskRowVerticalGap,
-      TimelineTaskEntryRow(:final entry) =>
-        112 +
-            entry.subtasks.length * 40 +
-            CompanionFormStyles.taskRowVerticalGap,
-      TimelineEventEntryRow() => 112 + CompanionFormStyles.taskRowVerticalGap,
-      TimelineTrackerCheckInRow() =>
-        112 + CompanionFormStyles.taskRowVerticalGap,
-      TimelineGoalCheckInRow() => 112 + CompanionFormStyles.taskRowVerticalGap,
-      TimelineLoadingRow() => 56,
-    };
-  }
-
-  double _scrollOffsetForRowIndex(int index, List<TimelineRow> rows) {
-    var offset = 0.0;
-    for (var i = 0; i < index; i++) {
-      offset += _rowScrollExtent(rows[i]);
-    }
-    return offset;
-  }
-
   double _targetScrollOffsetForDayHeader(
     BuildContext headerContext,
     ScrollPosition position,
@@ -345,7 +314,7 @@ class _ProductivityTimelinePanelState extends State<ProductivityTimelinePanel> {
     final rows = _rows;
     final position = _scrollController.position;
     final maxExtent = position.maxScrollExtent;
-    final estimate = (_listTopPadding + _scrollOffsetForRowIndex(index, rows))
+    final estimate = (_listTopPadding + timelineScrollOffsetForRowIndex(index, rows))
         .clamp(0.0, maxExtent);
     final stripHeight =
         widget.showWeekStrip ? _weekStripOverlayHeight : 0.0;

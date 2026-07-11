@@ -1,3 +1,4 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,7 +15,6 @@ import 'package:frontend/features/productivity/tasks/services/task_list_actions.
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_display.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 class _FakeTaskListActions implements TaskListTileActions {
   @override

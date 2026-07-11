@@ -1,7 +1,7 @@
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/ui/outcome_colors.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
-import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 class TrackerWeekSuccessStrip extends StatelessWidget {
   const TrackerWeekSuccessStrip({
