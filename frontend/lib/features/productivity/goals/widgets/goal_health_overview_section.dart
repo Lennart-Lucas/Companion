@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/goals/services/goal_health.dart';
 import 'package:frontend/features/productivity/goals/services/goal_related_records.dart';
 import 'package:frontend/features/productivity/goals/services/goal_stats.dart';

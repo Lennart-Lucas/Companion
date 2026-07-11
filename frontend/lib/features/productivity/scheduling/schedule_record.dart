@@ -1,5 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 
+import 'package:frontend/core/records/record_json_utils.dart';
+
 /// Cached schedule entity for [GetRecordRequested] hydration on edit.
 class ScheduleRecord extends Record {
   @override
@@ -23,10 +25,10 @@ class ScheduleRecord extends Record {
   });
 
   factory ScheduleRecord.fromJson(Map<String, dynamic> json) {
-    final data = _unwrap(json);
+    final data = RecordJsonUtils.unwrapJson(json);
     return ScheduleRecord(
-      id: data['id']?.toString() ?? '',
-      dtstart: _dateTimeFromJson(data['dtstart'] ?? data['anchor_at']) ??
+      id: RecordJsonUtils.idFromJson(data),
+      dtstart: RecordJsonUtils.dateTimeFromJson(data['dtstart'] ?? data['anchor_at']) ??
           DateTime.now().toUtc(),
       rrule: data['rrule']?.toString(),
       timezone: data['timezone']?.toString() ?? 'UTC',
@@ -59,26 +61,6 @@ class ScheduleRecord extends Record {
             .toList(),
       };
 
-  static Map<String, dynamic> _unwrap(Map<String, dynamic> json) {
-    final nested = json['data'];
-    if (nested is Map<String, dynamic>) {
-      return {...nested, if (json['id'] != null) 'id': json['id']};
-    }
-    if (nested is Map) {
-      return {
-        ...Map<String, dynamic>.from(nested),
-        if (json['id'] != null) 'id': json['id'],
-      };
-    }
-    return json;
-  }
-
-  static DateTime? _dateTimeFromJson(dynamic value) {
-    if (value == null) return null;
-    if (value is DateTime) return value;
-    return DateTime.tryParse(value.toString());
-  }
-
   static List<DateTime> _datesFromResponse(dynamic value) {
     if (value is! List) return [];
     final dates = <DateTime>[];
@@ -87,13 +69,13 @@ class ScheduleRecord extends Record {
         final raw = row['occurrence_date'] ??
             row['excluded_date'] ??
             row['date'];
-        final dt = _dateTimeFromJson(raw);
+        final dt = RecordJsonUtils.dateTimeFromJson(raw);
         if (dt != null) {
-          dates.add(DateTime(dt.year, dt.month, dt.day));
+          dates.add(RecordJsonUtils.dateOnly(dt));
         }
       } else {
-        final dt = _dateTimeFromJson(row);
-        if (dt != null) dates.add(DateTime(dt.year, dt.month, dt.day));
+        final dt = RecordJsonUtils.dateTimeFromJson(row);
+        if (dt != null) dates.add(RecordJsonUtils.dateOnly(dt));
       }
     }
     return dates;

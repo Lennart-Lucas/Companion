@@ -4,7 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/events/forms/event_form_config.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/events/models/event.dart';
+
 
 /// Full-screen wizard to edit an existing event.
 class EventEditPage extends StatelessWidget {

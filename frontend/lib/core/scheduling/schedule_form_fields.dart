@@ -6,7 +6,7 @@ import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/scheduling/month_day_calendar_field.dart';
 import 'package:frontend/features/productivity/scheduling/schedule_picker_field.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_planned_deadline_fields.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 typedef ScheduleModeChanged = void Function(AnvilFormBloc bloc, String mode);
 

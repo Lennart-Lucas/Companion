@@ -1,7 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/scheduling/schedule_api.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 /// Picks an existing schedule from `GET /schedules`.
 class SchedulePickerField extends StatefulWidget {

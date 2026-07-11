@@ -1,8 +1,9 @@
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
-import 'package:frontend/features/productivity/models/timeline_item.dart';
-import 'package:frontend/features/productivity/models/timeline_row.dart';
+import 'package:frontend/features/productivity/shared/models/timeline_item.dart';
+import 'package:frontend/features/productivity/shared/models/timeline_row.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';

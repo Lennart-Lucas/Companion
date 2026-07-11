@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/offline/offline_task_context.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/tasks/models/task.dart';
+
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/scheduling/schedule_bundle_factory.dart';
 import 'package:frontend/features/productivity/scheduling/schedule_expander.dart';

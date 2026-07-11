@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/core/ui/outcome_colors.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 

@@ -6,7 +6,7 @@ import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_form_fields.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_planned_deadline_fields.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 AnvilDateField _dateField(WidgetTester tester, String fieldKey) {
   return tester.widget<AnvilDateField>(

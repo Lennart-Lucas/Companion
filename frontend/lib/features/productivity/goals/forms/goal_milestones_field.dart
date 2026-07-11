@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/goals/models/goal_milestone.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 
 /// Intermediate targets between current progress and the goal target.
 class GoalMilestonesField extends StatelessWidget {

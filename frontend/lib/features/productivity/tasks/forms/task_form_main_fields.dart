@@ -5,7 +5,7 @@ import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_field_option_tile.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_parent_picker_field.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_planned_deadline_fields.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 import 'package:frontend/features/productivity/shared/widgets/transparent_form_panel.dart';
 
 /// Main wizard step: details, dates, and parent pickers.

@@ -2,8 +2,9 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/trackers/forms/tracker_form_fields.dart';
 import 'package:frontend/features/productivity/trackers/forms/tracker_record_submit_handler.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 num? _parseTargetValue(dynamic value) {
   if (value == null) return null;

@@ -1,5 +1,5 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/core/records/productivity_record.dart';
 
 class MediaWatchEntry extends ProductivityRecord {
   @override

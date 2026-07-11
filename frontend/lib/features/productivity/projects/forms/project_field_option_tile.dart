@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/core/icons/companion_project_field_icons.dart';
 import 'package:frontend/core/theme/companion_semantic_colors.dart';
-import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 
 /// Colored icon + label row for project status dropdown items.
 Widget projectStatusOptionTile(

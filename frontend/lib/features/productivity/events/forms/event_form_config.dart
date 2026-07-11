@@ -5,8 +5,9 @@ import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/events/forms/event_form_fields.dart';
 import 'package:frontend/features/productivity/events/forms/event_record_submit_handler.dart';
 import 'package:frontend/features/productivity/events/forms/event_schedule_fields.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/events/models/event.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 DateTime _defaultStartAt() {
   final now = DateTime.now();

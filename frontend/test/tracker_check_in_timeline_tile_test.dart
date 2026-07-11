@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_list_actions.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_check_in_timeline_tile.dart';

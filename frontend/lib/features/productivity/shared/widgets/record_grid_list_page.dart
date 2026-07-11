@@ -11,7 +11,8 @@ import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/core/records/typed_record_resolver.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/core/ui/companion_layout.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/core/records/productivity_record.dart';
+
 
 typedef ProductivityListItemBuilder = Widget Function(
   BuildContext context,

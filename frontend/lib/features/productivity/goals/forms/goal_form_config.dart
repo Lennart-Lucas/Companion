@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/goals/forms/goal_form_fields.dart';
 import 'package:frontend/features/productivity/goals/forms/goal_record_submit_handler.dart';
 import 'package:frontend/features/productivity/goals/models/goal_milestone.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 String? _validateTargetAndUnit(Map<String, dynamic> values) {
   final targetRaw = values['target'];

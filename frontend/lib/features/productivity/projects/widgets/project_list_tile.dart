@@ -6,7 +6,8 @@ import 'package:frontend/core/icons/companion_project_field_icons.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/core/ui/companion_layout.dart';
 import 'package:frontend/features/productivity/projects/forms/project_field_option_tile.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+
 import 'package:frontend/features/productivity/projects/services/project_list_actions.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_list_progress_badge.dart';

@@ -3,8 +3,9 @@ import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/http/companion_api_errors.dart';
 import 'package:frontend/core/records/companion_record_hydration.dart';
 import 'package:frontend/features/productivity/goals/models/goal_milestone.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 /// Loads goal + linked schedule on edit; submits via [RecordBloc].
 ///

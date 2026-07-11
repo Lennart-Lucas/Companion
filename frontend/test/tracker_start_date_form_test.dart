@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 void main() {
   test('tracker submit uses edited anchor when schedule_start_date is stale', () {

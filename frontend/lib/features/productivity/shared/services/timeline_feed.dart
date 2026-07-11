@@ -3,8 +3,11 @@ import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/offline/offline_task_context.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/core/records/typed_record_resolver.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/timeline_item.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+import 'package:frontend/features/productivity/tasks/models/task.dart';
+
+import 'package:frontend/features/productivity/shared/models/timeline_item.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/goals/services/goal_check_in_repository.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_check_in_repository.dart';

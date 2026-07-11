@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 import 'package:frontend/features/productivity/goals/services/goal_stats.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_stat_items.dart';
 

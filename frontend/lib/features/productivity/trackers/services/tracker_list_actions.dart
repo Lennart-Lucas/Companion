@@ -1,7 +1,8 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/offline/mutation_outbox_service.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 
 abstract class TrackerListTileActions {
   Future<void> copyTracker(Tracker tracker);

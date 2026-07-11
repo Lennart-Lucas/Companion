@@ -4,7 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/goals/forms/goal_form_config.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 
 /// Full-screen form to edit an existing goal.
 class GoalEditPage extends StatelessWidget {

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/features/productivity/projects/forms/project_form_config.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+
 
 /// Full-screen form to edit an existing project.
 class ProjectEditPage extends StatelessWidget {

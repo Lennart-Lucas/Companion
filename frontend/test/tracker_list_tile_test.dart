@@ -4,7 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_check_in_repository.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_list_actions.dart';
@@ -13,7 +14,6 @@ import 'package:frontend/features/productivity/trackers/widgets/tracker_display.
 import 'package:frontend/features/productivity/trackers/widgets/tracker_list_progress_badge.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_list_tile.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_list_tile_stats_loader.dart';
-import 'package:frontend/core/ui/companion_list_styles.dart';
 
 class _FakeTrackerListActions implements TrackerListTileActions {
   Tracker? lastCopied;

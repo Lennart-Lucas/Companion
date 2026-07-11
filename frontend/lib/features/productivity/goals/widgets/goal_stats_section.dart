@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 import 'package:frontend/features/productivity/goals/services/goal_stats.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_value_over_time_section.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_month_logged_calendar.dart';

@@ -1,7 +1,8 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+
 
 void main() {
   test('updateRecord keeps list query version while bumping record version', () async {

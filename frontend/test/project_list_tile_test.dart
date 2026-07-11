@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+import 'package:frontend/features/productivity/tasks/models/task.dart';
+
 import 'package:frontend/features/productivity/projects/services/project_list_actions.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_list_progress_badge.dart';

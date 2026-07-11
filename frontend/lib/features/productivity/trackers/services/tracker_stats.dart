@@ -1,4 +1,5 @@
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 

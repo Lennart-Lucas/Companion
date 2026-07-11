@@ -1,4 +1,5 @@
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 
 /// A materialized goal check-in moment from the API.
 class GoalCheckIn {

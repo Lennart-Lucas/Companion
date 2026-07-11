@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_field_option_tile.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_actions.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_display.dart';

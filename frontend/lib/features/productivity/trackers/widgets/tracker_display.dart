@@ -3,8 +3,11 @@ import 'dart:math' show pi;
 import 'package:flutter/material.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/core/ui/outcome_colors.dart';
+
+export 'package:frontend/core/ui/outcome_colors.dart';
 import 'package:frontend/features/productivity/trackers/forms/duration_hms.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 String trackerCheckInTypeLabel(String value) => switch (value) {
       TrackerCheckInType.task => 'Task',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/trackers/pages/tracker_create_page.dart';
 import 'package:frontend/features/productivity/trackers/pages/tracker_detail_page.dart';
 import 'package:frontend/features/productivity/trackers/pages/tracker_edit_page.dart';

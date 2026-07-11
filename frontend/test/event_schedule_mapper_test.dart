@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/events/forms/event_form_fields.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/events/models/event.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 void main() {
   group('Event schedule payloads', () {

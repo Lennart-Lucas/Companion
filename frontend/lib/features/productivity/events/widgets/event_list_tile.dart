@@ -1,7 +1,8 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/events/models/event.dart';
+
 import 'package:frontend/features/productivity/events/widgets/event_display.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 

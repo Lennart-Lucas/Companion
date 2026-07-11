@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/trackers/services/tracker_check_in_repository.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
 

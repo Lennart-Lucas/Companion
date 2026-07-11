@@ -1,7 +1,8 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/records/companion_record_hydration.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 /// Loads tracker + linked schedule on edit; submits via [RecordBloc].
 class TrackerRecordSubmitHandler extends FormSubmitHandler {

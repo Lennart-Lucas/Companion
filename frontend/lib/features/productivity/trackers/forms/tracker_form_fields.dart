@@ -7,7 +7,8 @@ import 'package:frontend/features/productivity/tasks/forms/task_schedule_fields.
 import 'package:frontend/features/productivity/trackers/forms/tracker_duration_target_field.dart';
 import 'package:frontend/features/productivity/trackers/forms/tracker_field_option_tile.dart';
 import 'package:frontend/features/productivity/trackers/forms/tracker_schedule_fields.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/shared/widgets/transparent_form_panel.dart';
 
 /// Fields for the create/edit tracker [AnvilForm] main step.

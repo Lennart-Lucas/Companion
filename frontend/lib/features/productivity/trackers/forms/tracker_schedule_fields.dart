@@ -1,4 +1,3 @@
-import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/scheduling/schedule_form_fields.dart';
 

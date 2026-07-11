@@ -2,8 +2,9 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/records/companion_record_hydration.dart';
 import 'package:frontend/core/scheduling/schedule_api.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/events/models/event.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
 /// Loads event + linked schedule on edit; submits via [RecordBloc].
 ///

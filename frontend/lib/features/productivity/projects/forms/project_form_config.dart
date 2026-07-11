@@ -2,7 +2,8 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/features/productivity/projects/forms/project_form_fields.dart';
 import 'package:frontend/features/productivity/projects/forms/project_record_submit_handler.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+
 
 /// [AnvilFormConfig] for creating or editing a project via [RecordBloc].
 AnvilFormConfig buildProjectFormConfig(

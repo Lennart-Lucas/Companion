@@ -1,4 +1,5 @@
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 
 /// A materialized tracker check-in moment from the API.
 class TrackerCheckIn {

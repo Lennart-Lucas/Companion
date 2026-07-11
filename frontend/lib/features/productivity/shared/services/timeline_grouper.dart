@@ -1,5 +1,5 @@
-import 'package:frontend/features/productivity/models/timeline_item.dart';
-import 'package:frontend/features/productivity/models/timeline_row.dart';
+import 'package:frontend/features/productivity/shared/models/timeline_item.dart';
+import 'package:frontend/features/productivity/shared/models/timeline_row.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 

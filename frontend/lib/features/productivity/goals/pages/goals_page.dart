@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 import 'package:frontend/features/productivity/goals/pages/goal_create_page.dart';
 import 'package:frontend/features/productivity/goals/pages/goal_detail_page.dart';
 import 'package:frontend/features/productivity/goals/pages/goal_edit_page.dart';

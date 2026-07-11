@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 import 'package:frontend/features/productivity/goals/services/goal_stats.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_display.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_health_overview_section.dart';

@@ -1,5 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+
 
 const goalRelatedProjectsQuery = RecordQuery(recordType: 'projects', limit: 50);
 const goalRelatedTrackersQuery = RecordQuery(recordType: 'trackers', limit: 50);

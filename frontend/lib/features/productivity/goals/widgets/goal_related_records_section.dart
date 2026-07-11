@@ -6,7 +6,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+
 import 'package:frontend/features/productivity/projects/pages/project_create_page.dart';
 import 'package:frontend/features/productivity/projects/pages/project_detail_page.dart';
 import 'package:frontend/features/productivity/projects/pages/project_edit_page.dart';

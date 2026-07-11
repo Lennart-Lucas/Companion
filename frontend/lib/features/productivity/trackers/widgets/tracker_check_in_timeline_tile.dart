@@ -9,7 +9,8 @@ import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/core/ui/outcome_colors.dart';
 import 'package:frontend/features/productivity/trackers/forms/duration_hms.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_field_option_tile.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_list_actions.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';

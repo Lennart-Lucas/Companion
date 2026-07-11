@@ -9,7 +9,9 @@ import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/core/records/record_list_refresh.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/projects/forms/project_field_option_tile.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+import 'package:frontend/features/productivity/tasks/models/task.dart';
+
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/projects/pages/project_edit_page.dart';
 import 'package:frontend/features/productivity/tasks/pages/task_create_page.dart';

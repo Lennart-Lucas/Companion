@@ -6,11 +6,15 @@ import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/core/ui/companion_layout.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+import 'package:frontend/features/productivity/tasks/models/task.dart';
+
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
-import 'package:frontend/features/productivity/models/timeline_item.dart';
-import 'package:frontend/features/productivity/models/timeline_row.dart';
+import 'package:frontend/features/productivity/shared/models/timeline_item.dart';
+import 'package:frontend/features/productivity/shared/models/timeline_row.dart';
 import 'package:frontend/features/productivity/tasks/pages/task_create_page.dart';
 import 'package:frontend/features/productivity/tasks/pages/task_edit_page.dart';
 import 'package:frontend/features/productivity/tasks/pages/task_today_bucket_page.dart';

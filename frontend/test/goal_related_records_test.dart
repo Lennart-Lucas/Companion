@@ -1,6 +1,8 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+
 import 'package:frontend/features/productivity/goals/services/goal_related_records.dart';
 
 RecordState _stateWithLinkedRecords({

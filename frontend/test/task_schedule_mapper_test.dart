@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/tasks/models/task.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 
 void main() {

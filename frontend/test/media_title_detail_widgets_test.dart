@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/inputs/models/media_watch_entry.dart';
 import 'package:frontend/features/inputs/services/media_watch_progress.dart';
 import 'package:frontend/features/inputs/widgets/media_title_season_episodes_panel.dart';
 

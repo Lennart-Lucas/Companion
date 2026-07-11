@@ -1,4 +1,3 @@
-import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/icons/companion_task_field_icon.dart';
 import 'package:frontend/core/icons/companion_task_field_icons.dart';
@@ -6,7 +5,8 @@ import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_field_option_tile.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 import 'package:frontend/features/productivity/goals/services/goal_list_actions.dart';
 import 'package:frontend/features/productivity/goals/services/goal_stats.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_display.dart';

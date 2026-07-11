@@ -1,4 +1,5 @@
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/tasks/models/task.dart';
+
 import 'package:frontend/features/productivity/tasks/models/task_subtask.dart';
 
 /// Checklist row state for a task list entry (template + completion).

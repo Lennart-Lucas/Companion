@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/records/companion_record_hydration.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/projects/models/project.dart';
+
 
 /// Loads a project for edit hydration; submits via [RecordBloc].
 class ProjectRecordSubmitHandler extends FormSubmitHandler {

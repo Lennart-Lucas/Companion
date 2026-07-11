@@ -6,7 +6,7 @@ import 'package:frontend/features/productivity/tasks/forms/task_record_submit_ha
 import 'package:frontend/features/productivity/tasks/forms/task_schedule_fields.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_subtasks_field.dart';
 import 'package:frontend/features/productivity/shared/widgets/transparent_form_panel.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 import 'package:frontend/features/productivity/tasks/models/task_subtask.dart';
 
 String? _validateTaskParentExclusivity(Map<String, dynamic> values) {

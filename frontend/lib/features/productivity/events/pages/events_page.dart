@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/events/models/event.dart';
+
 import 'package:frontend/features/productivity/events/pages/event_create_page.dart';
 import 'package:frontend/features/productivity/events/pages/event_edit_page.dart';
 import 'package:frontend/features/productivity/events/widgets/event_list_tile.dart';

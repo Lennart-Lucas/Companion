@@ -1,4 +1,5 @@
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 
 /// PATCH/POST body for logging a tracker check-in moment.
 Map<String, dynamic> trackerCheckInLogPayload({

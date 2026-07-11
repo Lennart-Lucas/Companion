@@ -1,7 +1,8 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/theme/companion_semantic_colors.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/goals/models/goal.dart';
+
 
 List<AnvilFieldOption<String>> goalTypeOptions() => const [
       AnvilFieldOption(value: GoalType.count, label: 'Count'),

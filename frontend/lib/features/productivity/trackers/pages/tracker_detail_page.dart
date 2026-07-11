@@ -6,7 +6,8 @@ import 'package:frontend/core/offline/local_record_cache_service.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/core/ui/companion_layout.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/trackers/pages/tracker_edit_page.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_check_in_repository.dart';

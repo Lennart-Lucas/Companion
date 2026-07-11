@@ -3,8 +3,9 @@ import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/records/companion_record_hydration.dart';
 import 'package:frontend/core/scheduling/schedule_api.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_planned_deadline_fields.dart';
-import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_schedule.dart';
+import 'package:frontend/features/productivity/tasks/models/task.dart';
+
+import 'package:frontend/core/scheduling/schedule_form_values.dart';
 import 'package:frontend/features/productivity/tasks/models/task_subtask.dart';
 
 /// Loads task + linked schedule on edit; submits via [RecordBloc].
