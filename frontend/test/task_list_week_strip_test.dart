@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/theme/app_theme.dart';
-import 'package:frontend/features/productivity/widgets/task_list_week_strip.dart';
-import 'package:frontend/features/productivity/widgets/task_list_week_strip_controller.dart';
+import 'package:frontend/features/productivity/tasks/widgets/task_list_week_strip.dart';
+import 'package:frontend/features/productivity/tasks/widgets/task_list_week_strip_controller.dart';
 
 void main() {
   testWidgets('TaskListWeekStrip shows styled weekday labels and dates', (

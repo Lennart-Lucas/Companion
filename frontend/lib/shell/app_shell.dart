@@ -2,12 +2,12 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/features/inputs/pages/movies_tv_page.dart';
-import 'package:frontend/features/productivity/pages/events_page.dart';
-import 'package:frontend/features/productivity/pages/goals_page.dart';
-import 'package:frontend/features/productivity/pages/productivity_overview_page.dart';
-import 'package:frontend/features/productivity/pages/projects_page.dart';
-import 'package:frontend/features/productivity/pages/tasks_page.dart';
-import 'package:frontend/features/productivity/pages/trackers_page.dart';
+import 'package:frontend/features/productivity/events/pages/events_page.dart';
+import 'package:frontend/features/productivity/goals/pages/goals_page.dart';
+import 'package:frontend/features/productivity/shared/pages/productivity_overview_page.dart';
+import 'package:frontend/features/productivity/projects/pages/projects_page.dart';
+import 'package:frontend/features/productivity/shared/pages/tasks_page.dart';
+import 'package:frontend/features/productivity/trackers/pages/trackers_page.dart';
 import 'package:frontend/features/settings/pages/settings_ui_page.dart';
 import 'package:frontend/shell/shell_app_bar_actions.dart';
 

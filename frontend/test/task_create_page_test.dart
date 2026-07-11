@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/forms/task_form_config.dart';
+import 'package:frontend/features/productivity/tasks/forms/task_form_config.dart';
 
 void main() {
   testWidgets('TaskCreatePage shows create task wizard', (WidgetTester tester) async {

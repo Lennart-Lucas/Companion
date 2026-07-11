@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/services/task_list_builder.dart';
-import 'package:frontend/features/productivity/widgets/project_display.dart';
+import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
+import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 
 void main() {
   group('projectTaskListHorizon', () {

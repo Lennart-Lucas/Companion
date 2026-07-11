@@ -2,7 +2,7 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/forms/event_schedule_fields.dart';
+import 'package:frontend/features/productivity/events/forms/event_schedule_fields.dart';
 import 'package:frontend/features/productivity/models/task_schedule.dart';
 
 class _NoOpHandler extends FormSubmitHandler {

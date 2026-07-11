@@ -1,5 +1,5 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
-import 'package:frontend/features/productivity/models/task_occurrence.dart';
+import 'package:frontend/features/productivity/tasks/models/task_occurrence.dart';
 
 /// REST client for task occurrence endpoints.
 class TaskOccurrenceApi {

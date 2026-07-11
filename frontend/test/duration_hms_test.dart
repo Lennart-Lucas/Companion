@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/forms/duration_hms.dart';
+import 'package:frontend/features/productivity/trackers/forms/duration_hms.dart';
 
 void main() {
   group('secondsToDurationHms', () {

@@ -5,7 +5,7 @@ import 'package:frontend/features/inputs/pages/media_title_detail_page.dart';
 import 'package:frontend/features/inputs/services/media_title_list_actions.dart';
 import 'package:frontend/features/inputs/widgets/add_media_title_sheet.dart';
 import 'package:frontend/features/inputs/widgets/media_title_list_tile.dart';
-import 'package:frontend/features/productivity/widgets/productivity_list_page.dart';
+import 'package:frontend/features/productivity/shared/widgets/record_grid_list_page.dart';
 
 /// Movies & TV library backed by saved IMDb titles.
 class MoviesTvPage extends StatefulWidget {

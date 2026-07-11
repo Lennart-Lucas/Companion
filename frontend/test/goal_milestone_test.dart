@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/models/goal_milestone.dart';
+import 'package:frontend/features/productivity/goals/models/goal_milestone.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
 
 void main() {

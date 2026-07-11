@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/pages/project_edit_page.dart';
+import 'package:frontend/features/productivity/projects/pages/project_edit_page.dart';
 
 void main() {
   testWidgets('ProjectEditPage shows edit project form', (

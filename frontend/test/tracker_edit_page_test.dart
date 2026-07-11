@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/pages/tracker_edit_page.dart';
+import 'package:frontend/features/productivity/trackers/pages/tracker_edit_page.dart';
 
 void main() {
   testWidgets('TrackerEditPage shows edit tracker form', (

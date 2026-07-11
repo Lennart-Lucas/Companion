@@ -2,7 +2,7 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/core/theme/app_theme_controller.dart';
-import 'package:frontend/features/productivity/widgets/transparent_form_panel.dart';
+import 'package:frontend/features/productivity/shared/widgets/transparent_form_panel.dart';
 
 /// UI settings: theme selection.
 class SettingsUiPage extends StatelessWidget {

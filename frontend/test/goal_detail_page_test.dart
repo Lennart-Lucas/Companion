@@ -4,11 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/models/goal_check_in.dart';
+import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/pages/goal_detail_page.dart';
-import 'package:frontend/features/productivity/services/goal_check_in_repository.dart';
-import 'package:frontend/features/productivity/services/goal_list_actions.dart';
+import 'package:frontend/features/productivity/goals/pages/goal_detail_page.dart';
+import 'package:frontend/features/productivity/goals/services/goal_check_in_repository.dart';
+import 'package:frontend/features/productivity/goals/services/goal_list_actions.dart';
 
 class _FakeGoalListActions implements GoalListTileActions {
   @override

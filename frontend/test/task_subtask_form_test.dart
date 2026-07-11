@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/models/task_subtask.dart';
+import 'package:frontend/features/productivity/tasks/models/task_subtask.dart';
 
 void main() {
   group('TaskSubtaskFormValues', () {

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:anvil_foundry/anvil_foundry.dart';
-import 'package:frontend/features/productivity/models/schedule_record.dart';
+import 'package:frontend/features/productivity/scheduling/schedule_record.dart';
 
 /// Loads a record for edit hydration, ignoring same-id cache entries of other types.
 Future<Map<String, dynamic>> hydrateRecordValues({

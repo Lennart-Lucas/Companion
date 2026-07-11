@@ -8,7 +8,7 @@ import 'package:frontend/features/inputs/services/imdb_person_api.dart';
 import 'package:frontend/features/inputs/services/media_title_list_actions.dart';
 import 'package:frontend/features/inputs/services/media_title_repository.dart';
 import 'package:frontend/features/inputs/widgets/media_title_poster_thumbnail.dart';
-import 'package:frontend/features/productivity/forms/companion_layout.dart';
+import 'package:frontend/core/ui/companion_layout.dart';
 
 Future<void> showActorFilmographySheet(
   BuildContext context, {

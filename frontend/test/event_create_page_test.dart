@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/forms/event_form_config.dart';
+import 'package:frontend/features/productivity/events/forms/event_form_config.dart';
 
 void main() {
   testWidgets('EventCreatePage shows event wizard', (WidgetTester tester) async {

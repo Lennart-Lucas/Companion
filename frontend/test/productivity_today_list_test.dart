@@ -4,13 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/models/task_list_entry.dart';
+import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/services/task_list_actions.dart';
-import 'package:frontend/features/productivity/services/timeline_feed.dart';
-import 'package:frontend/features/productivity/widgets/productivity_timeline_panel.dart';
-import 'package:frontend/features/productivity/widgets/productivity_today_list.dart';
-import 'package:frontend/features/productivity/widgets/task_list_week_strip.dart';
+import 'package:frontend/features/productivity/tasks/services/task_list_actions.dart';
+import 'package:frontend/features/productivity/shared/services/timeline_feed.dart';
+import 'package:frontend/features/productivity/shared/widgets/timeline/productivity_timeline_panel.dart';
+import 'package:frontend/features/productivity/shared/widgets/productivity_today_list.dart';
+import 'package:frontend/features/productivity/tasks/widgets/task_list_week_strip.dart';
 
 class _NoOpTaskListActions implements TaskListTileActions {
   @override

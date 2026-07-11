@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/widgets/task_status_utils.dart';
+import 'package:frontend/features/productivity/tasks/widgets/task_status_utils.dart';
 
 void main() {
   test('nextTaskStatus cycles through workflow states', () {

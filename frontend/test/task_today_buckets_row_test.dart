@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/theme/app_theme.dart';
-import 'package:frontend/features/productivity/services/task_today_buckets.dart';
-import 'package:frontend/features/productivity/widgets/task_today_buckets_row.dart';
+import 'package:frontend/features/productivity/tasks/services/task_today_buckets.dart';
+import 'package:frontend/features/productivity/tasks/widgets/task_today_buckets_row.dart';
 
 void main() {
   testWidgets('TaskTodayBucketsRow renders four bucket cards with counts', (

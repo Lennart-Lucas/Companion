@@ -1,8 +1,8 @@
-import 'package:frontend/features/productivity/models/goal_check_in.dart';
+import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_list_entry.dart';
-import 'package:frontend/features/productivity/models/tracker_check_in.dart';
-import 'package:frontend/features/productivity/widgets/task_display.dart';
+import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
+import 'package:frontend/features/productivity/tasks/widgets/task_display.dart';
 
 /// One sortable item in the productivity overview timeline.
 sealed class TimelineSortableItem {

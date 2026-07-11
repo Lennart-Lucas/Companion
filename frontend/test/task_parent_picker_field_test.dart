@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/forms/task_parent_picker_field.dart';
+import 'package:frontend/features/productivity/tasks/forms/task_parent_picker_field.dart';
 
 class _NoOpHandler extends FormSubmitHandler {
   @override

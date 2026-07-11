@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/theme/app_theme.dart';
-import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
+import 'package:frontend/core/ui/companion_list_styles.dart';
 
 void main() {
   testWidgets('TaskListAddTile opens create when plus is tapped', (

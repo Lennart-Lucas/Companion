@@ -2,7 +2,7 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/features/inputs/models/media_title.dart';
 import 'package:frontend/features/inputs/models/media_watch_entry.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/schedule_record.dart';
+import 'package:frontend/features/productivity/scheduling/schedule_record.dart';
 
 const _listTtl = Duration(minutes: 5);
 

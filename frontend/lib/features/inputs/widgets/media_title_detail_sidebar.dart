@@ -5,9 +5,9 @@ import 'package:frontend/features/inputs/widgets/media_title_star_rating.dart';
 import 'package:frontend/features/inputs/widgets/media_title_watch_status_chip.dart';
 import 'package:frontend/features/inputs/widgets/actor_filmography_sheet.dart';
 import 'package:frontend/features/inputs/services/media_title_list_actions.dart';
-import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
-import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
-import 'package:frontend/features/productivity/widgets/tracker_display.dart';
+import 'package:frontend/core/ui/companion_form_styles.dart';
+import 'package:frontend/core/ui/companion_list_styles.dart';
+import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 
 class MediaTitleDetailSidebar extends StatelessWidget {
   const MediaTitleDetailSidebar({

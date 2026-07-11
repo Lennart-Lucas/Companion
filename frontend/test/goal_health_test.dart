@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/services/goal_health.dart';
-import 'package:frontend/features/productivity/services/goal_stats.dart';
-import 'package:frontend/features/productivity/services/tracker_stats.dart';
+import 'package:frontend/features/productivity/goals/services/goal_health.dart';
+import 'package:frontend/features/productivity/goals/services/goal_stats.dart';
+import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
 
 GoalStats _stats({
   double progressPercent = 50,

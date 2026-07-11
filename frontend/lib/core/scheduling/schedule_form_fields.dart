@@ -2,10 +2,10 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
-import 'package:frontend/features/productivity/forms/month_day_calendar_field.dart';
-import 'package:frontend/features/productivity/forms/schedule_picker_field.dart';
-import 'package:frontend/features/productivity/forms/task_planned_deadline_fields.dart';
+import 'package:frontend/core/ui/companion_form_styles.dart';
+import 'package:frontend/features/productivity/scheduling/month_day_calendar_field.dart';
+import 'package:frontend/features/productivity/scheduling/schedule_picker_field.dart';
+import 'package:frontend/features/productivity/tasks/forms/task_planned_deadline_fields.dart';
 import 'package:frontend/features/productivity/models/task_schedule.dart';
 
 typedef ScheduleModeChanged = void Function(AnvilFormBloc bloc, String mode);

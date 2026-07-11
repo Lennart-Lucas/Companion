@@ -13,9 +13,9 @@ import 'package:frontend/features/inputs/services/media_title_list_actions.dart'
 import 'package:frontend/features/inputs/widgets/media_title_detail_sidebar.dart';
 import 'package:frontend/features/inputs/widgets/media_title_notes_panel.dart';
 import 'package:frontend/features/inputs/widgets/media_title_season_episodes_panel.dart';
-import 'package:frontend/features/productivity/forms/companion_layout.dart';
-import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
-import 'package:frontend/features/productivity/widgets/tracker_display.dart';
+import 'package:frontend/core/ui/companion_layout.dart';
+import 'package:frontend/core/ui/companion_list_styles.dart';
+import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MediaTitleDetailPage extends StatefulWidget {

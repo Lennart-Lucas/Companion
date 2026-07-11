@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/widgets/event_display.dart';
+import 'package:frontend/features/productivity/events/widgets/event_display.dart';
 
 void main() {
   test('eventDateTimeRangeLabel includes times on the same day', () {

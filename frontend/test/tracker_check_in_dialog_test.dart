@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/tracker_check_in.dart';
-import 'package:frontend/features/productivity/services/tracker_check_in_repository.dart';
-import 'package:frontend/features/productivity/widgets/tracker_check_in_dialog.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
+import 'package:frontend/features/productivity/trackers/services/tracker_check_in_repository.dart';
+import 'package:frontend/features/productivity/trackers/widgets/tracker_check_in_dialog.dart';
 
 class _FakeTrackerCheckInRepository implements TrackerCheckInRepository {
   int? lastValueSeconds;

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/services/tracker_check_in_payload.dart';
+import 'package:frontend/features/productivity/trackers/services/tracker_check_in_payload.dart';
 
 void main() {
   test('trackerCheckInLogPayload builds count body', () {

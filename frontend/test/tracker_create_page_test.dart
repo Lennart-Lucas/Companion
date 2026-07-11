@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
-import 'package:frontend/features/productivity/pages/tracker_create_page.dart';
+import 'package:frontend/features/productivity/trackers/pages/tracker_create_page.dart';
 
 void main() {
   testWidgets('TrackerCreatePage shows create tracker form', (

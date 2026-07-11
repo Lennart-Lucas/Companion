@@ -20,6 +20,7 @@ dependencies:
   anvil_foundry:
     path: ../../anvil_foundry/Anvil-Foundry
   rrule: ^0.2.18
+  go_router: ^16.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/models/goal_check_in.dart';
+import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 
 void main() {
   test('GoalCheckIn.fromJson parses logged count check-in', () {

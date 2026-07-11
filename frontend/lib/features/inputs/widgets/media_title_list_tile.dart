@@ -4,8 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/features/inputs/models/media_title.dart';
 import 'package:frontend/features/inputs/services/media_title_list_actions.dart';
 import 'package:frontend/features/inputs/widgets/media_title_poster_thumbnail.dart';
-import 'package:frontend/features/productivity/forms/companion_form_styles.dart';
-import 'package:frontend/features/productivity/widgets/tracker_display.dart';
+import 'package:frontend/core/ui/companion_form_styles.dart';
+import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 
 enum MediaTitleListMenuAction { deleteTitle }
 

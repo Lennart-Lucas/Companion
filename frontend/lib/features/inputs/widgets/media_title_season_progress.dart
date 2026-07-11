@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/features/inputs/services/media_watch_progress.dart';
-import 'package:frontend/features/productivity/widgets/tracker_display.dart';
+import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 
 class MediaTitleSeasonProgress extends StatelessWidget {
   const MediaTitleSeasonProgress({

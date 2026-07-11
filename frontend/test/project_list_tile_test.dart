@@ -5,12 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/services/project_list_actions.dart';
-import 'package:frontend/features/productivity/widgets/project_display.dart';
-import 'package:frontend/features/productivity/widgets/project_list_progress_badge.dart';
-import 'package:frontend/features/productivity/widgets/project_list_tile.dart';
-import 'package:frontend/features/productivity/widgets/project_list_tile_stats_loader.dart';
-import 'package:frontend/features/productivity/widgets/tracker_display.dart';
+import 'package:frontend/features/productivity/projects/services/project_list_actions.dart';
+import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
+import 'package:frontend/features/productivity/projects/widgets/project_list_progress_badge.dart';
+import 'package:frontend/features/productivity/projects/widgets/project_list_tile.dart';
+import 'package:frontend/features/productivity/projects/widgets/project_list_tile_stats_loader.dart';
+import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 
 class _FakeProjectListActions implements ProjectListTileActions {
   Project? lastCopied;

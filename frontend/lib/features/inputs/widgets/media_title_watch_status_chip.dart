@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/features/inputs/models/media_title.dart';
-import 'package:frontend/features/productivity/widgets/task_list_styles.dart';
+import 'package:frontend/core/ui/companion_list_styles.dart';
 
 IconData _watchStatusIcon(String status) {
   switch (status) {

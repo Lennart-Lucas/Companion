@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/services/task_list_builder.dart';
+import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 
 void main() {
   group('TaskListHorizon', () {

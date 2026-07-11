@@ -1,8 +1,8 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
-import 'package:frontend/features/productivity/forms/task_planned_deadline_fields.dart';
-import 'package:frontend/features/productivity/models/goal_milestone.dart';
+import 'package:frontend/features/productivity/tasks/forms/task_planned_deadline_fields.dart';
+import 'package:frontend/features/productivity/goals/models/goal_milestone.dart';
 import 'package:frontend/features/productivity/models/task_schedule.dart';
-import 'package:frontend/features/productivity/models/task_subtask.dart';
+import 'package:frontend/features/productivity/tasks/models/task_subtask.dart';
 
 /// Shared list-display record for Companion productivity entities.
 abstract class ProductivityRecord extends Record {

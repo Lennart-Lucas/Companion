@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/productivity/services/tracker_stats.dart';
-import 'package:frontend/features/productivity/widgets/tracker_month_success_calendar.dart';
+import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
+import 'package:frontend/features/productivity/trackers/widgets/tracker_month_success_calendar.dart';
 
 void main() {
   testWidgets('TrackerMonthSuccessCalendar shows legend and month title', (

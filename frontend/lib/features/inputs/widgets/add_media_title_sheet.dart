@@ -6,7 +6,7 @@ import 'package:frontend/features/inputs/models/media_title.dart';
 import 'package:frontend/features/inputs/services/imdb_search_api.dart';
 import 'package:frontend/features/inputs/services/media_title_repository.dart';
 import 'package:frontend/features/inputs/widgets/media_title_poster_thumbnail.dart';
-import 'package:frontend/features/productivity/forms/companion_layout.dart';
+import 'package:frontend/core/ui/companion_layout.dart';
 
 Future<MediaTitle?> showAddMediaTitleSheet(BuildContext context) {
   final compact = CompanionLayout.isCompact(context);

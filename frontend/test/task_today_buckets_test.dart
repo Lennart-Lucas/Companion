@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/productivity/models/productivity_record.dart';
-import 'package:frontend/features/productivity/models/task_list_entry.dart';
+import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/models/timeline_item.dart';
-import 'package:frontend/features/productivity/models/tracker_check_in.dart';
-import 'package:frontend/features/productivity/services/task_today_buckets.dart';
+import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
+import 'package:frontend/features/productivity/tasks/services/task_today_buckets.dart';
 
 void main() {
   final today = DateTime(2026, 7, 6);
