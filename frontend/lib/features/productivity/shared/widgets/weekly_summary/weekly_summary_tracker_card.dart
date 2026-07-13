@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 import 'package:frontend/features/productivity/shared/models/weekly_summary.dart';
 import 'package:frontend/features/productivity/shared/widgets/weekly_summary/weekly_summary_log_button.dart';
@@ -32,66 +33,76 @@ class WeeklySummaryTrackerCard extends StatelessWidget {
     final trackerColor =
         parseProjectColor(tracker.color, scheme.primary) ??
         trackerHabitBuildColor;
-    final weekPercent = (summary.thisWeekPercent * 100).round();
+    final ratePercent = (summary.thisWeekPercent * 100).round();
 
     return TrackerRowPanel(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  TrackerListProgressBadge(
-                    fraction: summary.thisWeekPercent,
-                    trackerColor: trackerColor,
-                    iconName: tracker.icon,
-                    compact: true,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      tracker.name,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              WeeklySummaryTrackerWeekStrip(
-                weekStart: weekStart,
-                listToday: listToday,
-                dayOutcomes: summary.dayOutcomes,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${summary.currentStreak} day streak · $weekPercent% this week',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
+        borderRadius: BorderRadius.circular(
+          CompanionFormStyles.taskRowPanelRadius,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                TrackerListProgressBadge(
+                  fraction: summary.thisWeekPercent,
+                  trackerColor: trackerColor,
+                  iconName: tracker.icon,
+                  compact: true,
                 ),
-              ),
-              const Spacer(),
-              if (showLogButton) ...[
-                const SizedBox(height: 8),
-                WeeklySummaryLogButton(
-                  label: summary.loggedToday ? 'Logged today ✓' : 'Log today',
-                  enabled: !summary.loggedToday && onLogPressed != null,
-                  filled: !summary.loggedToday,
-                  color: summary.loggedToday
-                      ? trackerStrengthHighColor
-                      : trackerColor,
-                  onPressed: summary.loggedToday ? null : onLogPressed,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    tracker.name,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            WeeklySummaryTrackerWeekStrip(
+              weekStart: weekStart,
+              listToday: listToday,
+              dayOutcomes: summary.dayOutcomes,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  '${summary.currentStreak} day streak',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurface.withValues(alpha: 0.65),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '$ratePercent% rate',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurface.withValues(alpha: 0.65),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            if (showLogButton) ...[
+              const SizedBox(height: 8),
+              WeeklySummaryLogButton(
+                label: summary.loggedToday ? 'Logged today ✓' : 'Log today',
+                enabled: !summary.loggedToday && onLogPressed != null,
+                filled: !summary.loggedToday,
+                color: summary.loggedToday
+                    ? trackerStrengthHighColor
+                    : trackerColor,
+                onPressed: summary.loggedToday ? null : onLogPressed,
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );

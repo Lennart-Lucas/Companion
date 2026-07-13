@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Callable, TypeVar
 
 from sqlalchemy import select
@@ -116,9 +116,11 @@ def _create_quota_slot(
     locked_at: datetime | None = None,
 ) -> T:
     spawned_at = _ensure_utc(spawned_at)
+    # Distinct check_in_at per slot when spawned_at repeats (failed slots at period end).
+    check_in_at = spawned_at + timedelta(microseconds=slot_index)
     kwargs: dict[str, object] = {
         parent_fk_name: parent_id,
-        "check_in_at": spawned_at,
+        "check_in_at": check_in_at,
         "spawned_at": spawned_at,
         "period_start_at": _ensure_utc(period_start_at),
         "slot_index": slot_index,

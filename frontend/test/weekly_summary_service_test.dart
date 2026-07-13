@@ -349,6 +349,73 @@ void main() {
       },
     );
 
+    test('excludes goals, trackers, and projects outside the week', () async {
+      final activeGoal = Goal(
+        id: 'g1',
+        name: 'Read books',
+        startDate: DateTime.utc(2026, 1, 1),
+        target: 12,
+        unit: 'books',
+      );
+      final endedGoal = Goal(
+        id: 'g2',
+        name: 'Old goal',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 6, 30),
+        target: 1,
+        unit: 'x',
+      );
+      final activeTracker = Tracker(
+        id: 'tr1',
+        name: 'Exercise',
+        startDate: DateTime.utc(2026, 1, 1),
+        checkInType: TrackerCheckInType.task,
+        habitDirection: TrackerHabitDirection.build,
+      );
+      final futureTracker = Tracker(
+        id: 'tr2',
+        name: 'Future',
+        startDate: DateTime.utc(2026, 8, 1),
+        checkInType: TrackerCheckInType.task,
+        habitDirection: TrackerHabitDirection.build,
+      );
+      final activeProject = Project(
+        id: 'p1',
+        name: 'Companion',
+        startDate: DateTime.utc(2026, 1, 1),
+        status: 'active',
+      );
+      final endedProject = Project(
+        id: 'p2',
+        name: 'Old project',
+        startDate: DateTime.utc(2026, 1, 1),
+        deadline: DateTime.utc(2026, 6, 30),
+        status: 'done',
+      );
+
+      final service = WeeklySummaryService(
+        taskBuilder: _FakeTaskBuilder(const []),
+        goalCheckInRepository: _FakeGoalCheckInRepository({}),
+        trackerCheckInRepository: _FakeTrackerCheckInRepository({}),
+      );
+
+      final summary = await service.compute(
+        state: _stateWithRecords(
+          goals: [activeGoal, endedGoal],
+          trackers: [activeTracker, futureTracker],
+          projects: [activeProject, endedProject],
+        ),
+        weekStart: weekStart,
+      );
+
+      expect(summary.goals, hasLength(1));
+      expect(summary.goals.single.goal.id, 'g1');
+      expect(summary.trackers, hasLength(1));
+      expect(summary.trackers.single.tracker.id, 'tr1');
+      expect(summary.projects, hasLength(1));
+      expect(summary.projects.single.project.id, 'p1');
+    });
+
     test('includes today UTC check-in in week day outcomes for current week', () async {
       final tracker = Tracker(
         id: 'tr1',

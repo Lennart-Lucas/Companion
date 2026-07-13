@@ -7,6 +7,7 @@ import 'package:frontend/core/routing/companion_routes.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/goals/services/goal_check_in_repository.dart';
 import 'package:frontend/features/productivity/shared/models/weekly_summary.dart';
+import 'package:frontend/features/productivity/shared/services/timeline_feed.dart';
 import 'package:frontend/features/productivity/shared/services/weekly_summary_service.dart';
 import 'package:frontend/features/productivity/shared/widgets/weekly_summary/weekly_summary_check_ins.dart';
 import 'package:frontend/features/productivity/shared/widgets/weekly_summary/weekly_summary_goals_section.dart';
@@ -38,6 +39,15 @@ class WeeklySummaryPage extends StatefulWidget {
 }
 
 class _WeeklySummaryPageState extends State<WeeklySummaryPage> {
+  static const _projectsQuery = RecordQuery(recordType: 'projects', limit: 50);
+
+  static const _summaryQueries = [
+    TaskTimelineProvider.tasksQuery,
+    GoalTimelineProvider.goalsQuery,
+    TrackerTimelineProvider.trackersQuery,
+    _projectsQuery,
+  ];
+
   late DateTime _weekStart;
   late DateTime _listToday;
   WeeklySummary? _summary;
@@ -61,7 +71,44 @@ class _WeeklySummaryPageState extends State<WeeklySummaryPage> {
     _listToday = normalizeTaskListCalendarDay(
       widget.listToday ?? DateTime.now(),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _prefetchQueries();
+    });
     _loadSummary();
+  }
+
+  void _prefetchQueries() {
+    final bloc = context.read<RecordBloc>();
+    final snapshot = bloc.state.snapshot;
+    for (final query in _summaryQueries) {
+      if (snapshot.queries[query.queryKey] == null) {
+        bloc.add(QueryRecordsRequested(query));
+      }
+    }
+  }
+
+  int _hydratedSummaryRecordCount(RecordState state) {
+    var count = 0;
+    for (final query in _summaryQueries) {
+      final cached = state.snapshot.queries[query.queryKey];
+      if (cached == null) continue;
+      for (final id in cached.recordIds) {
+        if (state.snapshot.records[id]?.record != null) count++;
+      }
+    }
+    return count;
+  }
+
+  bool _shouldReloadSummary(RecordState previous, RecordState current) {
+    for (final query in _summaryQueries) {
+      final key = query.queryKey;
+      final prevVersion = previous.snapshot.queries[key]?.version ?? -1;
+      final currVersion = current.snapshot.queries[key]?.version ?? -1;
+      if (currVersion > prevVersion) return true;
+    }
+    return _hydratedSummaryRecordCount(previous) <
+        _hydratedSummaryRecordCount(current);
   }
 
   @override
@@ -127,17 +174,21 @@ class _WeeklySummaryPageState extends State<WeeklySummaryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: WeeklySummaryHeader(
-        weekStart: _weekStart,
-        listToday: _listToday,
-        onPreviousWeek: _showPreviousWeek,
-        onNextWeek: _showNextWeek,
-        onGoToCurrentWeek: _goToCurrentWeek,
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadSummary,
-        child: _buildBody(context),
+    return BlocListener<RecordBloc, RecordState>(
+      listenWhen: _shouldReloadSummary,
+      listener: (context, state) => _loadSummary(),
+      child: Scaffold(
+        appBar: WeeklySummaryHeader(
+          weekStart: _weekStart,
+          listToday: _listToday,
+          onPreviousWeek: _showPreviousWeek,
+          onNextWeek: _showNextWeek,
+          onGoToCurrentWeek: _goToCurrentWeek,
+        ),
+        body: RefreshIndicator(
+          onRefresh: _loadSummary,
+          child: _buildBody(context),
+        ),
       ),
     );
   }
@@ -186,24 +237,25 @@ class _WeeklySummaryPageState extends State<WeeklySummaryPage> {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: CompanionFormStyles.taskListPagePadding(top: 16),
+      padding: const EdgeInsets.all(16),
+      cacheExtent: 1200,
       children: [
         WeeklySummaryRecapSection(recap: summary.recap),
-        const SizedBox(height: CompanionFormStyles.sectionHeaderMarginBottom),
+        const SizedBox(height: CompanionFormStyles.sectionHeaderMarginTop),
         WeeklySummaryGoalsSection(
           goals: summary.goals,
           weekStart: _weekStart,
           listToday: _listToday,
           checkIns: checkIns,
         ),
-        const SizedBox(height: CompanionFormStyles.sectionHeaderMarginBottom),
+        const SizedBox(height: CompanionFormStyles.sectionHeaderMarginTop),
         WeeklySummaryTrackersSection(
           trackers: summary.trackers,
           weekStart: _weekStart,
           listToday: _listToday,
           checkIns: checkIns,
         ),
-        const SizedBox(height: CompanionFormStyles.sectionHeaderMarginBottom),
+        const SizedBox(height: CompanionFormStyles.sectionHeaderMarginTop),
         WeeklySummaryProjectsSection(projects: summary.projects),
       ],
     );

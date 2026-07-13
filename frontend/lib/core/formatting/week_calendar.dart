@@ -100,6 +100,21 @@ bool taskListDayIsSunday(DateTime day) {
   return normalizeTaskListCalendarDay(day).weekday == DateTime.sunday;
 }
 
+/// Header-style Mon–Sun range, e.g. "Jul 6 – 12, 2026".
+String formatWeekRangeLabelHeader(DateTime weekStart) {
+  final start = normalizeTaskListCalendarDay(weekStart);
+  final end = taskListWeekEnd(start);
+  final startMonth = _monthAbbrevs[start.month - 1];
+  final endMonth = _monthAbbrevs[end.month - 1];
+  if (start.year == end.year) {
+    if (start.month == end.month) {
+      return '$startMonth ${start.day} – ${end.day}, ${end.year}';
+    }
+    return '$startMonth ${start.day} – $endMonth ${end.day}, ${end.year}';
+  }
+  return '$startMonth ${start.day}, ${start.year} – $endMonth ${end.day}, ${end.year}';
+}
+
 /// Human-readable Mon–Sun range, e.g. "6 Jul – 12 Jul 2026".
 String formatWeekRangeLabel(DateTime weekStart) {
   final start = normalizeTaskListCalendarDay(weekStart);

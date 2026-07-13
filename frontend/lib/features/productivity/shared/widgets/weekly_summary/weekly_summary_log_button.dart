@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/ui/companion_form_styles.dart';
+import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 
 class WeeklySummaryLogButton extends StatelessWidget {
   const WeeklySummaryLogButton({
@@ -18,6 +20,9 @@ class WeeklySummaryLogButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final borderRadius = BorderRadius.circular(
+      CompanionFormStyles.taskRowPanelRadius,
+    );
     final child = Text(
       label,
       style: const TextStyle(fontWeight: FontWeight.w600),
@@ -29,6 +34,7 @@ class WeeklySummaryLogButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: color.withValues(alpha: 0.85),
           minimumSize: const Size(double.infinity, 36),
+          shape: RoundedRectangleBorder(borderRadius: borderRadius),
         ),
         child: child,
       );
@@ -37,9 +43,13 @@ class WeeklySummaryLogButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: null,
       style: OutlinedButton.styleFrom(
-        foregroundColor: color,
-        side: BorderSide(color: color.withValues(alpha: 0.6)),
+        foregroundColor: trackerStrengthHighColor,
+        backgroundColor: trackerStrengthHighColor.withValues(alpha: 0.12),
+        side: BorderSide(
+          color: trackerStrengthHighColor.withValues(alpha: 0.35),
+        ),
         minimumSize: const Size(double.infinity, 36),
+        shape: RoundedRectangleBorder(borderRadius: borderRadius),
       ),
       child: child,
     );

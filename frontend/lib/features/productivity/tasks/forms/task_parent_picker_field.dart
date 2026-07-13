@@ -4,6 +4,9 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:frontend/core/app/companion_anvil_app.dart';
+import 'package:frontend/core/records/companion_record_hydration.dart';
+import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 
@@ -68,6 +71,12 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
 
   String? _projectsQueryKey;
   String? _goalsQueryKey;
+  Record? _linkedProject;
+  Record? _linkedGoal;
+  String? _linkedProjectFetchId;
+  String? _linkedGoalFetchId;
+  String? _lastSyncedProjectId;
+  String? _lastSyncedGoalId;
 
   String _searchQuery = '';
   final _layerLink = LayerLink();
@@ -85,6 +94,8 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
       _sub?.cancel();
       _sub = bloc.stream.listen(_onBlocStateChanged);
       _ensureParentRecordsLoaded();
+      final (projectId, goalId) = _readParentIds();
+      _syncLinkedParent(projectId, goalId, bloc.state);
     }
   }
 
@@ -134,6 +145,8 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
   void _onBlocStateChanged(RecordState state) {
     _extractRecords(state, _projectsQueryKey, TaskParentKind.project);
     _extractRecords(state, _goalsQueryKey, TaskParentKind.goal);
+    final (projectId, goalId) = _readParentIds();
+    _syncLinkedParent(projectId, goalId, state);
   }
 
   void _fireQueries() {
@@ -164,11 +177,21 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
     final cached = state.snapshot.queries[queryKey];
     if (cached == null) return;
 
-    final records = cached.recordIds
-        .map((id) => state.snapshot.records[id])
-        .where((r) => r != null && !r.isDeleted)
-        .map((r) => r!.record)
-        .toList();
+    final records = <Record>[];
+    for (final id in cached.recordIds) {
+      final record = resolveTypedCachedRecord(
+        state: state,
+        recordType: kind.recordType,
+        recordId: id,
+      );
+      if (record != null) {
+        records.add(record);
+        continue;
+      }
+      _recordBloc?.add(
+        GetRecordRequested(recordType: kind.recordType, recordId: id),
+      );
+    }
 
     if (!mounted) return;
     setState(() {
@@ -191,6 +214,120 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
     if (goalId != null) {
       _fireQuery(TaskParentKind.goal);
     }
+    if (_recordBloc != null) {
+      _syncLinkedParent(projectId, goalId, _recordBloc!.state);
+    }
+  }
+
+  void _syncLinkedParent(String? projectId, String? goalId, RecordState state) {
+    _syncLinkedRecord(
+      parentId: projectId,
+      recordType: TaskParentKind.project.recordType,
+      linked: _linkedProject,
+      fetchId: _linkedProjectFetchId,
+      onUpdate: (record, fetchId) {
+        _linkedProject = record;
+        _linkedProjectFetchId = fetchId;
+      },
+      state: state,
+    );
+    _syncLinkedRecord(
+      parentId: goalId,
+      recordType: TaskParentKind.goal.recordType,
+      linked: _linkedGoal,
+      fetchId: _linkedGoalFetchId,
+      onUpdate: (record, fetchId) {
+        _linkedGoal = record;
+        _linkedGoalFetchId = fetchId;
+      },
+      state: state,
+    );
+  }
+
+  void _syncLinkedRecord({
+    required String? parentId,
+    required RecordType recordType,
+    required Record? linked,
+    required String? fetchId,
+    required void Function(Record? record, String? fetchId) onUpdate,
+    required RecordState state,
+  }) {
+    if (parentId == null) {
+      if (linked != null || fetchId != null) {
+        setState(() => onUpdate(null, null));
+      }
+      return;
+    }
+
+    final typed = resolveTypedCachedRecord(
+      state: state,
+      recordType: recordType,
+      recordId: parentId,
+    );
+    if (typed != null) {
+      if (linked?.id != parentId || linked?.recordType != recordType) {
+        setState(() => onUpdate(typed, parentId));
+      }
+      return;
+    }
+
+    if (linked?.id == parentId && linked?.recordType == recordType) {
+      return;
+    }
+
+    if (fetchId != parentId) {
+      setState(() => onUpdate(linked, parentId));
+      _recordBloc?.add(
+        GetRecordRequested(recordType: recordType, recordId: parentId),
+      );
+      _bootstrapLinkedRecordFromLocalCache(parentId, recordType, onUpdate);
+    }
+  }
+
+  Future<void> _bootstrapLinkedRecordFromLocalCache(
+    String recordId,
+    RecordType recordType,
+    void Function(Record? record, String? fetchId) onUpdate,
+  ) async {
+    try {
+      final cache = CompanionAnvilApp.instance.localCache;
+      final json = await cache.loadRecord(recordType, recordId);
+      if (json == null || !mounted) return;
+
+      final (projectId, goalId) = _readParentIds();
+      final stillSelected = recordType == TaskParentKind.project.recordType
+          ? projectId == recordId
+          : goalId == recordId;
+      if (!stillSelected) return;
+
+      final record =
+          buildCompanionRecordRegistry().getConfig(recordType).fromJson(json);
+      setState(() => onUpdate(record, recordId));
+    } on StateError {
+      // Tests without [CompanionAnvilApp.init].
+    }
+  }
+
+  Record? _selectedParentRecord(
+    TaskParentKind? kind,
+    String? activeId,
+    RecordState state,
+  ) {
+    if (kind == null || activeId == null) return null;
+
+    final typed = resolveTypedCachedRecord(
+      state: state,
+      recordType: kind.recordType,
+      recordId: activeId,
+    );
+    if (typed != null) return typed;
+
+    final linked = kind == TaskParentKind.project ? _linkedProject : _linkedGoal;
+    if (linked?.id == activeId && linked?.recordType == kind.recordType) {
+      return linked;
+    }
+
+    return null;
   }
 
   bool get _isLoading => _isLoadingProjects || _isLoadingGoals;
@@ -232,17 +369,23 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
     return null;
   }
 
-  Record? _recordForId(String id, RecordState state) {
-    final cached = state.snapshot.records[id];
-    if (cached == null || cached.isDeleted) return null;
-    return cached.record;
-  }
-
   void _selectParent(TaskParentKind kind, Record record) {
     if (kind == TaskParentKind.project) {
+      setState(() {
+        _linkedProject = record;
+        _linkedProjectFetchId = record.id;
+        _linkedGoal = null;
+        _linkedGoalFetchId = null;
+      });
       _updateField(_projectKey, record.id);
       _updateField(_goalKey, null);
     } else {
+      setState(() {
+        _linkedGoal = record;
+        _linkedGoalFetchId = record.id;
+        _linkedProject = null;
+        _linkedProjectFetchId = null;
+      });
       _updateField(_goalKey, record.id);
       _updateField(_projectKey, null);
     }
@@ -250,6 +393,12 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
   }
 
   void _clearSelection() {
+    setState(() {
+      _linkedProject = null;
+      _linkedGoal = null;
+      _linkedProjectFetchId = null;
+      _linkedGoalFetchId = null;
+    });
     _updateField(_projectKey, null);
     _updateField(_goalKey, null);
   }
@@ -510,11 +659,20 @@ class _TaskParentPickerFieldState extends State<TaskParentPickerField> {
   @override
   Widget build(BuildContext context) {
     final (projectId, goalId) = _selectParentIds();
+    if (projectId != _lastSyncedProjectId || goalId != _lastSyncedGoalId) {
+      _lastSyncedProjectId = projectId;
+      _lastSyncedGoalId = goalId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _recordBloc == null) return;
+        final (currentProjectId, currentGoalId) = _readParentIds();
+        _syncLinkedParent(currentProjectId, currentGoalId, _recordBloc!.state);
+      });
+    }
     final error = _selectFieldError();
     final kind = _activeKind(projectId, goalId);
     final activeId = projectId ?? goalId;
-    final record = activeId != null && _recordBloc != null
-        ? _recordForId(activeId, _recordBloc!.state)
+    final record = activeId != null && kind != null && _recordBloc != null
+        ? _selectedParentRecord(kind, activeId, _recordBloc!.state)
         : null;
     final hasParentId = projectId != null || goalId != null;
     final theme = Theme.of(context);

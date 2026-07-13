@@ -1,4 +1,3 @@
-import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
 import 'package:frontend/core/offline/offline_task_context.dart';
@@ -9,6 +8,7 @@ import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 import 'package:frontend/features/productivity/tasks/models/task.dart';
 
 import 'package:frontend/features/productivity/shared/models/timeline_item.dart';
+import 'package:frontend/features/productivity/shared/services/productivity_date_range.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/goals/services/goal_check_in_repository.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_check_in_repository.dart';
@@ -204,8 +204,7 @@ class TrackerTimelineProvider extends TimelineContentProvider {
     TaskListHorizon horizon,
   ) async {
     final trackers = await resolveTrackers(state);
-    final active =
-        trackers.where((tracker) => _trackerOverlapsHorizon(tracker, horizon));
+    final active = trackers.where((tracker) => trackerActiveInHorizon(tracker, horizon));
 
     if (active.isEmpty) return const [];
 
@@ -258,23 +257,6 @@ class TrackerTimelineProvider extends TimelineContentProvider {
     );
     return trackers;
   }
-
-  static bool _trackerOverlapsHorizon(
-    Tracker tracker,
-    TaskListHorizon horizon,
-  ) {
-    final horizonStart = normalizeTaskListCalendarDay(horizon.from.toLocal());
-    final horizonEnd = normalizeTaskListCalendarDay(horizon.to.toLocal());
-    final trackerStart =
-        normalizeTaskListCalendarDay(tracker.startDate.toLocal());
-    final trackerEnd = tracker.endDate != null
-        ? normalizeTaskListCalendarDay(tracker.endDate!.toLocal())
-        : null;
-
-    if (trackerStart.isAfter(horizonEnd)) return false;
-    if (trackerEnd != null && trackerEnd.isBefore(horizonStart)) return false;
-    return true;
-  }
 }
 
 /// Expands goal check-in moments from the API into timeline items.
@@ -303,7 +285,7 @@ class GoalTimelineProvider extends TimelineContentProvider {
     TaskListHorizon horizon,
   ) async {
     final goals = await resolveGoals(state);
-    final active = goals.where((goal) => _goalOverlapsHorizon(goal, horizon));
+    final active = goals.where((goal) => goalActiveInHorizon(goal, horizon));
 
     if (active.isEmpty) return const [];
 
@@ -355,21 +337,5 @@ class GoalTimelineProvider extends TimelineContentProvider {
       registry: buildCompanionRecordRegistry(),
     );
     return goals;
-  }
-
-  static bool _goalOverlapsHorizon(
-    Goal goal,
-    TaskListHorizon horizon,
-  ) {
-    final horizonStart = normalizeTaskListCalendarDay(horizon.from.toLocal());
-    final horizonEnd = normalizeTaskListCalendarDay(horizon.to.toLocal());
-    final goalStart = normalizeTaskListCalendarDay(goal.startDate.toLocal());
-    final goalEnd = goal.endDate != null
-        ? normalizeTaskListCalendarDay(goal.endDate!.toLocal())
-        : null;
-
-    if (goalStart.isAfter(horizonEnd)) return false;
-    if (goalEnd != null && goalEnd.isBefore(horizonStart)) return false;
-    return true;
   }
 }

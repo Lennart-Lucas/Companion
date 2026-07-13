@@ -1,7 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
-import 'package:frontend/features/productivity/trackers/forms/tracker_form_fields.dart';
-import 'package:frontend/features/productivity/trackers/forms/tracker_record_submit_handler.dart';
+import 'package:frontend/features/productivity/trackers/forms/tracker_form_fields.dart';import 'package:frontend/features/productivity/trackers/forms/tracker_record_submit_handler.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 
 import 'package:frontend/core/scheduling/schedule_form_values.dart';
@@ -19,8 +18,7 @@ num? _parseTargetValue(dynamic value) {
 
 String? _validateTrackerTypeFields(Map<String, dynamic> values) {
   final checkInType =
-      values['check_in_type']?.toString() ?? TrackerCheckInType.task;
-  final targetRaw = values['target'];
+      values['check_in_type']?.toString() ?? TrackerCheckInType.task;  final targetRaw = values['target'];
   final unit = (values['unit'] as String? ?? '').trim();
 
   if (checkInType == TrackerCheckInType.task) {
@@ -58,8 +56,7 @@ String? _validateTrackerTypeFields(Map<String, dynamic> values) {
 }
 
 String? _validateEndDate(Map<String, dynamic> values) {
-  final schedule = TaskScheduleFormValues.fromFormMap({
-    ...values,
+  final schedule = TaskScheduleFormValues.fromFormMap({    ...values,
     TaskScheduleFormKeys.repeatEnabled: true,
   });
   final anchor = schedule.anchor;
@@ -130,8 +127,7 @@ AnvilFormConfig buildTrackerFormConfig(
       AnvilFormValidationRule(
         fieldKey: TaskScheduleFormKeys.repeatType,
         validate: TaskScheduleFormValues.validateRequired,
-      ),
-    ],
+      ),    ],
     submitHandler: TrackerRecordSubmitHandler(
       recordBloc: recordBloc,
       recordId: recordId,

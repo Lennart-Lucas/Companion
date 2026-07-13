@@ -173,8 +173,15 @@ class TaskScheduleFormValues {
       ...scheduleFormValues,
       ...entityValues,
       TaskScheduleFormKeys.repeatEnabled: true,
+      TaskScheduleFormKeys.scheduleMode: TaskScheduleMode.repeating,
       'existing_schedule_id': existingScheduleId,
     };
+    final repeatType = merged[TaskScheduleFormKeys.repeatType]?.toString();
+    if (repeatType == null ||
+        repeatType.isEmpty ||
+        repeatType == TaskRepeatType.none) {
+      merged[TaskScheduleFormKeys.repeatType] = TaskRepeatType.everyNDays;
+    }
     merged.remove(TaskScheduleFormKeys.startDate);
     return merged;
   }
@@ -437,9 +444,15 @@ class TaskScheduleFormValues {
 
   /// Validates schedule when recurrence is required (e.g. trackers).
   static String? validateRequired(Map<String, dynamic> values) {
+    final repeatType = values[TaskScheduleFormKeys.repeatType]?.toString();
     return validate({
       ...values,
       TaskScheduleFormKeys.repeatEnabled: true,
+      TaskScheduleFormKeys.scheduleMode: TaskScheduleMode.repeating,
+      if (repeatType == null ||
+          repeatType.isEmpty ||
+          repeatType == TaskRepeatType.none)
+        TaskScheduleFormKeys.repeatType: TaskRepeatType.everyNDays,
     });
   }
 

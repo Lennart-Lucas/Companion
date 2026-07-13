@@ -1,6 +1,5 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
-import 'package:frontend/core/records/companion_record_hydration.dart';
-import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+import 'package:frontend/core/records/companion_record_hydration.dart';import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 
 import 'package:frontend/core/scheduling/schedule_form_values.dart';
 
@@ -81,8 +80,8 @@ class TrackerRecordSubmitHandler extends FormSubmitHandler {
   @override
   Future<FormSubmitResult> submit(Map<String, dynamic> values) async {
     final result = await _delegate.submit(values);
-    if (!result.success) return result;
 
+    if (!result.success) return result;
     final id = _resolveTrackerId(result);
     if (id == null) return result;
 

@@ -10,6 +10,7 @@ import 'package:frontend/features/productivity/shared/services/weekly_summary_se
 import 'package:frontend/features/productivity/tasks/models/task.dart';
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
+import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 import 'package:frontend/features/productivity/trackers/services/tracker_check_in_repository.dart';
 
 class _FakeWeeklySummaryService extends WeeklySummaryService {
@@ -124,16 +125,37 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('6 – 12 Jul 2026'), findsOneWidget);
-      expect(find.text('Week recap'), findsOneWidget);
+      expect(find.text('Overview'), findsOneWidget);
+      expect(find.text('Jul 6 – 12, 2026'), findsOneWidget);
+      expect(find.text('LAST WEEK RECAP'), findsOneWidget);
       expect(find.text('Check-ins logged'), findsOneWidget);
+      expect(find.text('Tasks completed'), findsOneWidget);
+      expect(find.text('Trackers on-streak'), findsOneWidget);
+      expect(find.text('Goals on track'), findsOneWidget);
+      expect(find.text('Consistency'), findsOneWidget);
       expect(find.text('What went well last week?'), findsOneWidget);
       expect(find.text('Plan for this week'), findsOneWidget);
-      expect(find.text('Goals'), findsOneWidget);
-      expect(find.text('Trackers'), findsOneWidget);
-      expect(find.text('Projects'), findsOneWidget);
-      expect(find.text('18'), findsOneWidget);
-      expect(find.byTooltip('Previous week'), findsOneWidget);
+      expect(find.text('No goal activity this week'), findsOneWidget);
+      expect(find.text('View all >'), findsNWidgets(3));
+
+      final scrollable = find.byType(Scrollable).first;
+      await tester.scrollUntilVisible(
+        find.text('No tracker activity this week'),
+        120,
+        scrollable: scrollable,
+      );
+      expect(find.text('No tracker activity this week'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('No active projects this week'),
+        120,
+        scrollable: scrollable,
+      );
+      expect(find.text('No active projects this week'), findsOneWidget);
+
+      expect(find.byType(TrackerProgressRing), findsNWidgets(5));
+      expect(find.text('18'), findsNWidgets(2));
+      expect(find.text('74%'), findsNWidgets(2));
       expect(find.text('Today'), findsOneWidget);
     });
   });

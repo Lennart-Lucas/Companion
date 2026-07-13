@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/formatting/week_calendar.dart';
-import 'package:frontend/features/productivity/shared/widgets/weekly_summary/weekly_summary_log_button.dart';
+import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_display.dart';
 import 'package:frontend/features/productivity/goals/widgets/goal_list_progress_badge.dart';
 import 'package:frontend/features/productivity/shared/models/weekly_summary.dart';
+import 'package:frontend/features/productivity/shared/widgets/weekly_summary/weekly_summary_log_button.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 
 class WeeklySummaryGoalCard extends StatelessWidget {
   const WeeklySummaryGoalCard({
     super.key,
     required this.summary,
+    required this.listToday,
     required this.showLogButton,
     this.onTap,
     this.onLogPressed,
   });
 
   final WeeklyGoalSummary summary;
+  final DateTime listToday;
   final bool showLogButton;
   final VoidCallback? onTap;
   final VoidCallback? onLogPressed;
@@ -34,79 +37,116 @@ class WeeklySummaryGoalCard extends StatelessWidget {
     return TrackerRowPanel(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  GoalListProgressBadge(
-                    fraction: progressFraction,
-                    goalColor: goalColor,
-                    iconName: goal.icon,
-                    compact: true,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      goal.name,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TrackerStrengthBar(
-                fraction: progressFraction,
-                label: 'Progress',
-                animate: false,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$consistencyPercent% consistency · $lastCheckInLabel',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
+        borderRadius: BorderRadius.circular(
+          CompanionFormStyles.taskRowPanelRadius,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                GoalListProgressBadge(
+                  fraction: progressFraction,
+                  goalColor: goalColor,
+                  iconName: goal.icon,
+                  compact: true,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const Spacer(),
-              if (showLogButton) ...[
-                const SizedBox(height: 8),
-                WeeklySummaryLogButton(
-                  label: summary.loggedToday
-                      ? 'Logged today ✓'
-                      : 'Log check-in',
-                  enabled: !summary.loggedToday && onLogPressed != null,
-                  filled: !summary.loggedToday,
-                  color: summary.loggedToday
-                      ? trackerStrengthHighColor
-                      : goalColor,
-                  onPressed: summary.loggedToday ? null : onLogPressed,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    goal.name,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text(
+                  'Progress',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: scheme.onSurface.withValues(alpha: 0.65),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${summary.progressPercent.round()}%',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: progressFraction,
+                minHeight: 4,
+                backgroundColor: scheme.onSurface.withValues(alpha: 0.12),
+                color: goalColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$consistencyPercent% consistency · $lastCheckInLabel',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurface.withValues(alpha: 0.55),
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const Spacer(),
+            if (showLogButton) ...[
+              const SizedBox(height: 8),
+              WeeklySummaryLogButton(
+                label: summary.loggedToday
+                    ? 'Logged today ✓'
+                    : 'Log check-in',
+                enabled: !summary.loggedToday && onLogPressed != null,
+                filled: !summary.loggedToday,
+                color: summary.loggedToday
+                    ? trackerStrengthHighColor
+                    : goalColor,
+                onPressed: summary.loggedToday ? null : onLogPressed,
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 
   String _formatLastCheckIn(DateTime? at) {
-    if (at == null) return 'No check-ins yet';
+    if (at == null) return 'no check-ins yet';
     final local = at.toLocal();
     final now = DateTime.now();
     final today = normalizeTaskListCalendarDay(now);
     final day = normalizeTaskListCalendarDay(local);
-    if (day == today) return 'Last check-in today';
+    if (day == today) return 'last check-in today';
     final yesterday = today.subtract(const Duration(days: 1));
-    if (day == yesterday) return 'Last check-in yesterday';
-    return 'Last check-in ${local.day}/${local.month}';
+    if (day == yesterday) return 'last check-in yesterday';
+    final month = _monthAbbrevs[local.month - 1];
+    return 'last check-in $month ${local.day}';
   }
 }
+
+const _monthAbbrevs = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];

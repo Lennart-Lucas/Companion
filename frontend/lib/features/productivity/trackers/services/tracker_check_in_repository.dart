@@ -1,6 +1,7 @@
 import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:frontend/core/app/companion_anvil_app.dart';
+import 'package:frontend/core/debug/agent_debug_log.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
@@ -60,7 +61,26 @@ class HttpTrackerCheckInRepository implements TrackerCheckInRepository {
 
   void _ensureSuccess(ApiResponse response, String action) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('$action failed: HTTP ${response.statusCode}');
+      final body = response.bodyAsMap;
+      // #region agent log
+      agentDebugLog(
+        hypothesisId: 'A',
+        location: 'tracker_check_in_repository.dart:_ensureSuccess',
+        message: 'Tracker check-in API error',
+        data: {
+          'action': action,
+          'statusCode': response.statusCode,
+          'detail': body['detail']?.toString(),
+          'body': body,
+        },
+      );
+      // #endregion
+      final detail = body['detail']?.toString();
+      throw Exception(
+        detail != null && detail.isNotEmpty
+            ? '$action failed: $detail'
+            : '$action failed: HTTP ${response.statusCode}',
+      );
     }
   }
 
@@ -189,16 +209,30 @@ class HttpTrackerCheckInRepository implements TrackerCheckInRepository {
     DateTime? timerStartedAt,
     bool skipped = false,
   }) async {
+    final payload = trackerCheckInLogPayload(
+      checkInType: checkInType,
+      completed: completed,
+      countValue: countValue,
+      valueSeconds: valueSeconds,
+      timerStartedAt: timerStartedAt,
+      skipped: skipped,
+    );
+    // #region agent log
+    agentDebugLog(
+      hypothesisId: 'B',
+      location: 'tracker_check_in_repository.dart:updateCheckIn:request',
+      message: 'Tracker check-in PATCH request',
+      data: {
+        'trackerId': trackerId,
+        'checkInId': checkInId,
+        'checkInType': checkInType,
+        'payload': payload,
+      },
+    );
+    // #endregion
     final response = await _api.patch(
       '/trackers/$trackerId/check-ins/$checkInId',
-      body: trackerCheckInLogPayload(
-        checkInType: checkInType,
-        completed: completed,
-        countValue: countValue,
-        valueSeconds: valueSeconds,
-        timerStartedAt: timerStartedAt,
-        skipped: skipped,
-      ),
+      body: payload,
     );
     _ensureSuccess(response, 'Update tracker check-in');
     return _parseCheckIn(response.bodyAsMap);

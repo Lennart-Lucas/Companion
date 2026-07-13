@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/goals/forms/goal_picker_field.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_schedule_fields.dart';
@@ -45,6 +46,7 @@ class TrackerFormFields extends StatelessWidget {
                     AnvilIconColorPickerField(
                       iconFieldKey: 'icon',
                       colorFieldKey: 'color',
+                      registry: companionEntityIconRegistry,
                       compactSquare: true,
                       decoration: fieldDecoration,
                     ),

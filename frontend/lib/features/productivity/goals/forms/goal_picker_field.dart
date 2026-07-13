@@ -4,8 +4,10 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:frontend/core/ui/companion_form_styles.dart';
-import 'package:frontend/features/productivity/tasks/forms/task_parent_picker_field.dart';
+import 'package:frontend/core/app/companion_anvil_app.dart';
+import 'package:frontend/core/records/companion_record_hydration.dart';
+import 'package:frontend/core/records/companion_record_registry.dart';
+import 'package:frontend/core/ui/companion_form_styles.dart';import 'package:frontend/features/productivity/tasks/forms/task_parent_picker_field.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
 
 /// Goal link picker for project forms — same overlay UX as [TaskParentPickerField].
@@ -39,7 +41,9 @@ class _GoalPickerFieldState extends State<GoalPickerField> {
   List<Record> _goals = [];
   bool _isLoading = false;
   String? _goalsQueryKey;
-
+  Record? _linkedGoal;
+  String? _linkedGoalFetchId;
+  String? _lastSyncedGoalId;
   String _searchQuery = '';
   final _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
@@ -56,9 +60,9 @@ class _GoalPickerFieldState extends State<GoalPickerField> {
       _sub?.cancel();
       _sub = bloc.stream.listen(_onBlocStateChanged);
       _ensureGoalLoaded();
+      _syncLinkedGoal(_readGoalId(), bloc.state);
     }
   }
-
   @override
   void dispose() {
     _sub?.cancel();
@@ -96,8 +100,8 @@ class _GoalPickerFieldState extends State<GoalPickerField> {
 
   void _onBlocStateChanged(RecordState state) {
     _extractRecords(state);
+    _syncLinkedGoal(_readGoalId(), state);
   }
-
   void _fireQuery() {
     final query = const RecordQuery(recordType: 'goals');
     _goalsQueryKey = query.queryKey;
@@ -112,11 +116,21 @@ class _GoalPickerFieldState extends State<GoalPickerField> {
     final cached = state.snapshot.queries[queryKey];
     if (cached == null) return;
 
-    final records = cached.recordIds
-        .map((id) => state.snapshot.records[id])
-        .where((r) => r != null && !r.isDeleted)
-        .map((r) => r!.record)
-        .toList();
+    final records = <Record>[];
+    for (final id in cached.recordIds) {
+      final record = resolveTypedCachedRecord(
+        state: state,
+        recordType: 'goals',
+        recordId: id,
+      );
+      if (record != null) {
+        records.add(record);
+        continue;
+      }
+      _recordBloc?.add(
+        GetRecordRequested(recordType: 'goals', recordId: id),
+      );
+    }
 
     if (!mounted) return;
     setState(() {
@@ -127,11 +141,83 @@ class _GoalPickerFieldState extends State<GoalPickerField> {
   }
 
   void _ensureGoalLoaded() {
-    if (_readGoalId() != null) {
+    final goalId = _readGoalId();
+    if (goalId != null) {
       _fireQuery();
+      _syncLinkedGoal(goalId, _recordBloc!.state);
     }
   }
 
+  void _syncLinkedGoal(String? goalId, RecordState state) {
+    if (goalId == null) {
+      if (_linkedGoal != null || _linkedGoalFetchId != null) {
+        setState(() {
+          _linkedGoal = null;
+          _linkedGoalFetchId = null;
+        });
+      }
+      return;
+    }
+
+    final typed = resolveTypedCachedRecord(
+      state: state,
+      recordType: 'goals',
+      recordId: goalId,
+    );
+    if (typed != null) {
+      if (_linkedGoal?.id != goalId || _linkedGoal?.recordType != 'goals') {
+        setState(() {
+          _linkedGoal = typed;
+          _linkedGoalFetchId = goalId;
+        });
+      }
+      return;
+    }
+
+    if (_linkedGoal?.id == goalId && _linkedGoal?.recordType == 'goals') {
+      return;
+    }
+
+    if (_linkedGoalFetchId != goalId) {
+      _linkedGoalFetchId = goalId;
+      _recordBloc?.add(
+        GetRecordRequested(recordType: 'goals', recordId: goalId),
+      );
+      _bootstrapLinkedGoalFromLocalCache(goalId);
+    }
+  }
+
+  Future<void> _bootstrapLinkedGoalFromLocalCache(String goalId) async {
+    try {
+      final cache = CompanionAnvilApp.instance.localCache;
+      final json = await cache.loadRecord('goals', goalId);
+      if (json == null || !mounted || _readGoalId() != goalId) return;
+
+      final goal = buildCompanionRecordRegistry()
+          .getConfig('goals')
+          .fromJson(json);
+      setState(() => _linkedGoal = goal);
+    } on StateError {
+      // Tests without [CompanionAnvilApp.init].
+    }
+  }
+
+  Record? _selectedGoal(String? goalId, RecordState state) {
+    if (goalId == null) return null;
+
+    final typed = resolveTypedCachedRecord(
+      state: state,
+      recordType: 'goals',
+      recordId: goalId,
+    );
+    if (typed != null) return typed;
+
+    if (_linkedGoal?.id == goalId && _linkedGoal?.recordType == 'goals') {
+      return _linkedGoal;
+    }
+
+    return null;
+  }
   List<Record> get _sortedGoals {
     final goals = _filterByName(_goals);
     goals.sort(
@@ -156,21 +242,22 @@ class _GoalPickerFieldState extends State<GoalPickerField> {
     _updateOverlay();
   }
 
-  Record? _recordForId(String id, RecordState state) {
-    final cached = state.snapshot.records[id];
-    if (cached == null || cached.isDeleted) return null;
-    return cached.record;
-  }
-
   void _selectGoal(Record record) {
+    setState(() {
+      _linkedGoal = record;
+      _linkedGoalFetchId = record.id;
+    });
     _updateField(record.id);
     _hideDropdown();
   }
 
   void _clearSelection() {
+    setState(() {
+      _linkedGoal = null;
+      _linkedGoalFetchId = null;
+    });
     _updateField(null);
   }
-
   String _nameFor(Record record) =>
       record.toJson()['name']?.toString() ?? record.id;
 
@@ -404,9 +491,16 @@ class _GoalPickerFieldState extends State<GoalPickerField> {
   @override
   Widget build(BuildContext context) {
     final goalId = _selectGoalId();
+    if (goalId != _lastSyncedGoalId) {
+      _lastSyncedGoalId = goalId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _recordBloc == null) return;
+        _syncLinkedGoal(_readGoalId(), _recordBloc!.state);
+      });
+    }
     final error = _selectFieldError();
     final record = goalId != null && _recordBloc != null
-        ? _recordForId(goalId, _recordBloc!.state)
+        ? _selectedGoal(goalId, _recordBloc!.state)
         : null;
     final hasGoalId = goalId != null;
     final theme = Theme.of(context);

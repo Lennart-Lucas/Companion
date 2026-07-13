@@ -29,21 +29,36 @@ void main() {
     expect(schedule['start_date'], schedule['dtstart']);
   });
 
-  test('hydrate merge prefers tracker anchor over stale schedule anchor', () {
-    final merged = TaskScheduleFormValues.mergeAnchorOnlyScheduleFormValues(
-      entityValues: {
-        'name': 'Test',
-        TaskScheduleFormKeys.anchor: DateTime(2026, 6, 29),
-      },
-      scheduleFormValues: {
-        TaskScheduleFormKeys.anchor: DateTime(2026, 6, 25),
-        TaskScheduleFormKeys.startDate: DateTime(2026, 6, 25),
-        TaskScheduleFormKeys.repeatType: TaskRepeatType.weekdays,
-      },
-      existingScheduleId: '7',
-    );
+    test('hydrate merge prefers tracker anchor over stale schedule anchor', () {
+      final merged = TaskScheduleFormValues.mergeAnchorOnlyScheduleFormValues(
+        entityValues: {
+          'name': 'Test',
+          TaskScheduleFormKeys.anchor: DateTime(2026, 6, 29),
+        },
+        scheduleFormValues: {
+          TaskScheduleFormKeys.anchor: DateTime(2026, 6, 25),
+          TaskScheduleFormKeys.startDate: DateTime(2026, 6, 25),
+          TaskScheduleFormKeys.repeatType: TaskRepeatType.none,
+          TaskScheduleFormKeys.scheduleMode: TaskScheduleMode.oneOff,
+        },
+        existingScheduleId: '7',
+      );
 
-    expect(merged[TaskScheduleFormKeys.startDate], isNull);
-    expect(merged[TaskScheduleFormKeys.anchor], DateTime(2026, 6, 29));
-  });
+      expect(merged[TaskScheduleFormKeys.startDate], isNull);
+      expect(merged[TaskScheduleFormKeys.anchor], DateTime(2026, 6, 29));
+      expect(merged[TaskScheduleFormKeys.scheduleMode], TaskScheduleMode.repeating);
+      expect(merged[TaskScheduleFormKeys.repeatType], TaskRepeatType.everyNDays);
+    });
+
+    test('validateRequired treats one-off hydrated schedule as repeating', () {
+      final error = TaskScheduleFormValues.validateRequired({
+        TaskScheduleFormKeys.scheduleMode: TaskScheduleMode.oneOff,
+        TaskScheduleFormKeys.repeatEnabled: true,
+        TaskScheduleFormKeys.repeatType: TaskRepeatType.none,
+        TaskScheduleFormKeys.anchor: DateTime(2026, 6, 1),
+        TaskScheduleFormKeys.timezone: 'UTC',
+      });
+
+      expect(error, isNull);
+    });
 }

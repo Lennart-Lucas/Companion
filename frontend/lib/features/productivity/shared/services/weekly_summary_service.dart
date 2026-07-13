@@ -4,7 +4,9 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 
 import 'package:frontend/core/app/companion_anvil_app.dart';
 
+import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/core/records/productivity_record.dart';
+import 'package:frontend/core/records/typed_record_resolver.dart';
 
 import 'package:frontend/features/productivity/goals/models/goal.dart';
 
@@ -18,6 +20,7 @@ import 'package:frontend/features/productivity/projects/models/project.dart';
 
 import 'package:frontend/features/productivity/shared/models/weekly_summary.dart';
 
+import 'package:frontend/features/productivity/shared/services/productivity_date_range.dart';
 import 'package:frontend/features/productivity/shared/services/timeline_feed.dart';
 import 'package:frontend/features/productivity/shared/services/weekly_summary_timeline.dart';
 
@@ -98,7 +101,7 @@ class WeeklySummaryService {
     final goals = await _resolveGoals(state);
 
     final activeGoals = goals
-        .where((goal) => _goalOverlapsWeek(goal, normalizedWeekStart, weekEnd))
+        .where((goal) => goalActiveInRange(goal, normalizedWeekStart, weekEnd))
         .toList();
 
     final goalSummaries = await Future.wait(
@@ -122,7 +125,7 @@ class WeeklySummaryService {
     final activeTrackers = trackers
         .where(
           (tracker) =>
-              _trackerOverlapsWeek(tracker, normalizedWeekStart, weekEnd),
+              trackerActiveInRange(tracker, normalizedWeekStart, weekEnd),
         )
         .toList();
 
@@ -146,8 +149,18 @@ class WeeklySummaryService {
 
     final projects = await _resolveProjects(state);
 
+    final activeProjects = projects
+        .where(
+          (project) => projectActiveInRange(
+            project,
+            normalizedWeekStart,
+            weekEnd,
+          ),
+        )
+        .toList();
+
     final projectSummaries = _computeProjectSummaries(
-      projects: projects,
+      projects: activeProjects,
 
       taskEntries: taskEntries,
 
@@ -533,8 +546,6 @@ class WeeklySummaryService {
           .where((entry) => taskEntryInWeek(entry, weekStart, weekEnd))
           .toList();
 
-      if (projectEntries.isEmpty) continue;
-
       var completed = 0;
 
       for (final entry in projectEntries) {
@@ -573,82 +584,60 @@ class WeeklySummaryService {
 
   bool _dayInWeek(DateTime day, DateTime weekStart, DateTime weekEnd) {
     final normalized = normalizeTaskListCalendarDay(day);
-
     return !normalized.isBefore(weekStart) && !normalized.isAfter(weekEnd);
   }
 
-  bool _goalOverlapsWeek(Goal goal, DateTime weekStart, DateTime weekEnd) {
-    final goalStart = normalizeTaskListCalendarDay(goal.startDate.toLocal());
-
-    final goalEnd = goal.endDate != null
-        ? normalizeTaskListCalendarDay(goal.endDate!.toLocal())
-        : null;
-
-    if (goalStart.isAfter(weekEnd)) return false;
-
-    if (goalEnd != null && goalEnd.isBefore(weekStart)) return false;
-
-    return true;
-  }
-
-  bool _trackerOverlapsWeek(
-    Tracker tracker,
-
-    DateTime weekStart,
-
-    DateTime weekEnd,
-  ) {
-    final trackerStart = normalizeTaskListCalendarDay(
-      tracker.startDate.toLocal(),
-    );
-
-    final trackerEnd = tracker.endDate != null
-        ? normalizeTaskListCalendarDay(tracker.endDate!.toLocal())
-        : null;
-
-    if (trackerStart.isAfter(weekEnd)) return false;
-
-    if (trackerEnd != null && trackerEnd.isBefore(weekStart)) return false;
-
-    return true;
-  }
-
   Future<List<Task>> _resolveTasks(RecordState state) async {
-    return _recordsFromState<Task>(state, TaskTimelineProvider.tasksQuery);
+    return _resolveRecordsFromState<Task>(
+      state,
+      TaskTimelineProvider.tasksQuery,
+    );
   }
 
   Future<List<Goal>> _resolveGoals(RecordState state) async {
-    return _recordsFromState<Goal>(state, GoalTimelineProvider.goalsQuery);
+    return _resolveRecordsFromState<Goal>(
+      state,
+      GoalTimelineProvider.goalsQuery,
+    );
   }
 
   Future<List<Tracker>> _resolveTrackers(RecordState state) async {
-    return _recordsFromState<Tracker>(
+    return _resolveRecordsFromState<Tracker>(
       state,
-
       TrackerTimelineProvider.trackersQuery,
     );
   }
 
   Future<List<Project>> _resolveProjects(RecordState state) async {
-    return _recordsFromState<Project>(
+    return _resolveRecordsFromState<Project>(
       state,
-
       const RecordQuery(recordType: 'projects', limit: 50),
     );
   }
 
-  List<T> _recordsFromState<T extends ProductivityRecord>(
+  Future<List<T>> _resolveRecordsFromState<T extends ProductivityRecord>(
     RecordState state,
-
     RecordQuery query,
-  ) {
+  ) async {
     final cached = state.snapshot.queries[query.queryKey];
-
     if (cached == null) return const [];
 
-    return cached.recordIds
+    var records = cached.recordIds
         .map((id) => state.snapshot.records[id]?.record)
         .whereType<T>()
         .toList();
+
+    if (records.length == cached.recordIds.length) {
+      return records;
+    }
+
+    records = await resolveTypedRecords<T>(
+      state: state,
+      recordType: query.recordType,
+      recordIds: cached.recordIds,
+      cache: CompanionAnvilApp.instance.localCache,
+      registry: buildCompanionRecordRegistry(),
+    );
+    return records;
   }
 }

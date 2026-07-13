@@ -51,6 +51,18 @@ Future<Map<String, dynamic>> hydrateRecordValues({
   }
 }
 
+/// Returns a cached record only when [recordId] matches [recordType].
+Record? resolveTypedCachedRecord({
+  required RecordState state,
+  required RecordType recordType,
+  required RecordId recordId,
+}) {
+  final cached = state.snapshot.records[recordId];
+  if (cached == null || cached.isDeleted) return null;
+  if (cached.record.recordType != recordType) return null;
+  return cached.record;
+}
+
 /// Loads a linked schedule, ignoring same-id cache entries of other types.
 Future<ScheduleRecord?> loadScheduleRecord({
   required RecordBloc recordBloc,

@@ -1,5 +1,6 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/shared/widgets/transparent_form_panel.dart';
 
@@ -37,6 +38,7 @@ class EventFormFields extends StatelessWidget {
                   AnvilIconColorPickerField(
                     iconFieldKey: 'icon',
                     colorFieldKey: 'color',
+                    registry: companionEntityIconRegistry,
                     compactSquare: true,
                     decoration: fieldDecoration,
                   ),

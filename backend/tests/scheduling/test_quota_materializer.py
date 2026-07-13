@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from app.models.goal_check_in import GoalCheckIn
 from app.scheduling.quota_materializer import (
+    _create_quota_slot,
     compute_quota_display_at,
     quota_check_in_failed,
 )
@@ -63,6 +64,25 @@ def test_active_slot_drifts_to_today():
         now=now,
     )
     assert display == datetime(2026, 5, 25, 9, 0, tzinfo=UTC)
+
+
+def test_quota_slot_check_in_at_unique_per_index():
+    period_end = datetime(2026, 5, 31, 9, 0, tzinfo=UTC)
+    slots = [
+        _create_quota_slot(
+            GoalCheckIn,
+            parent_fk_name="goal_id",
+            parent_id=1,
+            period_start_at=datetime(2026, 5, 19, 9, 0, tzinfo=UTC),
+            slot_index=index,
+            spawned_at=period_end,
+            slot_kind=SLOT_KIND_FAILED,
+            locked_at=period_end,
+        )
+        for index in range(1, 4)
+    ]
+    check_in_ats = [slot.check_in_at for slot in slots]
+    assert len(check_in_ats) == len(set(check_in_ats))
 
 
 def test_quota_check_in_failed_helper():
