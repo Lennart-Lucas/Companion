@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_parent_picker_field.dart';
+import 'support/companion_test_helpers.dart';
 
 class _NoOpHandler extends FormSubmitHandler {
   @override
@@ -62,6 +63,8 @@ class _TestHarness {
     formBloc = AnvilFormBloc(
       config: _formConfig(initialValues: initialFormValues),
     );
+    recordBloc.add(const QueryRecordsRequested(RecordQuery(recordType: 'projects')));
+    recordBloc.add(const QueryRecordsRequested(RecordQuery(recordType: 'goals')));
   }
 
   Widget buildWidget(Widget field) {
@@ -95,7 +98,8 @@ void main() {
       await tester.pumpWidget(
         harness.buildWidget(const TaskParentPickerField()),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('None'), findsOneWidget);
       expect(find.text('Parent'), findsOneWidget);
@@ -110,13 +114,14 @@ void main() {
       );
 
       await tester.tap(find.text('None'));
-      await tester.pumpAndSettle();
+      await pumpUntilFound(tester, find.text('Alpha Project'));
 
-      expect(find.text('Projects'), findsOneWidget);
-      expect(find.text('Goals'), findsOneWidget);
+      expect(find.text('Beta Project'), findsOneWidget);
+      expect(find.text('Ship MVP'), findsOneWidget);
 
       await tester.tap(find.text('Alpha Project'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(harness.formBloc.state.values['project_id'], '1');
       expect(harness.formBloc.state.values['goal_id'], isNull);
@@ -127,20 +132,20 @@ void main() {
     testWidgets('selecting a goal sets goal_id and clears project_id',
         (tester) async {
       harness = _TestHarness(initialFormValues: {'project_id': '1'});
-      harness.recordBloc.add(
-        const QueryRecordsRequested(RecordQuery(recordType: 'projects')),
-      );
 
       await tester.pumpWidget(
         harness.buildWidget(const TaskParentPickerField()),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.text('Alpha Project'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.text('Ship MVP'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(harness.formBloc.state.values['goal_id'], '10');
       expect(harness.formBloc.state.values['project_id'], isNull);
@@ -149,17 +154,16 @@ void main() {
 
     testWidgets('clear button removes both parent ids', (tester) async {
       harness = _TestHarness(initialFormValues: {'project_id': '1'});
-      harness.recordBloc.add(
-        const QueryRecordsRequested(RecordQuery(recordType: 'projects')),
-      );
 
       await tester.pumpWidget(
         harness.buildWidget(const TaskParentPickerField()),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(find.byIcon(Icons.close));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(harness.formBloc.state.values['project_id'], isNull);
       expect(harness.formBloc.state.values['goal_id'], isNull);
@@ -173,10 +177,12 @@ void main() {
       );
 
       await tester.tap(find.text('None'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.enterText(find.byType(TextField), 'Ship');
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Ship MVP'), findsOneWidget);
       expect(find.text('Alpha Project'), findsNothing);

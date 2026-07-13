@@ -42,6 +42,7 @@ class ProductivityOverviewPage extends StatelessWidget {
         taskActions: taskActions,
         hideCompletedItems: hideCompletedItems,
         backgroundIconName: 'House',
+        showWeeklySummaries: true,
       ),
     );
   }

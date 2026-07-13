@@ -9,11 +9,16 @@ from app.models.goal import GoalType
 class GoalCheckInResponse(BaseModel):
     id: int
     check_in_at: datetime
+    display_at: datetime
     goal_type: GoalType
     completed: bool | None = None
     count_value: Decimal | None = None
     pulse_score: int | None = None
     logged: bool
+    period_start_at: datetime | None = None
+    slot_index: int | None = None
+    slot_kind: str | None = None
+    failed: bool = False
 
     model_config = {"from_attributes": True}
 

@@ -81,9 +81,19 @@ class HttpGoalCheckInRepository implements GoalCheckInRepository {
     int maxCount = 5000,
   }) async {
     final reference = now ?? DateTime.now();
+    final referenceDay = normalizeTaskListCalendarDay(reference);
+    final referenceEnd = DateTime(
+      referenceDay.year,
+      referenceDay.month,
+      referenceDay.day,
+      23,
+      59,
+      59,
+      999,
+    );
     final from = goal.startDate;
     final end = goal.endDate;
-    final to = end != null && end.isBefore(reference) ? end : reference;
+    final to = end != null && end.isBefore(referenceEnd) ? end : referenceEnd;
 
     return fetchCheckIns(
       goal.id,

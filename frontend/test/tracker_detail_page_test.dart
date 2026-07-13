@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/trackers/pages/tracker_detail_page.dart';
@@ -13,6 +14,7 @@ import 'package:frontend/features/productivity/trackers/services/tracker_list_ac
 import 'package:frontend/features/productivity/trackers/services/tracker_stats.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_display.dart';
 import 'package:frontend/features/productivity/trackers/widgets/tracker_stats_section.dart';
+import 'support/companion_test_helpers.dart';
 
 class _FakeTrackerListActions implements TrackerListTileActions {
   String? lastDeletedId;
@@ -259,7 +261,6 @@ void main() {
     tester,
   ) async {
     final fakeTrackerActions = _FakeTrackerListActions();
-    final navigatorKey = GlobalKey<NavigatorState>();
     final now = DateTime(2026, 6, 15, 12);
     final mockHttp = MockHttpClientService(
       baseUrl: 'http://mock.local/api/v1',
@@ -286,32 +287,41 @@ void main() {
       RecordQuery(recordType: 'trackers', limit: 50),
     ));
 
-    await tester.pumpWidget(
-      MaterialApp(
-        navigatorKey: navigatorKey,
-        theme: theHubTheme,
-        home: BlocProvider<RecordBloc>.value(
-          value: recordBloc,
-          child: const Scaffold(
-            body: Center(child: Text('Trackers list')),
+    final router = GoRouter(
+      initialLocation: '/trackers/5',
+      routes: [
+        GoRoute(
+          path: '/trackers',
+          builder: (context, state) => BlocProvider<RecordBloc>.value(
+            value: recordBloc,
+            child: const Scaffold(
+              body: Center(child: Text('Trackers list')),
+            ),
           ),
-        ),
-        routes: {
-          '/detail': (_) => BlocProvider<RecordBloc>.value(
+          routes: [
+            GoRoute(
+              path: ':trackerId',
+              builder: (context, state) => BlocProvider<RecordBloc>.value(
                 value: recordBloc,
                 child: TrackerDetailPage(
-                  trackerId: '5',
+                  trackerId: state.pathParameters['trackerId']!,
                   trackerActions: fakeTrackerActions,
                   initialCheckIns: const [],
-                  listToday: DateTime(2026, 6, 15),
+                  listToday: now,
                   checkInRepository: _FakeTrackerCheckInRepository(const []),
                 ),
               ),
-        },
-      ),
+            ),
+          ],
+        ),
+      ],
     );
 
-    navigatorKey.currentState!.pushNamed('/detail');
+    await pumpWithGoRouter(
+      tester,
+      router: router,
+      providers: [BlocProvider<RecordBloc>.value(value: recordBloc)],
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Delete tracker'));

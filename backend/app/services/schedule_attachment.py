@@ -57,6 +57,8 @@ async def apply_entity_schedule_update(
                 exdates=data.schedule.exdates,
                 start_date=data.schedule.start_date,
                 end_date=data.schedule.end_date,
+                quota_times=data.schedule.quota_times,
+                quota_period_weeks=data.schedule.quota_period_weeks,
             )
             await schedule_service.update_schedule(
                 session, user, entity.schedule_id, schedule_payload

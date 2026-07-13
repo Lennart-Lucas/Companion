@@ -2,18 +2,21 @@ import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/goals/models/goal_milestone.dart';
 import 'package:frontend/features/productivity/goals/models/goal.dart';
+import 'package:frontend/features/productivity/shared/services/quota_check_in_display.dart';
 
 
 /// Outcome of a single goal check-in moment.
 enum GoalCheckInOutcome {
   pending,
   logged,
+  missed,
 }
 
 /// Rolled-up outcome for a local calendar day (may have multiple moments).
 enum GoalDayOutcome {
   pending,
   logged,
+  missed,
 }
 
 /// Whether progress is ahead of, on, or behind the schedule.
@@ -99,10 +102,22 @@ class _EvaluatedGoalCheckIn {
   final GoalCheckInOutcome outcome;
 }
 
-/// Classifies a goal check-in as logged or pending (never missed/failed).
-GoalCheckInOutcome classifyGoalCheckIn(GoalCheckIn checkIn) {
+/// Classifies a goal check-in as logged, pending, or missed (quota failures).
+GoalCheckInOutcome classifyGoalCheckIn(
+  GoalCheckIn checkIn, {
+  DateTime? now,
+}) {
+  if (quotaCheckInFailed(slotKind: checkIn.slotKind, failed: checkIn.failed)) {
+    return GoalCheckInOutcome.missed;
+  }
   if (checkIn.logged) {
     return GoalCheckInOutcome.logged;
+  }
+  if (checkIn.isQuotaSlot && now != null) {
+    final today = normalizeTaskListCalendarDay(now.toLocal());
+    if (checkIn.timelineAt.isAfter(today)) {
+      return GoalCheckInOutcome.pending;
+    }
   }
   return GoalCheckInOutcome.pending;
 }
@@ -593,14 +608,15 @@ GoalStats computeGoalStats(
       .map(
         (checkIn) => _EvaluatedGoalCheckIn(
           checkIn: checkIn,
-          outcome: classifyGoalCheckIn(checkIn),
+          outcome: classifyGoalCheckIn(checkIn, now: reference),
         ),
       )
       .toList();
 
   final logged =
       evaluated.where((e) => e.outcome == GoalCheckInOutcome.logged).length;
-  final pending = evaluated.length - logged;
+  final pending =
+      evaluated.where((e) => e.outcome == GoalCheckInOutcome.pending).length;
 
   final dayOutcomes = _rollupDayOutcomes(evaluated);
   final weeklyTrend = _weeklyTrend(evaluated, reference);
@@ -749,7 +765,7 @@ Map<DateTime, GoalDayOutcome> _rollupDayOutcomes(
 ) {
   final byDay = <DateTime, List<GoalCheckInOutcome>>{};
   for (final item in evaluated) {
-    final key = normalizeTaskListCalendarDay(item.checkIn.checkInAt.toLocal());
+    final key = item.checkIn.timelineAt;
     byDay.putIfAbsent(key, () => []).add(item.outcome);
   }
 
@@ -758,6 +774,8 @@ Map<DateTime, GoalDayOutcome> _rollupDayOutcomes(
     final outcomes = entry.value;
     if (outcomes.contains(GoalCheckInOutcome.logged)) {
       result[entry.key] = GoalDayOutcome.logged;
+    } else if (outcomes.contains(GoalCheckInOutcome.missed)) {
+      result[entry.key] = GoalDayOutcome.missed;
     } else {
       result[entry.key] = GoalDayOutcome.pending;
     }
@@ -825,7 +843,7 @@ int _bestStreak(Map<DateTime, GoalDayOutcome> dayOutcomes) {
     final weekStart = currentWeekStart.subtract(Duration(days: 7 * offset));
     final weekEnd = weekStart.add(const Duration(days: 7));
     final weekItems = evaluated.where((e) {
-      final local = normalizeTaskListCalendarDay(e.checkIn.checkInAt.toLocal());
+      final local = e.checkIn.timelineAt;
       return !local.isBefore(weekStart) && local.isBefore(weekEnd);
     });
     final logged = weekItems

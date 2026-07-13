@@ -108,7 +108,12 @@ async def assert_schedule_recurring(
 
     schedule = await schedule_service.get_schedule(session, user, schedule_id)
     rdates = [d.occurrence_date for d in schedule.specific_dates]
-    if not is_recurring(schedule.rrule, rdates):
+    if not is_recurring(
+        schedule.rrule,
+        rdates,
+        quota_times=schedule.quota_times,
+        quota_period_weeks=schedule.quota_period_weeks,
+    ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="tracker schedule must be recurring",

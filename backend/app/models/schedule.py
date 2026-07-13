@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -12,6 +12,12 @@ class Schedule(Base):
         CheckConstraint(
             "end_date IS NULL OR start_date IS NULL OR end_date > start_date",
             name="ck_schedules_date_range",
+        ),
+        CheckConstraint(
+            "(quota_times IS NULL AND quota_period_weeks IS NULL) OR "
+            "(quota_times IS NOT NULL AND quota_period_weeks IS NOT NULL "
+            "AND quota_times >= 1 AND quota_period_weeks >= 1)",
+            name="ck_schedules_quota_fields",
         ),
     )
 
@@ -30,6 +36,8 @@ class Schedule(Base):
         DateTime(timezone=True), nullable=True
     )
     timezone: Mapped[str] = mapped_column(String(64), nullable=False)
+    quota_times: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quota_period_weeks: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

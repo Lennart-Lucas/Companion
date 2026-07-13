@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 SLOT_KIND_ACTIVE = "active"
 SLOT_KIND_LOCKED = "locked"
+SLOT_KIND_FAILED = "failed"
 
 
 def materialization_fields(check_in_at: datetime) -> dict[str, object]:

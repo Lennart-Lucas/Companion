@@ -1,5 +1,5 @@
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
-
+import 'package:frontend/features/productivity/shared/services/quota_check_in_display.dart';
 
 /// A materialized tracker check-in moment from the API.
 class TrackerCheckIn {
@@ -9,14 +9,20 @@ class TrackerCheckIn {
     required this.checkInType,
     required this.logged,
     required this.skipped,
+    this.displayAt,
     this.completed,
     this.countValue,
     this.valueSeconds,
     this.timerStartedAt,
+    this.periodStartAt,
+    this.slotIndex,
+    this.slotKind,
+    this.failed = false,
   });
 
   final int id;
   final DateTime checkInAt;
+  final DateTime? displayAt;
   final String checkInType;
   final bool? completed;
   final num? countValue;
@@ -24,11 +30,26 @@ class TrackerCheckIn {
   final DateTime? timerStartedAt;
   final bool logged;
   final bool skipped;
+  final DateTime? periodStartAt;
+  final int? slotIndex;
+  final String? slotKind;
+  final bool failed;
+
+  bool get isQuotaSlot =>
+      checkInIsQuotaSlot(periodStartAt: periodStartAt, slotIndex: slotIndex);
+
+  DateTime get timelineAt => checkInTimelineAt(
+        checkInAt: checkInAt,
+        displayAt: displayAt,
+      );
 
   factory TrackerCheckIn.fromJson(Map<String, dynamic> json) {
     return TrackerCheckIn(
       id: json['id'] as int,
       checkInAt: DateTime.parse(json['check_in_at'] as String),
+      displayAt: json['display_at'] == null
+          ? null
+          : DateTime.parse(json['display_at'] as String),
       checkInType: json['check_in_type'] as String,
       completed: json['completed'] as bool?,
       countValue: _numFromJson(json['count_value']),
@@ -38,6 +59,12 @@ class TrackerCheckIn {
           : DateTime.parse(json['timer_started_at'] as String),
       logged: json['logged'] as bool? ?? false,
       skipped: json['skipped'] as bool? ?? false,
+      periodStartAt: json['period_start_at'] == null
+          ? null
+          : DateTime.parse(json['period_start_at'] as String),
+      slotIndex: json['slot_index'] as int?,
+      slotKind: json['slot_kind'] as String?,
+      failed: json['failed'] as bool? ?? false,
     );
   }
 

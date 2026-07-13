@@ -56,6 +56,55 @@ void main() {
     });
   });
 
+  group('taskListWeekEnd', () {
+    test('returns Sunday for a Monday week start', () {
+      expect(taskListWeekEnd(DateTime(2026, 6, 8)), DateTime(2026, 6, 14));
+    });
+  });
+
+  group('formatWeekRangeLabel', () {
+    test('formats same-month range', () {
+      expect(
+        formatWeekRangeLabel(DateTime(2026, 7, 6)),
+        '6 – 12 Jul 2026',
+      );
+    });
+
+    test('formats cross-month range', () {
+      expect(
+        formatWeekRangeLabel(DateTime(2026, 6, 29)),
+        '29 Jun – 5 Jul 2026',
+      );
+    });
+  });
+
+  group('formatWeekStartParam / parseWeekStartParam', () {
+    test('round-trips Monday week start', () {
+      final weekStart = DateTime(2026, 7, 6);
+      expect(
+        parseWeekStartParam(formatWeekStartParam(weekStart)),
+        DateTime(2026, 7, 6),
+      );
+    });
+
+    test('normalizes Sunday to Monday week start', () {
+      expect(
+        parseWeekStartParam('2026-07-12'),
+        DateTime(2026, 7, 6),
+      );
+    });
+  });
+
+  group('taskListWeekIsCurrent', () {
+    test('returns true for the week containing today', () {
+      final today = DateTime(2026, 7, 13);
+      expect(
+        taskListWeekIsCurrent(DateTime(2026, 7, 13), now: today),
+        isTrue,
+      );
+    });
+  });
+
   group('taskListMonthStart', () {
     test('normalizes to first day of month', () {
       expect(taskListMonthStart(DateTime(2026, 6, 15)), DateTime(2026, 6, 1));

@@ -99,9 +99,19 @@ class HttpTrackerCheckInRepository implements TrackerCheckInRepository {
     int maxCount = 5000,
   }) async {
     final reference = now ?? DateTime.now();
+    final referenceDay = normalizeTaskListCalendarDay(reference);
+    final referenceEnd = DateTime(
+      referenceDay.year,
+      referenceDay.month,
+      referenceDay.day,
+      23,
+      59,
+      59,
+      999,
+    );
     final from = tracker.startDate;
     final end = tracker.endDate;
-    final to = end != null && end.isBefore(reference) ? end : reference;
+    final to = end != null && end.isBefore(referenceEnd) ? end : referenceEnd;
 
     return fetchCheckIns(
       tracker.id,

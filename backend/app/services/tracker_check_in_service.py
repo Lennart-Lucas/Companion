@@ -1,13 +1,20 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.schedule import Schedule
 from app.models.tracker import CheckInType, Tracker
 from app.models.tracker_check_in import TrackerCheckIn
 from app.models.user import User
 from app.scheduling.expander import ensure_dtstart_occurrence, expand_occurrences
+from app.scheduling.quota_materializer import (
+    build_display_at_resolver,
+    materialize_quota_check_ins,
+    quota_check_in_failed,
+)
+from app.scheduling.rrule_codec import is_quota_schedule
 from app.schemas.tracker_check_in import (
     TrackerCheckInCreate,
     TrackerCheckInResponse,
@@ -36,11 +43,22 @@ def _check_in_logged(check_in: TrackerCheckIn) -> bool:
 
 
 def _check_in_to_response(
-    check_in: TrackerCheckIn, check_in_type: CheckInType
+    check_in: TrackerCheckIn,
+    check_in_type: CheckInType,
+    *,
+    schedule: Schedule | None = None,
+    now: datetime | None = None,
 ) -> TrackerCheckInResponse:
+    display_at = _ensure_utc(check_in.check_in_at)
+    if schedule is not None and is_quota_schedule(
+        schedule.quota_times, schedule.quota_period_weeks
+    ):
+        display_at = build_display_at_resolver(schedule, now=now)(check_in)
+
     return TrackerCheckInResponse(
         id=check_in.id,
         check_in_at=check_in.check_in_at,
+        display_at=display_at,
         check_in_type=check_in_type,
         completed=check_in.completed,
         count_value=check_in.count_value,
@@ -48,6 +66,10 @@ def _check_in_to_response(
         timer_started_at=check_in.timer_started_at,
         skipped=bool(check_in.skipped),
         logged=_check_in_logged(check_in),
+        period_start_at=check_in.period_start_at,
+        slot_index=check_in.slot_index,
+        slot_kind=check_in.slot_kind,
+        failed=quota_check_in_failed(check_in),
     )
 
 
@@ -215,6 +237,21 @@ async def materialize_check_ins(
         return []
 
     schedule = await _load_schedule(session, tracker.schedule_id, tracker.user_id)
+    if is_quota_schedule(schedule.quota_times, schedule.quota_period_weeks):
+        return await materialize_quota_check_ins(
+            session,
+            check_in_model=TrackerCheckIn,
+            parent_fk_column=TrackerCheckIn.tracker_id,
+            parent_fk_name="tracker_id",
+            parent_id=tracker.id,
+            entity_start=tracker.start_date,
+            entity_end=tracker.end_date,
+            schedule=schedule,
+            window_start=window_start,
+            window_end=window_end,
+            max_count=max_count,
+        )
+
     bundle = _schedule_to_bundle(schedule)
     datetimes = expand_occurrences(
         bundle,
@@ -283,6 +320,8 @@ async def _prune_stale_materialized_check_ins(
         )
     )
     for check_in in result.scalars().all():
+        if check_in.period_start_at is not None:
+            continue
         at = _ensure_utc(check_in.check_in_at)
         if at in valid_ats or _check_in_logged(check_in) or check_in.timer_started_at is not None:
             continue
@@ -325,6 +364,26 @@ def _merge_check_ins_by_at(
     return sorted(by_at.values(), key=lambda c: c.check_in_at)
 
 
+async def _refresh_quota_slots_after_update(
+    session: AsyncSession,
+    tracker: Tracker,
+    schedule: Schedule,
+) -> None:
+    window_end = datetime.now(UTC) + timedelta(days=365)
+    await materialize_quota_check_ins(
+        session,
+        check_in_model=TrackerCheckIn,
+        parent_fk_column=TrackerCheckIn.tracker_id,
+        parent_fk_name="tracker_id",
+        parent_id=tracker.id,
+        entity_start=tracker.start_date,
+        entity_end=tracker.end_date,
+        schedule=schedule,
+        window_start=tracker.start_date,
+        window_end=window_end,
+    )
+
+
 async def list_check_ins(
     session: AsyncSession,
     user: User,
@@ -335,25 +394,33 @@ async def list_check_ins(
     max_count: int = 500,
 ) -> list[TrackerCheckInResponse]:
     tracker = await _load_tracker_full(session, tracker_id, user.id)
+    schedule = await _load_schedule(session, tracker.schedule_id, tracker.user_id)
     materialized = await materialize_check_ins(
         session, tracker, start=start, end=end, max_count=max_count
     )
-    materialized_ats = {_ensure_utc(c.check_in_at) for c in materialized}
-    stored = await _load_check_ins_in_window(
-        session, tracker, start=start, end=end, max_count=max_count
-    )
-    supplemental = [
-        check_in
-        for check_in in stored
-        if _ensure_utc(check_in.check_in_at) not in materialized_ats
-        and _check_in_logged(check_in)
-    ]
-    check_ins = _merge_check_ins_by_at(materialized, supplemental)
+    if is_quota_schedule(schedule.quota_times, schedule.quota_period_weeks):
+        check_ins = materialized
+    else:
+        materialized_ats = {_ensure_utc(c.check_in_at) for c in materialized}
+        stored = await _load_check_ins_in_window(
+            session, tracker, start=start, end=end, max_count=max_count
+        )
+        supplemental = [
+            check_in
+            for check_in in stored
+            if _ensure_utc(check_in.check_in_at) not in materialized_ats
+            and _check_in_logged(check_in)
+        ]
+        check_ins = _merge_check_ins_by_at(materialized, supplemental)
     if not check_ins:
         return []
 
     check_in_type = CheckInType(tracker.check_in_type)
-    return [_check_in_to_response(c, check_in_type) for c in check_ins]
+    now = datetime.now(UTC)
+    return [
+        _check_in_to_response(c, check_in_type, schedule=schedule, now=now)
+        for c in check_ins
+    ]
 
 
 async def get_check_in_owned(
@@ -387,8 +454,16 @@ async def update_check_in(
     tracker = await _load_tracker_full(session, tracker_id, user.id)
     check_in = await get_check_in_owned(session, user, tracker_id, check_in_id)
     check_in_type = CheckInType(tracker.check_in_type)
+    schedule = await _load_schedule(session, tracker.schedule_id, tracker.user_id)
 
     _apply_check_in_log(check_in, check_in_type, data)
 
     await session.flush()
-    return _check_in_to_response(check_in, check_in_type)
+
+    if is_quota_schedule(schedule.quota_times, schedule.quota_period_weeks):
+        await _refresh_quota_slots_after_update(session, tracker, schedule)
+
+    now = datetime.now(UTC)
+    return _check_in_to_response(
+        check_in, check_in_type, schedule=schedule, now=now
+    )

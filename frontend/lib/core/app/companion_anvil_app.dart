@@ -65,7 +65,7 @@ class CompanionAnvilApp {
     return app;
   }
 
-  static Future<void> init() async {
+  static Future<void> init({HttpClientServiceBase? httpClientOverride}) async {
     if (_instance != null) return;
 
     final baseUrl = AppConfig.apiBaseUrl;
@@ -81,7 +81,8 @@ class CompanionAnvilApp {
     final hydrator = RecordCacheHydrator(registry: registry, cache: localCache);
     final initialSnapshot = await hydrator.hydrate();
 
-    final httpClient = CompanionHttpClientService(baseUrl: baseUrl);
+    final httpClient = httpClientOverride ??
+        CompanionHttpClientService(baseUrl: baseUrl);
     final tokenStorage = SharedPreferencesTokenStorage();
     final tokenProvider = AuthTokenProviderService(
       tokenStorage,

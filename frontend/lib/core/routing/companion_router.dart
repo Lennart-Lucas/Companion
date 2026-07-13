@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:frontend/core/routing/companion_routes.dart';
 import 'package:frontend/features/auth/pages/login_page.dart';
 import 'package:frontend/features/auth/pages/register_page.dart';
@@ -22,6 +23,7 @@ import 'package:frontend/features/productivity/projects/pages/project_detail_pag
 import 'package:frontend/features/productivity/projects/pages/project_edit_page.dart';
 import 'package:frontend/features/productivity/projects/pages/projects_page.dart';
 import 'package:frontend/features/productivity/shared/pages/productivity_overview_page.dart';
+import 'package:frontend/features/productivity/shared/pages/weekly_summary_page.dart';
 import 'package:frontend/features/productivity/shared/pages/tasks_page.dart';
 import 'package:frontend/features/productivity/tasks/pages/task_create_page.dart';
 import 'package:frontend/features/productivity/tasks/pages/task_edit_page.dart';
@@ -76,9 +78,10 @@ Page<void> _noTransitionPage({
 GoRouter buildCompanionRouter({
   required AuthBloc authBloc,
   required Listenable refreshListenable,
+  String initialLocation = CompanionRoutes.productivityOverview,
 }) {
   return GoRouter(
-    initialLocation: CompanionRoutes.productivityOverview,
+    initialLocation: initialLocation,
     refreshListenable: refreshListenable,
     redirect: (context, state) {
       final authState = authBloc.state;
@@ -114,6 +117,22 @@ GoRouter buildCompanionRouter({
           _shellBranch(
             path: CompanionRoutes.productivityOverview,
             child: const ProductivityOverviewPage(),
+            nestedRoutes: [
+              GoRoute(
+                path: 'week/:weekStart',
+                builder: (context, state) {
+                  final weekStart = parseWeekStartParam(
+                    state.pathParameters['weekStart'],
+                  );
+                  if (weekStart == null) {
+                    return const Scaffold(
+                      body: Center(child: Text('Invalid week')),
+                    );
+                  }
+                  return WeeklySummaryPage(weekStart: weekStart);
+                },
+              ),
+            ],
           ),
           _shellBranch(
             path: CompanionRoutes.productivityEvents,

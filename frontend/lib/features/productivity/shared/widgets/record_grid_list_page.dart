@@ -342,12 +342,3 @@ class _RecordGridListPageState extends State<RecordGridListPage> {
     );
   }
 }
-
-/// @deprecated Use [RecordGridListPage].
-typedef ProductivityListPage = RecordGridListPage;
-
-/// @deprecated Use [RecordGridListItemBuilder].
-typedef ProductivityListItemBuilder = RecordGridListItemBuilder;
-
-/// @deprecated Use [RecordGridTapCallback].
-typedef ProductivityRecordTapCallback = RecordGridTapCallback;

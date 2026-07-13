@@ -5,6 +5,7 @@ import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
 import 'package:frontend/features/productivity/tasks/services/task_today_buckets.dart';
+import 'package:frontend/features/productivity/shared/models/weekly_summary.dart';
 
 /// One row in the flattened productivity timeline list.
 sealed class TimelineRow {}
@@ -19,6 +20,21 @@ class TimelineTodayBucketsRow extends TimelineRow {
   TimelineTodayBucketsRow({required this.counts});
 
   final TaskTodayBucketCounts counts;
+}
+
+class TimelineWeeklySummaryRow extends TimelineRow {
+  TimelineWeeklySummaryRow({
+    required this.weekStart,
+    required this.preview,
+    this.isFirstInDay = true,
+    this.isLastInDay = false,
+  });
+
+  /// Monday of the summarized week.
+  final DateTime weekStart;
+  final WeeklySummaryPreview preview;
+  final bool isFirstInDay;
+  final bool isLastInDay;
 }
 
 class TimelineTaskEntryRow extends TimelineRow {

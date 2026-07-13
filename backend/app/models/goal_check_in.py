@@ -30,6 +30,10 @@ class GoalCheckIn(Base):
         DateTime(timezone=True), nullable=True
     )
     slot_kind: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    period_start_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    slot_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

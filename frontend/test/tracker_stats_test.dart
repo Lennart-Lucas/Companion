@@ -425,6 +425,30 @@ void main() {
     );
   });
 
+  test('quota failed slot is missed', () {
+    final tracker = _countTracker();
+    final now = DateTime(2026, 6, 2, 12);
+    expect(
+      classifyTrackerCheckIn(
+        tracker,
+        TrackerCheckIn(
+          id: 99,
+          checkInAt: DateTime.utc(2026, 5, 19, 9),
+          displayAt: DateTime.utc(2026, 5, 31, 9),
+          checkInType: TrackerCheckInType.task,
+          logged: false,
+          skipped: false,
+          slotKind: 'failed',
+          failed: true,
+          periodStartAt: DateTime.utc(2026, 5, 19, 9),
+          slotIndex: 2,
+        ),
+        now: now,
+      ),
+      TrackerCheckInOutcome.missed,
+    );
+  });
+
   test('strength uses last 30 non-skipped check-ins', () {
     final tracker = _countTracker();
     final checkIns = <TrackerCheckIn>[

@@ -166,6 +166,7 @@ List<Task> tasksForProject(
 TaskListHorizon? projectTaskListHorizon({
   required Project project,
   required Iterable<Task> tasks,
+  DateTime? today,
 }) {
   DateTime? fromDay;
   DateTime? toDay;
@@ -186,19 +187,19 @@ TaskListHorizon? projectTaskListHorizon({
 
   if (fromDay == null || toDay == null) return null;
 
-  final today = taskListLocalToday();
+  final resolvedToday = today ?? taskListLocalToday();
   var horizonTo = toDay!;
   for (final task in tasks) {
     if (taskListStatusIsTerminal(task.status)) continue;
     if (task.isRecurring) {
-      if (horizonTo.isBefore(today)) horizonTo = today;
+      if (horizonTo.isBefore(resolvedToday)) horizonTo = resolvedToday;
       continue;
     }
     final at = task.plannedAt ?? task.deadline;
     if (at == null) continue;
-    if (normalizeTaskListCalendarDay(at).isBefore(today) &&
-        horizonTo.isBefore(today)) {
-      horizonTo = today;
+    if (normalizeTaskListCalendarDay(at).isBefore(resolvedToday) &&
+        horizonTo.isBefore(resolvedToday)) {
+      horizonTo = resolvedToday;
     }
   }
 

@@ -14,6 +14,8 @@ class ScheduleCreate(BaseModel):
     exdates: list[date] | None = None
     start_date: datetime | None = None
     end_date: datetime | None = None
+    quota_times: int | None = Field(default=None, ge=1)
+    quota_period_weeks: int | None = Field(default=None, ge=1)
 
     @field_validator("rdates", "exdates")
     @classmethod
@@ -23,13 +25,24 @@ class ScheduleCreate(BaseModel):
         return sorted(set(v))
 
     @model_validator(mode="after")
-    def validate_date_range(self) -> Self:
+    def validate_schedule_mode(self) -> Self:
         if (
             self.start_date is not None
             and self.end_date is not None
             and self.end_date <= self.start_date
         ):
             raise ValueError("end_date must be after start_date")
+
+        quota = self.quota_times is not None and self.quota_period_weeks is not None
+        rrule_mode = bool(self.rrule) or bool(self.rdates)
+        if quota and rrule_mode:
+            raise ValueError("schedule cannot combine quota fields with rrule/rdates")
+        if self.quota_times is not None and self.quota_period_weeks is None:
+            raise ValueError("quota_period_weeks required when quota_times is set")
+        if self.quota_period_weeks is not None and self.quota_times is None:
+            raise ValueError("quota_times required when quota_period_weeks is set")
+        if quota and self.rdates:
+            raise ValueError("quota schedule cannot include rdates")
         return self
 
 
@@ -41,6 +54,8 @@ class ScheduleUpdate(BaseModel):
     exdates: list[date] | None = None
     start_date: datetime | None = None
     end_date: datetime | None = None
+    quota_times: int | None = Field(default=None, ge=1)
+    quota_period_weeks: int | None = Field(default=None, ge=1)
     truncate_before_occurrence_at: datetime | None = None
 
     @field_validator("rdates", "exdates")
@@ -51,13 +66,23 @@ class ScheduleUpdate(BaseModel):
         return sorted(set(v))
 
     @model_validator(mode="after")
-    def validate_date_range(self) -> Self:
+    def validate_schedule_mode(self) -> Self:
         if (
             self.start_date is not None
             and self.end_date is not None
             and self.end_date <= self.start_date
         ):
             raise ValueError("end_date must be after start_date")
+
+        quota_set = (
+            self.quota_times is not None or self.quota_period_weeks is not None
+        )
+        if quota_set and (
+            self.quota_times is None or self.quota_period_weeks is None
+        ):
+            raise ValueError(
+                "quota_times and quota_period_weeks must be set together"
+            )
         return self
 
 
@@ -91,6 +116,8 @@ class ScheduleResponse(BaseModel):
     start_date: datetime | None
     end_date: datetime | None
     timezone: str
+    quota_times: int | None = None
+    quota_period_weeks: int | None = None
     rdates: list[ScheduleRdateResponse] = []
     exdates: list[ScheduleExdateResponse] = []
     overrides: list[ScheduleOverrideResponse] = []

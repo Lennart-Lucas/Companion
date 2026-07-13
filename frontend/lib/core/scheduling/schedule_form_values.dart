@@ -18,8 +18,23 @@ abstract final class TaskRepeatType {
   static const everyNYears = 'every_n_years';
   static const specificDates = 'specific_dates';
   static const monthDays = 'month_days';
+  static const quota = 'quota';
 
   static const all = [
+    none,
+    weekdays,
+    everyNDays,
+    everyNWeeks,
+    everyNMonths,
+    everyNYears,
+    specificDates,
+    monthDays,
+    quota,
+  ];
+
+  static const goalTrackerAll = all;
+
+  static const taskAll = [
     none,
     weekdays,
     everyNDays,
@@ -39,18 +54,22 @@ abstract final class TaskRepeatType {
         everyNYears => 'Every N years',
         specificDates => 'Specific dates',
         monthDays => 'Days of month',
+        quota => 'Quota (X times every Y weeks)',
         _ => value,
       };
 
+  static bool isQuota(String type) => type == quota;
+
   static bool needsInterval(String type) =>
-      type == weekdays ||
+      type != quota &&
+      (type == weekdays ||
       type == everyNDays ||
       type == everyNWeeks ||
       type == everyNMonths ||
       type == everyNYears ||
-      type == monthDays;
+      type == monthDays);
 
-  /// Unit label for the interval field (e.g. "day", "weeks").
+  static bool needsQuotaFields(String type) => type == quota;
   static String intervalUnitLabel(String type, {required int interval}) {
     final plural = interval != 1;
     return switch (type) {
@@ -107,6 +126,7 @@ abstract final class TaskScheduleFormKeys {
   static const exclusions = 'schedule_exclusions';
   static const existingScheduleId = 'existing_schedule_id';
   static const originalScheduleId = 'original_schedule_id';
+  static const quotaPeriodWeeks = 'quota_period_weeks';
 }
 
 /// Reads/writes schedule slice of Anvil form values.
@@ -124,6 +144,7 @@ class TaskScheduleFormValues {
     this.specificDates = const [],
     this.exclusions = const [],
     this.existingScheduleId,
+    this.quotaPeriodWeeks = 1,
   });
 
   final String mode;
@@ -138,6 +159,7 @@ class TaskScheduleFormValues {
   final List<DateTime> specificDates;
   final List<DateTime> exclusions;
   final String? existingScheduleId;
+  final int quotaPeriodWeeks;
 
   bool get repeatEnabled => mode == TaskScheduleMode.repeating;
 
@@ -186,6 +208,7 @@ class TaskScheduleFormValues {
       TaskScheduleFormKeys.specificDates: <DateTime>[],
       TaskScheduleFormKeys.exclusions: <DateTime>[],
       TaskScheduleFormKeys.existingScheduleId: null,
+      TaskScheduleFormKeys.quotaPeriodWeeks: 1,
     };
   }
 
@@ -211,6 +234,10 @@ class TaskScheduleFormValues {
       exclusions: _dateListFromValue(values[TaskScheduleFormKeys.exclusions]),
       existingScheduleId:
           linkedId != null && linkedId.isNotEmpty ? linkedId : null,
+      quotaPeriodWeeks: _intFromValue(
+        values[TaskScheduleFormKeys.quotaPeriodWeeks],
+        fallback: 1,
+      ),
     );
   }
 
@@ -225,6 +252,42 @@ class TaskScheduleFormValues {
     List<int> weekdays = [];
     List<int> monthDays = [];
     String mode;
+    final timezone = data['timezone']?.toString() ?? 'UTC';
+
+    final quotaTimes = data['quota_times'];
+    final quotaPeriodWeeksValue = data['quota_period_weeks'];
+    if (quotaTimes != null && quotaPeriodWeeksValue != null) {
+      repeatType = TaskRepeatType.quota;
+      interval = _intFromValue(quotaTimes, fallback: 1);
+      mode = TaskScheduleMode.repeating;
+      return TaskScheduleFormValues(
+        mode: mode,
+        repeatType: repeatType,
+        anchor: TaskScheduleFormValues.calendarDayFromScheduleInstant(
+          data['dtstart'] ?? data['anchor_at'],
+          timezone,
+        ),
+        startDate: TaskScheduleFormValues.calendarDayFromScheduleInstant(
+              data['start_date'],
+              timezone,
+            ) ??
+            TaskScheduleFormValues.calendarDayFromScheduleInstant(
+              data['dtstart'] ?? data['anchor_at'],
+              timezone,
+            ),
+        endDate: TaskScheduleFormValues.calendarDayFromScheduleInstant(
+          data['end_date'],
+          timezone,
+        ),
+        timezone: timezone,
+        interval: interval,
+        weekdays: weekdays,
+        monthDays: monthDays,
+        specificDates: rdates,
+        exclusions: _exclusionsFromResponse(data['exdates'] ?? data['exclusions']),
+        quotaPeriodWeeks: _intFromValue(quotaPeriodWeeksValue, fallback: 1),
+      );
+    }
 
     if (rrule != null && rrule.isNotEmpty) {
       final decoded = rruleToPattern(rrule);
@@ -240,8 +303,6 @@ class TaskScheduleFormValues {
       repeatType = TaskRepeatType.none;
       mode = TaskScheduleMode.oneOff;
     }
-
-    final timezone = data['timezone']?.toString() ?? 'UTC';
 
     return TaskScheduleFormValues(
       mode: mode,
@@ -288,6 +349,7 @@ class TaskScheduleFormValues {
             exclusions.map((d) => DateTime(d.year, d.month, d.day)).toList(),
         if (existingScheduleId != null)
           TaskScheduleFormKeys.existingScheduleId: existingScheduleId,
+        TaskScheduleFormKeys.quotaPeriodWeeks: quotaPeriodWeeks,
       };
 
   /// Resolves the schedule anchor from start date, legacy anchor field, or fallback.
@@ -328,27 +390,33 @@ class TaskScheduleFormValues {
 
     final anchor = RecordJsonUtils.dateOnly(fallbackAnchor ?? anchorDate);
     final dtstart = _dtstartAtScheduleMidnight(anchor, timezone);
-    final rrule = patternToRrule(
-      pattern: repeatType,
-      interval: interval,
-      weekdays: weekdays,
-      monthDays: monthDays,
-      until: endDate,
-    );
-
+    String? rrule;
     final map = <String, dynamic>{
       'dtstart': dtstart.toIso8601String(),
       'timezone': timezone,
     };
 
-    if (rrule != null) {
-      map['rrule'] = rrule;
-    }
+    if (repeatType == TaskRepeatType.quota) {
+      map['quota_times'] = interval;
+      map['quota_period_weeks'] = quotaPeriodWeeks;
+    } else {
+      rrule = patternToRrule(
+        pattern: repeatType,
+        interval: interval,
+        weekdays: weekdays,
+        monthDays: monthDays,
+        until: endDate,
+      );
 
-    if (repeatType == TaskRepeatType.specificDates && specificDates.isNotEmpty) {
-      map['rdates'] = specificDates
-          .map((d) => RecordJsonUtils.dateOnly(d).toIso8601String().split('T').first)
-          .toList();
+      if (rrule != null) {
+        map['rrule'] = rrule;
+      }
+
+      if (repeatType == TaskRepeatType.specificDates && specificDates.isNotEmpty) {
+        map['rdates'] = specificDates
+            .map((d) => RecordJsonUtils.dateOnly(d).toIso8601String().split('T').first)
+            .toList();
+      }
     }
 
     if (preferAnchorField || startDate != null) {
@@ -423,6 +491,15 @@ class TaskScheduleFormValues {
         schedule.endDate != null &&
         !schedule.endDate!.isAfter(schedule.startDate!)) {
       return 'End date must be after start date';
+    }
+
+    if (TaskRepeatType.needsQuotaFields(schedule.repeatType)) {
+      if (schedule.interval < 1) {
+        return 'Times per period must be at least 1';
+      }
+      if (schedule.quotaPeriodWeeks < 1) {
+        return 'Period length must be at least 1 week';
+      }
     }
 
     if (TaskRepeatType.needsInterval(schedule.repeatType)) {
@@ -571,8 +648,9 @@ String scheduleSummaryLabel(Map<String, dynamic> schedule) {
   return scheduleSummaryFromApi(schedule);
 }
 
-List<AnvilFieldOption<String>> taskRepeatTypeOptions() {
-  return TaskRepeatType.all
+List<AnvilFieldOption<String>> taskRepeatTypeOptions({bool includeQuota = false}) {
+  final types = includeQuota ? TaskRepeatType.goalTrackerAll : TaskRepeatType.taskAll;
+  return types
       .where((t) => t != TaskRepeatType.none)
       .map(
         (t) => AnvilFieldOption(

@@ -16,6 +16,7 @@ PATTERN_EVERY_N_MONTHS = "every_n_months"
 PATTERN_EVERY_N_YEARS = "every_n_years"
 PATTERN_SPECIFIC_DATES = "specific_dates"
 PATTERN_MONTH_DAYS = "month_days"
+PATTERN_QUOTA = "quota"
 
 _ISO_TO_ICAL = {
     1: "MO",
@@ -36,7 +37,21 @@ class FriendlyPattern:
     month_days: list[int] | None = None
 
 
-def is_recurring(rrule: str | None, rdates: list[date] | None) -> bool:
+def is_quota_schedule(
+    quota_times: int | None, quota_period_weeks: int | None
+) -> bool:
+    return quota_times is not None and quota_period_weeks is not None
+
+
+def is_recurring(
+    rrule: str | None,
+    rdates: list[date] | None,
+    *,
+    quota_times: int | None = None,
+    quota_period_weeks: int | None = None,
+) -> bool:
+    if is_quota_schedule(quota_times, quota_period_weeks):
+        return True
     if rrule:
         return True
     return bool(rdates)
@@ -55,7 +70,7 @@ def pattern_to_rrule(
     month_days: list[int] | None = None,
     until: datetime | None = None,
 ) -> str | None:
-    if pattern in (PATTERN_NONE, PATTERN_SPECIFIC_DATES):
+    if pattern in (PATTERN_NONE, PATTERN_SPECIFIC_DATES, PATTERN_QUOTA):
         return None
 
     n = interval or 1

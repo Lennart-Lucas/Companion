@@ -1,4 +1,4 @@
-/// Path constants and helpers for Companion [GoRouter] routes.
+import 'package:frontend/core/formatting/week_calendar.dart';
 abstract final class CompanionRoutes {
   static const login = '/login';
   static const register = '/register';
@@ -102,6 +102,9 @@ abstract final class CompanionRoutes {
   static String taskEdit(String taskId) => '$productivityTasks/$taskId/edit';
   static String taskTodayBucket(String bucket) =>
       '$productivityTasks/today/$bucket';
+
+  static String weeklySummary(DateTime weekStart) =>
+      '$productivityOverview/week/${formatWeekStartParam(weekStart)}';
 
   static String mediaTitleDetail(String mediaTitleId) =>
       '$inputsMoviesTv/$mediaTitleId';

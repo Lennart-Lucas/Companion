@@ -1,6 +1,7 @@
 import 'package:frontend/core/ui/companion_form_styles.dart';
 import 'package:frontend/features/productivity/shared/models/timeline_row.dart';
 import 'package:frontend/features/productivity/tasks/widgets/task_today_buckets_row.dart';
+import 'package:frontend/features/productivity/shared/widgets/timeline/weekly_summary_timeline_tile.dart';
 
 double timelineRowScrollExtent(TimelineRow row) {
   return switch (row) {
@@ -11,6 +12,9 @@ double timelineRowScrollExtent(TimelineRow row) {
     TimelineTodayBucketsRow() =>
       TaskTodayBucketsRow.rowHeight +
           CompanionFormStyles.sectionHeaderMarginBottom,
+    TimelineWeeklySummaryRow() =>
+      WeeklySummaryTimelineTile.rowHeight +
+          CompanionFormStyles.taskRowVerticalGap,
     TimelineAddTaskRow() =>
       CompanionFormStyles.taskTimelineNodeOuterSize +
           CompanionFormStyles.taskRowVerticalGap,

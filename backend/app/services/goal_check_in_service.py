@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -7,8 +7,15 @@ from sqlalchemy.orm import selectinload
 
 from app.models.goal import Goal, GoalType
 from app.models.goal_check_in import GoalCheckIn
+from app.models.schedule import Schedule
 from app.models.user import User
 from app.scheduling.expander import ensure_dtstart_occurrence, expand_occurrences
+from app.scheduling.quota_materializer import (
+    build_display_at_resolver,
+    materialize_quota_check_ins,
+    quota_check_in_failed,
+)
+from app.scheduling.rrule_codec import is_quota_schedule
 from app.schemas.goal_check_in import (
     GoalCheckInResponse,
     GoalCheckInUpdate,
@@ -35,16 +42,31 @@ def _check_in_logged(check_in: GoalCheckIn) -> bool:
 
 
 def _check_in_to_response(
-    check_in: GoalCheckIn, goal_type: GoalType
+    check_in: GoalCheckIn,
+    goal_type: GoalType,
+    *,
+    schedule: Schedule | None = None,
+    now: datetime | None = None,
 ) -> GoalCheckInResponse:
+    display_at = _ensure_utc(check_in.check_in_at)
+    if schedule is not None and is_quota_schedule(
+        schedule.quota_times, schedule.quota_period_weeks
+    ):
+        display_at = build_display_at_resolver(schedule, now=now)(check_in)
+
     return GoalCheckInResponse(
         id=check_in.id,
         check_in_at=check_in.check_in_at,
+        display_at=display_at,
         goal_type=goal_type,
         completed=check_in.completed,
         count_value=check_in.count_value,
         pulse_score=check_in.pulse_score,
         logged=_check_in_logged(check_in),
+        period_start_at=check_in.period_start_at,
+        slot_index=check_in.slot_index,
+        slot_kind=check_in.slot_kind,
+        failed=quota_check_in_failed(check_in),
     )
 
 
@@ -123,6 +145,21 @@ async def materialize_check_ins(
         return []
 
     schedule = await _load_schedule(session, goal.schedule_id, goal.user_id)
+    if is_quota_schedule(schedule.quota_times, schedule.quota_period_weeks):
+        return await materialize_quota_check_ins(
+            session,
+            check_in_model=GoalCheckIn,
+            parent_fk_column=GoalCheckIn.goal_id,
+            parent_fk_name="goal_id",
+            parent_id=goal.id,
+            entity_start=goal.start_date,
+            entity_end=goal.end_date,
+            schedule=schedule,
+            window_start=window_start,
+            window_end=window_end,
+            max_count=max_count,
+        )
+
     bundle = _schedule_to_bundle(schedule)
     datetimes = expand_occurrences(
         bundle,
@@ -146,6 +183,26 @@ async def materialize_check_ins(
     return sorted(check_ins, key=lambda c: c.check_in_at)
 
 
+async def _refresh_quota_slots_after_update(
+    session: AsyncSession,
+    goal: Goal,
+    schedule: Schedule,
+) -> None:
+    window_end = datetime.now(UTC) + timedelta(days=365)
+    await materialize_quota_check_ins(
+        session,
+        check_in_model=GoalCheckIn,
+        parent_fk_column=GoalCheckIn.goal_id,
+        parent_fk_name="goal_id",
+        parent_id=goal.id,
+        entity_start=goal.start_date,
+        entity_end=goal.end_date,
+        schedule=schedule,
+        window_start=goal.start_date,
+        window_end=window_end,
+    )
+
+
 async def list_check_ins(
     session: AsyncSession,
     user: User,
@@ -156,6 +213,7 @@ async def list_check_ins(
     max_count: int = 500,
 ) -> list[GoalCheckInResponse]:
     goal = await _load_goal_full(session, goal_id, user.id)
+    schedule = await _load_schedule(session, goal.schedule_id, goal.user_id)
     check_ins = await materialize_check_ins(
         session, goal, start=start, end=end, max_count=max_count
     )
@@ -163,7 +221,11 @@ async def list_check_ins(
         return []
 
     goal_type = GoalType(goal.goal_type)
-    return [_check_in_to_response(c, goal_type) for c in check_ins]
+    now = datetime.now(UTC)
+    return [
+        _check_in_to_response(c, goal_type, schedule=schedule, now=now)
+        for c in check_ins
+    ]
 
 
 async def get_check_in_owned(
@@ -197,6 +259,7 @@ async def update_check_in(
     goal = await _load_goal_full(session, goal_id, user.id)
     check_in = await get_check_in_owned(session, user, goal_id, check_in_id)
     goal_type = GoalType(goal.goal_type)
+    schedule = await _load_schedule(session, goal.schedule_id, goal.user_id)
 
     if goal_type == GoalType.pulse:
         raise HTTPException(
@@ -225,4 +288,11 @@ async def update_check_in(
 
     lock_check_in_slot(check_in)
     await session.flush()
-    return _check_in_to_response(check_in, goal_type)
+
+    if is_quota_schedule(schedule.quota_times, schedule.quota_period_weeks):
+        await _refresh_quota_slots_after_update(session, goal, schedule)
+
+    now = datetime.now(UTC)
+    return _check_in_to_response(
+        check_in, goal_type, schedule=schedule, now=now
+    )

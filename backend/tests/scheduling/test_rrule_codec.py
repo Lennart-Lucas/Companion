@@ -48,6 +48,7 @@ class TestRruleCodec:
         assert is_recurring("FREQ=DAILY;INTERVAL=1", None) is True
         assert is_recurring(None, []) is False
         assert is_recurring(None, [datetime(2026, 1, 1).date()]) is True
+        assert is_recurring(None, None, quota_times=3, quota_period_weeks=2) is True
 
     def test_validate_rrule_rejects_invalid(self):
         with pytest.raises(ValueError):

@@ -68,6 +68,7 @@ class TestCheckInResponse:
         response = _check_in_to_response(check_in, GoalType.pulse)
         assert response.logged is True
         assert response.pulse_score == 7
+        assert response.display_at == check_in.check_in_at
 
 
 def test_pulse_goal_type_constant():

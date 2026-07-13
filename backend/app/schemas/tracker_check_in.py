@@ -9,6 +9,7 @@ from app.models.tracker import CheckInType
 class TrackerCheckInResponse(BaseModel):
     id: int
     check_in_at: datetime
+    display_at: datetime
     check_in_type: CheckInType
     completed: bool | None = None
     count_value: Decimal | None = None
@@ -16,6 +17,10 @@ class TrackerCheckInResponse(BaseModel):
     timer_started_at: datetime | None = None
     skipped: bool = False
     logged: bool
+    period_start_at: datetime | None = None
+    slot_index: int | None = None
+    slot_kind: str | None = None
+    failed: bool = False
 
     model_config = {"from_attributes": True}
 

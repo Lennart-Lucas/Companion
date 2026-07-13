@@ -7,6 +7,7 @@ import 'package:frontend/core/icons/companion_icons.dart';
 import 'package:frontend/core/records/companion_record_registry.dart';
 import 'package:frontend/features/productivity/projects/models/project.dart';
 import 'package:frontend/features/productivity/tasks/models/task.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:frontend/features/productivity/tasks/models/task_list_entry.dart';
 import 'package:frontend/features/productivity/projects/pages/project_detail_page.dart';
@@ -15,6 +16,7 @@ import 'package:frontend/features/productivity/tasks/services/task_list_actions.
 import 'package:frontend/features/productivity/tasks/services/task_list_builder.dart';
 import 'package:frontend/features/productivity/tasks/services/task_list_display.dart';
 import 'package:frontend/features/productivity/projects/widgets/project_display.dart';
+import 'support/companion_test_helpers.dart';
 
 class _FakeTaskListActions implements TaskListTileActions {
   @override
@@ -111,6 +113,14 @@ Future<void> _pumpUntilLoaded(
 }
 
 void main() {
+  setUpAll(() async {
+    await initTestCompanionAnvilApp();
+  });
+
+  tearDownAll(() async {
+    await disposeTestCompanionAnvilApp();
+  });
+
   setUp(setupCompanionIcons);
 
   test('tasksForProject excludes tasks from other projects', () {
@@ -390,7 +400,6 @@ void main() {
     tester,
   ) async {
     final fakeProjectActions = _FakeProjectListActions();
-    final navigatorKey = GlobalKey<NavigatorState>();
     final mockHttp = MockHttpClientService(
       baseUrl: 'http://mock.local/api/v1',
       delay: Duration.zero,
@@ -418,32 +427,40 @@ void main() {
       RecordQuery(recordType: 'tasks', limit: 50),
     ));
 
-    await tester.pumpWidget(
-      MaterialApp(
-        navigatorKey: navigatorKey,
-        theme: theHubTheme,
-        home: BlocProvider<RecordBloc>.value(
-          value: recordBloc,
-          child: const Scaffold(
-            body: Center(child: Text('Projects list')),
+    final router = GoRouter(
+      initialLocation: '/projects/10',
+      routes: [
+        GoRoute(
+          path: '/projects',
+          builder: (context, state) => BlocProvider<RecordBloc>.value(
+            value: recordBloc,
+            child: const Scaffold(
+              body: Center(child: Text('Projects list')),
+            ),
           ),
-        ),
-        routes: {
-          '/detail': (_) => BlocProvider<RecordBloc>.value(
+          routes: [
+            GoRoute(
+              path: ':projectId',
+              builder: (context, state) => BlocProvider<RecordBloc>.value(
                 value: recordBloc,
                 child: ProjectDetailPage(
-                  projectId: '10',
+                  projectId: state.pathParameters['projectId']!,
                   taskActions: _FakeTaskListActions(),
                   taskListBuilder: _StubTaskListBuilder(),
                   projectActions: fakeProjectActions,
                 ),
               ),
-        },
-      ),
+            ),
+          ],
+        ),
+      ],
     );
 
-    navigatorKey.currentState!.pushNamed('/detail');
-    await tester.pumpAndSettle();
+    await pumpWithGoRouter(
+      tester,
+      router: router,
+      providers: [BlocProvider<RecordBloc>.value(value: recordBloc)],
+    );
     await _pumpUntilLoaded(tester, find.text('Website redesign'));
 
     await tester.tap(find.byTooltip('Delete project'));

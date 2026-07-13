@@ -108,6 +108,9 @@ TaskListRow _fromTimelineRow(TimelineRow row) {
     TimelineGoalCheckInRow() => throw StateError(
         'Task list rows cannot include goal check-in entries',
       ),
+    TimelineWeeklySummaryRow() => throw StateError(
+        'Task list rows cannot include weekly summary entries',
+      ),
   };
 }
 

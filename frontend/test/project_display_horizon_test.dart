@@ -49,6 +49,7 @@ void main() {
     });
 
     test('extends project span when a task falls outside project dates', () {
+      final today = DateTime(2026, 7, 5);
       final horizon = projectTaskListHorizon(
         project: Project(
           id: '1',
@@ -65,6 +66,7 @@ void main() {
             plannedAt: DateTime(2026, 7, 5),
           ),
         ],
+        today: today,
       );
 
       expect(horizon, isNotNull);
@@ -84,6 +86,7 @@ void main() {
     });
 
     test('extends past span through today for open overdue tasks', () {
+      final today = DateTime(2026, 6, 15);
       final horizon = projectTaskListHorizon(
         project: Project(
           id: '1',
@@ -100,14 +103,12 @@ void main() {
             plannedAt: DateTime(2026, 5, 10),
           ),
         ],
+        today: today,
       );
 
       expect(horizon, isNotNull);
       expect(horizon!.localFromDay, DateTime(2026, 5, 1));
-      expect(
-        horizon.localToDay.isBefore(taskListLocalToday()),
-        isFalse,
-      );
+      expect(horizon.localToDay, today);
     });
 
     test('does not extend past span for completed tasks only', () {

@@ -25,6 +25,7 @@ class ScheduleFormConfig {
     this.companionEndDateFieldKey,
     this.companionEndDateLabel = 'End date',
     this.onModeChanged,
+    this.includeQuotaRepeat = false,
   });
 
   final List<String> modes;
@@ -41,6 +42,7 @@ class ScheduleFormConfig {
   final String? companionEndDateFieldKey;
   final String companionEndDateLabel;
   final ScheduleModeChanged? onModeChanged;
+  final bool includeQuotaRepeat;
 }
 
 abstract final class ScheduleFormConfigs {
@@ -74,6 +76,7 @@ abstract final class ScheduleFormConfigs {
     showExclusions: false,
     useAnchorField: true,
     companionEndDateFieldKey: 'end_date',
+    includeQuotaRepeat: true,
   );
 
   static final goal = ScheduleFormConfig(
@@ -84,6 +87,7 @@ abstract final class ScheduleFormConfigs {
     showExclusions: false,
     useAnchorField: true,
     companionEndDateFieldKey: 'end_date',
+    includeQuotaRepeat: true,
   );
 }
 
@@ -134,6 +138,10 @@ class ScheduleFormFields extends StatelessWidget {
     );
     final interval = context.select<AnvilFormBloc, int>(
       (bloc) => TaskScheduleFormValues.fromFormMap(bloc.state.values).interval,
+    );
+    final quotaPeriodWeeks = context.select<AnvilFormBloc, int>(
+      (bloc) =>
+          TaskScheduleFormValues.fromFormMap(bloc.state.values).quotaPeriodWeeks,
     );
 
     const fieldSpacing = CompanionFormStyles.fieldSpacing;
@@ -230,21 +238,24 @@ class ScheduleFormFields extends StatelessWidget {
               fieldKey: TaskScheduleFormKeys.repeatType,
               label: 'Repeat mode',
               isRequired: true,
-              options: taskRepeatTypeOptions(),
+              options: taskRepeatTypeOptions(includeQuota: config.includeQuotaRepeat),
               decoration: fieldDecoration,
             );
-            final intervalEnabled = TaskRepeatType.needsInterval(repeatType);
+            final intervalEnabled = TaskRepeatType.needsInterval(repeatType) ||
+                TaskRepeatType.needsQuotaFields(repeatType);
             final everyDecoration = taskDateFieldDecoration(
               context,
               fieldDecoration,
               enabled: intervalEnabled,
             );
-            final everyLabel = intervalEnabled
-                ? TaskRepeatType.intervalFieldLabel(
-                    repeatType,
-                    interval: interval,
-                  )
-                : 'Every';
+            final everyLabel = TaskRepeatType.needsQuotaFields(repeatType)
+                ? 'Times per period'
+                : intervalEnabled
+                    ? TaskRepeatType.intervalFieldLabel(
+                        repeatType,
+                        interval: interval,
+                      )
+                    : 'Every';
             final everyField = wrapDimmedFormField(
               dimmed: !intervalEnabled,
               child: AnvilNumberField(
@@ -264,11 +275,36 @@ class ScheduleFormFields extends StatelessWidget {
                   repeatModeField,
                   const SizedBox(height: fieldSpacing),
                   everyField,
+                  if (TaskRepeatType.needsQuotaFields(repeatType)) ...[
+                    const SizedBox(height: fieldSpacing),
+                    AnvilNumberField(
+                      fieldKey: TaskScheduleFormKeys.quotaPeriodWeeks,
+                      label: 'Every (weeks)',
+                      isRequired: true,
+                      min: 1,
+                      decoration: fieldDecoration,
+                    ),
+                  ],
                 ],
               );
             }
 
-            return AnvilFormRow(children: [repeatModeField, everyField]);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AnvilFormRow(children: [repeatModeField, everyField]),
+                if (TaskRepeatType.needsQuotaFields(repeatType)) ...[
+                  const SizedBox(height: fieldSpacing),
+                  AnvilNumberField(
+                    fieldKey: TaskScheduleFormKeys.quotaPeriodWeeks,
+                    label: 'Every $quotaPeriodWeeks ${quotaPeriodWeeks == 1 ? 'week' : 'weeks'}',
+                    isRequired: true,
+                    min: 1,
+                    decoration: fieldDecoration,
+                  ),
+                ],
+              ],
+            );
           },
         ),
         if (repeatType == TaskRepeatType.weekdays)

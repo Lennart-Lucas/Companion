@@ -3,6 +3,7 @@ import 'package:frontend/core/icons/companion_task_field_icon.dart';
 import 'package:frontend/core/icons/companion_task_field_icons.dart';
 import 'package:frontend/core/theme/companion_semantic_colors.dart';
 import 'package:frontend/core/ui/companion_form_styles.dart';
+import 'package:frontend/core/ui/outcome_colors.dart';
 import 'package:frontend/features/productivity/tasks/forms/task_field_option_tile.dart';
 import 'package:frontend/features/productivity/goals/models/goal_check_in.dart';
 import 'package:frontend/features/productivity/goals/models/goal.dart';
@@ -16,6 +17,7 @@ String goalCheckInOutcomeLabel(GoalCheckInOutcome outcome) =>
     switch (outcome) {
       GoalCheckInOutcome.logged => 'Logged',
       GoalCheckInOutcome.pending => 'Pending',
+      GoalCheckInOutcome.missed => 'Failed',
     };
 
 Color goalCheckInOutcomeColor(
@@ -25,12 +27,14 @@ Color goalCheckInOutcomeColor(
     switch (outcome) {
       GoalCheckInOutcome.logged => companionSuccessColor,
       GoalCheckInOutcome.pending => taskStatusColor('pending', scheme),
+      GoalCheckInOutcome.missed => trackerStrengthLowColor,
     };
 
 IconData goalCheckInOutcomeIcon(GoalCheckInOutcome outcome) =>
     switch (outcome) {
       GoalCheckInOutcome.logged => Icons.check_circle_outline,
       GoalCheckInOutcome.pending => Icons.schedule,
+      GoalCheckInOutcome.missed => Icons.cancel_outlined,
     };
 
 String? goalCheckInValueSummary(Goal goal, GoalCheckIn checkIn) {
@@ -151,6 +155,7 @@ class _GoalCheckInTimelineTileState extends State<GoalCheckInTimelineTile> {
 
   bool _canInteractWithOutcome(GoalCheckInOutcome outcome) {
     if (goal.goalType == GoalType.pulse) return false;
+    if (outcome == GoalCheckInOutcome.missed) return false;
     if (widget.onOutcomePressed == null && widget.onOutcomeLongPress == null) {
       return false;
     }
@@ -168,7 +173,7 @@ class _GoalCheckInTimelineTileState extends State<GoalCheckInTimelineTile> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
-    final outcome = classifyGoalCheckIn(checkIn);
+    final outcome = classifyGoalCheckIn(checkIn, now: DateTime.now());
     final outcomeColor = goalCheckInOutcomeColor(outcome, scheme);
     final goalColor = parseGoalColor(goal.color, scheme.primary) ?? scheme.primary;
     final valueSummary = goalCheckInValueSummary(goal, checkIn);

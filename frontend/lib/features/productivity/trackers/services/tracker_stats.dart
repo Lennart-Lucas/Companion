@@ -2,6 +2,7 @@ import 'package:frontend/core/formatting/week_calendar.dart';
 import 'package:frontend/features/productivity/trackers/models/tracker.dart';
 
 import 'package:frontend/features/productivity/trackers/models/tracker_check_in.dart';
+import 'package:frontend/features/productivity/shared/services/quota_check_in_display.dart';
 
 /// Outcome of a single check-in moment for stats.
 enum TrackerCheckInOutcome {
@@ -159,7 +160,11 @@ TrackerCheckInOutcome classifyTrackerCheckIn(
   TrackerCheckIn checkIn, {
   required DateTime now,
 }) {
-  final checkInDay = normalizeTaskListCalendarDay(checkIn.checkInAt.toLocal());
+  if (quotaCheckInFailed(slotKind: checkIn.slotKind, failed: checkIn.failed)) {
+    return TrackerCheckInOutcome.missed;
+  }
+
+  final checkInDay = checkIn.timelineAt;
   final today = normalizeTaskListCalendarDay(now.toLocal());
 
   if (checkInDay.isAfter(today)) {

@@ -172,6 +172,13 @@ abstract final class CompanionNavigation {
     );
   }
 
+  static Future<void> openWeeklySummary(
+    BuildContext context, {
+    required DateTime weekStart,
+  }) {
+    return context.push(CompanionRoutes.weeklySummary(weekStart));
+  }
+
   static Future<void> openMediaTitleDetail(
     BuildContext context, {
     required RecordId mediaTitleId,

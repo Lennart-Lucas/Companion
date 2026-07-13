@@ -88,7 +88,14 @@ def schedule_to_response(schedule: Schedule) -> ScheduleResponse:
         rdates=schedule.specific_dates,
         exdates=schedule.exclusions,
         overrides=schedule.overrides,
-        is_recurring=is_recurring(schedule.rrule, rdates),
+        is_recurring=is_recurring(
+            schedule.rrule,
+            rdates,
+            quota_times=schedule.quota_times,
+            quota_period_weeks=schedule.quota_period_weeks,
+        ),
+        quota_times=schedule.quota_times,
+        quota_period_weeks=schedule.quota_period_weeks,
         created_at=schedule.created_at,
         updated_at=schedule.updated_at,
     )
@@ -123,6 +130,8 @@ def _validate_create_or_update(
     rdates: list[date] | None,
     exdates: list[date] | None,
     timezone: str,
+    quota_times: int | None = None,
+    quota_period_weeks: int | None = None,
 ) -> None:
     try:
         validate_schedule_payload(
@@ -130,6 +139,8 @@ def _validate_create_or_update(
             rdates=rdates,
             exdates=exdates,
             timezone=timezone,
+            quota_times=quota_times,
+            quota_period_weeks=quota_period_weeks,
         )
     except ScheduleValidationError as exc:
         raise HTTPException(
@@ -191,6 +202,8 @@ async def create_schedule(
         rdates=data.rdates,
         exdates=data.exdates,
         timezone=data.timezone,
+        quota_times=data.quota_times,
+        quota_period_weeks=data.quota_period_weeks,
     )
 
     schedule = Schedule(
@@ -200,6 +213,8 @@ async def create_schedule(
         start_date=data.start_date,
         end_date=data.end_date,
         timezone=data.timezone,
+        quota_times=data.quota_times,
+        quota_period_weeks=data.quota_period_weeks,
     )
     session.add(schedule)
     await session.flush()
@@ -264,6 +279,16 @@ async def update_schedule(
     dtstart = data.dtstart if data.dtstart is not None else schedule.dtstart
     timezone = data.timezone if data.timezone is not None else schedule.timezone
     rrule = data.rrule if "rrule" in data.model_fields_set else schedule.rrule
+    quota_times = (
+        data.quota_times
+        if "quota_times" in data.model_fields_set
+        else schedule.quota_times
+    )
+    quota_period_weeks = (
+        data.quota_period_weeks
+        if "quota_period_weeks" in data.model_fields_set
+        else schedule.quota_period_weeks
+    )
     start_date = (
         data.start_date if "start_date" in data.model_fields_set else schedule.start_date
     )
@@ -305,6 +330,8 @@ async def update_schedule(
         rdates=rdates,
         exdates=exdates,
         timezone=timezone,
+        quota_times=quota_times,
+        quota_period_weeks=quota_period_weeks,
     )
 
     if data.dtstart is not None:
@@ -313,6 +340,10 @@ async def update_schedule(
         schedule.timezone = data.timezone
     if "rrule" in data.model_fields_set:
         schedule.rrule = data.rrule
+    if "quota_times" in data.model_fields_set:
+        schedule.quota_times = data.quota_times
+    if "quota_period_weeks" in data.model_fields_set:
+        schedule.quota_period_weeks = data.quota_period_weeks
     if "start_date" in data.model_fields_set:
         schedule.start_date = data.start_date
     if "end_date" in data.model_fields_set or "truncate_before_occurrence_at" in data.model_fields_set:

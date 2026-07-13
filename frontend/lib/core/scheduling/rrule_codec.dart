@@ -10,6 +10,7 @@ abstract final class ScheduleRepeatType {
   static const everyNYears = 'every_n_years';
   static const specificDates = 'specific_dates';
   static const monthDays = 'month_days';
+  static const quota = 'quota';
 }
 
 const _isoToIcal = {
@@ -36,7 +37,13 @@ class ScheduleRrulePattern {
   final List<int> monthDays;
 }
 
-bool scheduleIsRecurring(String? rrule, List<DateTime> rdates) {
+bool scheduleIsRecurring(
+  String? rrule,
+  List<DateTime> rdates, {
+  int? quotaTimes,
+  int? quotaPeriodWeeks,
+}) {
+  if (quotaTimes != null && quotaPeriodWeeks != null) return true;
   if (rrule != null && rrule.isNotEmpty) return true;
   return rdates.isNotEmpty;
 }
@@ -51,6 +58,7 @@ String? patternToRrule({
   switch (pattern) {
     case ScheduleRepeatType.none:
     case ScheduleRepeatType.specificDates:
+    case ScheduleRepeatType.quota:
       return null;
     case ScheduleRepeatType.everyNDays:
       return _withUntil('FREQ=DAILY;INTERVAL=$interval', until);

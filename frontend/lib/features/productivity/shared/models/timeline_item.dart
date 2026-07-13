@@ -74,11 +74,10 @@ class TrackerTimelineItem extends TimelineSortableItem {
   final TrackerCheckIn checkIn;
 
   @override
-  DateTime? get localDay =>
-      normalizeTaskListCalendarDay(checkIn.checkInAt.toLocal());
+  DateTime? get localDay => checkIn.timelineAt;
 
   @override
-  DateTime? get sortAt => checkIn.checkInAt;
+  DateTime? get sortAt => checkIn.displayAt ?? checkIn.checkInAt;
 
   @override
   String get listKey => 'tracker:${tracker.id}:${checkIn.id}';
@@ -95,11 +94,10 @@ class GoalTimelineItem extends TimelineSortableItem {
   final GoalCheckIn checkIn;
 
   @override
-  DateTime? get localDay =>
-      normalizeTaskListCalendarDay(checkIn.checkInAt.toLocal());
+  DateTime? get localDay => checkIn.timelineAt;
 
   @override
-  DateTime? get sortAt => checkIn.checkInAt;
+  DateTime? get sortAt => checkIn.displayAt ?? checkIn.checkInAt;
 
   @override
   String get listKey => 'goal:${goal.id}:${checkIn.id}';

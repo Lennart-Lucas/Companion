@@ -69,6 +69,15 @@ class GoalDayOutcomeAppearance {
         );
         dayNumberColor =
             scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.92);
+      case GoalDayOutcome.missed:
+        background = _blendOnBase(scheme, trackerStrengthLowColor, 0.32);
+        marker = const Icon(
+          Icons.close,
+          size: _markerSize,
+          color: trackerStrengthLowColor,
+        );
+        dayNumberColor =
+            scheme.onSurface.withValues(alpha: isFuture ? 0.35 : 0.92);
     }
 
     if (muted) {

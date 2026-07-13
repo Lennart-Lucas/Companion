@@ -73,7 +73,10 @@ class TrackerCreate(BaseModel):
         if self.schedule_id is not None and self.schedule is not None:
             raise ValueError("tracker cannot have both schedule_id and schedule")
         if self.schedule is not None and not is_recurring(
-            self.schedule.rrule, self.schedule.rdates
+            self.schedule.rrule,
+            self.schedule.rdates,
+            quota_times=self.schedule.quota_times,
+            quota_period_weeks=self.schedule.quota_period_weeks,
         ):
             raise ValueError("tracker schedule must be recurring")
         if self.end_date is not None and self.end_date <= self.start_date:
@@ -124,7 +127,10 @@ class TrackerUpdate(BaseModel):
         if self.schedule_id is not None and self.schedule is not None:
             raise ValueError("tracker cannot have both schedule_id and schedule")
         if self.schedule is not None and not is_recurring(
-            self.schedule.rrule, self.schedule.rdates
+            self.schedule.rrule,
+            self.schedule.rdates,
+            quota_times=self.schedule.quota_times,
+            quota_period_weeks=self.schedule.quota_period_weeks,
         ):
             raise ValueError("tracker schedule must be recurring")
         return self
